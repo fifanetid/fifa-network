@@ -85,7 +85,12 @@
 </section>
 <section class="panel billing-panel"><div class="panel-heading"><div><span class="eyebrow">PAYMENT HISTORY</span><h3>Riwayat pembayaran</h3></div></div>
 <div class="table-wrap"><table class="users-table"><thead><tr><th>Referensi</th><th>Invoice</th><th>Nominal</th><th>Metode</th><th>Tanggal</th><th>Catatan</th></tr></thead><tbody>
-<% payments.forEach(p=>{ %><tr><td><%= p.payment_reference %></td><td><%= p.invoice_number %></td><td><%= rupiah(p.amount_idr) %></td><td><%= p.payment_method %></td><td><%= p.paid_at %></td><td><%= p.notes || "-" %></td></tr><% }) %>
+<% payments.forEach(p=>{ const refundable=p.amount_idr-p.reversed_idr; %><tr><td><strong><%= p.payment_reference %></strong><small>Dikembalikan: <%= rupiah(p.reversed_idr) %></small></td><td><%= p.invoice_number %></td><td><%= rupiah(p.amount_idr) %><small>Net: <%= rupiah(refundable) %></small></td><td><%= p.payment_method %></td><td><%= p.paid_at %></td><td><%= p.notes || "-" %><% if(currentUser.role==="admin"&&refundable>0){ %><details><summary>Reversal</summary><form class="mini-edit" method="post" action="/billing/payments/<%= p.id %>/reversals"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="number" name="amount_idr" min="1" max="<%= refundable %>" placeholder="Nominal reversal" required><input name="reason" minlength="5" maxlength="500" placeholder="Alasan koreksi (wajib)" required><button class="small-button">Catat reversal</button></form></details><% } %></td></tr><% }) %>
 <% if(!payments.length){ %><tr><td colspan="6" class="muted-text">Belum ada pembayaran.</td></tr><% } %>
+</tbody></table></div></section>
+<section class="panel billing-panel"><div class="panel-heading"><div><span class="eyebrow">REVERSAL AUDIT</span><h3>Riwayat pembalikan pembayaran</h3></div></div>
+<div class="table-wrap"><table class="users-table"><thead><tr><th>Referensi reversal</th><th>Referensi pembayaran</th><th>Invoice</th><th>Nominal</th><th>Alasan</th><th>Waktu</th></tr></thead><tbody>
+<% reversals.forEach(r=>{ %><tr><td><%= r.reversal_reference %></td><td><%= r.payment_reference %></td><td><%= r.invoice_number %></td><td><%= rupiah(r.amount_idr) %></td><td><%= r.reason %></td><td><%= r.reversed_at %></td></tr><% }) %>
+<% if(!reversals.length){ %><tr><td colspan="6" class="muted-text">Belum ada reversal.</td></tr><% } %>
 </tbody></table></div></section>
 <%- include("../partials/footer") %>
