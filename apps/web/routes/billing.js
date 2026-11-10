@@ -14,8 +14,9 @@ function pageData(extra = {}) {
     customers: db.prepare("SELECT * FROM customers ORDER BY id DESC").all(),
     plans: db.prepare("SELECT * FROM internet_plans ORDER BY id DESC").all(),
     subscriptions: db.prepare("SELECT s.*,c.customer_code,c.full_name,p.name AS plan_name,p.monthly_price_idr FROM subscriptions s JOIN customers c ON c.id=s.customer_id JOIN internet_plans p ON p.id=s.plan_id ORDER BY s.id DESC").all(),
-    invoices: db.prepare("SELECT i.*,c.full_name,c.customer_code,COALESCE((SELECT SUM(amount_idr) FROM payments WHERE invoice_id=i.id),0) AS paid_idr FROM invoices i JOIN customers c ON c.id=i.customer_id ORDER BY i.id DESC").all(),
-    payments: db.prepare("SELECT p.*,i.invoice_number FROM payments p JOIN invoices i ON i.id=p.invoice_id ORDER BY p.id DESC LIMIT 100").all(),
+    invoices: db.prepare("SELECT i.*,c.full_name,c.customer_code,COALESCE((SELECT SUM(amount_idr) FROM payments WHERE invoice_id=i.id),0) - COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r JOIN payments p ON p.id=r.payment_id WHERE p.invoice_id=i.id),0) AS paid_idr FROM invoices i JOIN customers c ON c.id=i.customer_id ORDER BY i.id DESC").all(),
+    payments: db.prepare("SELECT p.*,i.invoice_number,COALESCE((SELECT SUM(amount_idr) FROM payment_reversals WHERE payment_id=p.id),0) AS reversed_idr FROM payments p JOIN invoices i ON i.id=p.invoice_id ORDER BY p.id DESC LIMIT 100").all(),
+    reversals: db.prepare("SELECT r.*,p.payment_reference,i.invoice_number FROM payment_reversals r JOIN payments p ON p.id=r.payment_id JOIN invoices i ON i.id=p.invoice_id ORDER BY r.id DESC LIMIT 100").all(),
     ...extra
   };
 }
@@ -80,11 +81,17 @@ router.post("/invoices/:id/payments", managers, (req,res) => {
   try{billing.recordPayment({invoiceId:req.params.id,input:req.body,userId:req.session.user.id});res.redirect("/billing?notice=Pembayaran%20berhasil%20dicatat.");}
   catch(e){return fail(res,e);}
 });
+router.post("/payments/:id/reversals", admins, (req,res) => {
+  try {
+    const reversal = billing.recordPaymentReversal({ paymentId: req.params.id, input: req.body, userId: req.session.user.id });
+    res.redirect("/billing?notice=Pembalikan%20pembayaran%20" + encodeURIComponent(reversal.reversal_reference) + "%20berhasil%20dicatat.");
+  } catch(e) { return fail(res,e); }
+});
 router.post("/invoices/:id/void", admins, (req,res) => {
   const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.status(400).send("ID tidak valid.");
   const invoice=db.prepare("SELECT status FROM invoices WHERE id=?").get(id);if(!invoice)return res.status(404).send("Invoice tidak ditemukan.");
-  const paid=db.prepare("SELECT COALESCE(SUM(amount_idr),0) AS total FROM payments WHERE invoice_id=?").get(id).total;
-  if(paid>0)return res.status(409).send("Invoice dengan pembayaran tidak dapat dibatalkan.");
+  const paymentCount=db.prepare("SELECT COUNT(*) AS total FROM payments WHERE invoice_id=?").get(id).total;
+  if(paymentCount>0)return res.status(409).send("Invoice yang memiliki riwayat pembayaran tidak dapat dibatalkan, termasuk setelah reversal.");
   db.prepare("UPDATE invoices SET status='void' WHERE id=?").run(id);res.redirect("/billing?notice=Invoice%20dibatalkan.");
 });
 module.exports=router;
