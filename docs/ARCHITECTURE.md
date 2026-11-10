@@ -17,6 +17,8 @@
 - `invoices`: snapshot nominal dan periode tagihan, unik per langganan/periode.
 - `payments`: catatan pembayaran append-only yang mengurangi saldo invoice.
 
+Migrasi `004_billing_integrity.sql` menambahkan trigger yang memastikan pelanggan invoice sama dengan pelanggan langganan, menolak pembayaran pada invoice void atau yang melampaui total, dan menyinkronkan status invoice saat pembayaran dicatat. Riwayat pembayaran tidak dapat diubah atau dihapus langsung; koreksi pembayaran membutuhkan workflow reversal/audit terpisah yang belum tersedia.
+
 Nominal uang disimpan sebagai integer rupiah. Status invoice: `unpaid`, `partial`, `paid`, atau `void`. Status jatuh tempo (overdue) dapat diturunkan dari due date dan saldo, bukan status pembayaran baru yang disimpan.
 
 ## Pemisahan GenieACS
