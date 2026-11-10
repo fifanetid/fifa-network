@@ -15,11 +15,13 @@ test.after(() => {
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
 
+let seedNumber = 0;
 function seed() {
+  seedNumber += 1;
   const customer = db.prepare(`INSERT INTO customers (customer_code,full_name,phone,address)
-    VALUES ('FN-TEST-01','Pelanggan Uji','081234567890','Jl. Contoh No. 1')`).run();
+    VALUES (?,?,'081234567890','Jl. Contoh No. 1')`).run("FN-TEST-" + seedNumber, "Pelanggan Uji " + seedNumber);
   const plan = db.prepare(`INSERT INTO internet_plans (plan_code,name,speed_mbps,monthly_price_idr)
-    VALUES ('FIF10','Paket 10 Mbps',10,100000)`).run();
+    VALUES (?,'Paket 10 Mbps',10,100000)`).run("FIF10-" + seedNumber);
   const subscription = db.prepare(`INSERT INTO subscriptions (customer_id,plan_id,start_date,billing_day)
     VALUES (?,?,'2026-11-01',1)`).run(customer.lastInsertRowid,plan.lastInsertRowid);
   return { customerId: customer.lastInsertRowid, planId: plan.lastInsertRowid, subscriptionId: subscription.lastInsertRowid };
