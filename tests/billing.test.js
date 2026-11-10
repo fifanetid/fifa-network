@@ -100,3 +100,31 @@ test("invoice yang sudah lunas atau void tidak menerima pembayaran tambahan", ()
   db.prepare("UPDATE invoices SET status='void' WHERE id=?").run(second.id);
   assert.throws(() => billing.recordPayment({invoiceId:second.id,input:{amount_idr:1,payment_method:"cash",paid_at:"2027-03-02"}}));
 });
+
+test("database memastikan invoice terhubung ke pelanggan langganan yang sama", () => {
+  const first=seed();
+  const second=seed();
+  assert.throws(() => db.prepare(`
+    INSERT INTO invoices (invoice_number,subscription_id,customer_id,billing_period,due_date,subtotal_idr,discount_idr,total_idr)
+    VALUES ('FN-MISMATCH',?,?, '2027-04','2027-04-20',100000,0,100000)
+  `).run(first.subscriptionId,second.customerId), /invoice customer must match subscription customer/);
+});
+test("trigger SQLite mencegah pembayaran berlebih dan perubahan riwayat pembayaran", () => {
+  const {subscriptionId}=seed();
+  const invoice=billing.createInvoice({subscriptionId,period:"2027-05",dueDate:"2027-05-20"});
+  billing.recordPayment({invoiceId:invoice.id,input:{amount_idr:90000,payment_method:"cash",paid_at:"2027-05-01"}});
+  assert.throws(() => db.prepare(`
+    INSERT INTO payments (invoice_id,payment_reference,amount_idr,payment_method,paid_at)
+    VALUES (?, 'PAY-OVER', 20000, 'cash', '2027-05-02')
+  `).run(invoice.id), /payment exceeds invoice total/);
+  assert.throws(() => db.prepare("UPDATE payments SET amount_idr=1 WHERE invoice_id=?").run(invoice.id), /immutable/);
+  assert.throws(() => db.prepare("DELETE FROM payments WHERE invoice_id=?").run(invoice.id), /immutable/);
+});
+test("invoice bernilai nol langsung berstatus lunas", () => {
+  const customer=db.prepare("INSERT INTO customers (customer_code,full_name,phone,address) VALUES ('FREE-01','Pelanggan Gratis','081234567890','Alamat Pelanggan Gratis')").run();
+  const plan=db.prepare("INSERT INTO internet_plans (plan_code,name,speed_mbps,monthly_price_idr) VALUES ('FREE-PLAN','Paket Gratis',1,0)").run();
+  const subscription=db.prepare("INSERT INTO subscriptions (customer_id,plan_id,start_date) VALUES (?,?,'2027-06-01')").run(customer.lastInsertRowid,plan.lastInsertRowid);
+  const invoice=billing.createInvoice({subscriptionId:subscription.lastInsertRowid,period:"2027-06",dueDate:"2027-06-20"});
+  assert.equal(invoice.total_idr,0);
+  assert.equal(invoice.status,"paid");
+});
