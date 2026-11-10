@@ -28,7 +28,7 @@ function seed() {
 }
 
 test("migrasi membuat lima tabel billing dan foreign key aktif", () => {
-  for (const table of ["customers","internet_plans","subscriptions","invoices","payments"]) {
+  for (const table of ["customers","internet_plans","subscriptions","invoices","payments","payment_reversals"]) {
     assert.ok(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table));
   }
   assert.equal(db.pragma("foreign_keys",{simple:true}),1);
@@ -127,4 +127,48 @@ test("invoice bernilai nol langsung berstatus lunas", () => {
   const invoice=billing.createInvoice({subscriptionId:subscription.lastInsertRowid,period:"2027-06",dueDate:"2027-06-20"});
   assert.equal(invoice.total_idr,0);
   assert.equal(invoice.status,"paid");
+});
+
+
+test("reversal parsial dan penuh memperbarui saldo serta status invoice", () => {
+  const {subscriptionId}=seed();
+  const invoice=billing.createInvoice({subscriptionId,period:"2027-07",dueDate:"2027-07-20"});
+  const payment=billing.recordPayment({invoiceId:invoice.id,input:{amount_idr:100000,payment_method:"cash",paid_at:"2027-07-01"}});
+  const first=billing.recordPaymentReversal({paymentId:payment.id,input:{amount_idr:30000,reason:"Salah input nominal"},userId:null});
+  assert.equal(first.amount_idr,30000);
+  assert.equal(db.prepare("SELECT status FROM invoices WHERE id=?").get(invoice.id).status,"partial");
+  const second=billing.recordPaymentReversal({paymentId:payment.id,input:{amount_idr:70000,reason:"Pengembalian sisa dana"},userId:null});
+  assert.equal(second.amount_idr,70000);
+  assert.equal(db.prepare("SELECT status FROM invoices WHERE id=?").get(invoice.id).status,"unpaid");
+  const net=db.prepare("SELECT (SELECT SUM(amount_idr) FROM payments WHERE invoice_id=?) - (SELECT SUM(r.amount_idr) FROM payment_reversals r JOIN payments p ON p.id=r.payment_id WHERE p.invoice_id=?) AS total").get(invoice.id,invoice.id);
+  assert.equal(net.total,0);
+  assert.throws(()=>billing.recordPaymentReversal({paymentId:payment.id,input:{amount_idr:1,reason:"Kelebihan reversal"},userId:null}),/melebihi pembayaran/);
+});
+
+test("reversal tidak dapat melebihi pembayaran asal dan riwayatnya immutable", () => {
+  const {subscriptionId}=seed();
+  const invoice=billing.createInvoice({subscriptionId,period:"2027-08",dueDate:"2027-08-20"});
+  const payment=billing.recordPayment({invoiceId:invoice.id,input:{amount_idr:25000,payment_method:"qris",paid_at:"2027-08-01"}});
+  assert.throws(()=>db.prepare("INSERT INTO payment_reversals (payment_id,reversal_reference,amount_idr,reason) VALUES (?, 'REV-TOO-MUCH', 25001, 'Kesalahan uji reversal')").run(payment.id),/reversal exceeds original payment/);
+  billing.recordPaymentReversal({paymentId:payment.id,input:{amount_idr:10000,reason:"Koreksi transaksi"},userId:null});
+  assert.throws(()=>db.prepare("UPDATE payment_reversals SET amount_idr=1 WHERE payment_id=?").run(payment.id),/immutable/);
+  assert.throws(()=>db.prepare("DELETE FROM payment_reversals WHERE payment_id=?").run(payment.id),/immutable/);
+});
+
+test("pembayaran yang sudah memiliki reversal dihitung berdasarkan saldo bersih", () => {
+  const {subscriptionId}=seed();
+  const invoice=billing.createInvoice({subscriptionId,period:"2027-09",dueDate:"2027-09-20"});
+  const payment=billing.recordPayment({invoiceId:invoice.id,input:{amount_idr:100000,payment_method:"bank_transfer",paid_at:"2027-09-01"}});
+  billing.recordPaymentReversal({paymentId:payment.id,input:{amount_idr:40000,reason:"Koreksi sebagian"},userId:null});
+  const next=billing.recordPayment({invoiceId:invoice.id,input:{amount_idr:40000,payment_method:"cash",paid_at:"2027-09-02"}});
+  assert.equal(next.amount_idr,40000);
+  assert.equal(db.prepare("SELECT status FROM invoices WHERE id=?").get(invoice.id).status,"paid");
+});
+
+test("reversal ditolak untuk invoice void", () => {
+  const {subscriptionId}=seed();
+  const invoice=billing.createInvoice({subscriptionId,period:"2027-10",dueDate:"2027-10-20"});
+  const payment=billing.recordPayment({invoiceId:invoice.id,input:{amount_idr:10000,payment_method:"cash",paid_at:"2027-10-01"}});
+  db.prepare("UPDATE invoices SET status='void' WHERE id=?").run(invoice.id);
+  assert.throws(()=>billing.recordPaymentReversal({paymentId:payment.id,input:{amount_idr:10000,reason:"Pembatalan transaksi"},userId:null}),/invoice sudah dibatalkan/);
 });
