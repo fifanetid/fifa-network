@@ -18,9 +18,9 @@ function createInvoice({ subscriptionId, period, dueDate, discount = 0, notes = 
     const amounts = domain.calculateInvoice(subscription.monthly_price_idr, discount);
     const invoiceNumber = "FN-" + billingPeriod.replace("-", "") + "-" + randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
     const result = db.prepare(`
-      INSERT INTO invoices (invoice_number,subscription_id,customer_id,billing_period,due_date,subtotal_idr,discount_idr,total_idr,notes)
-      VALUES (?,?,?,?,?,?,?,?,?)
-    `).run(invoiceNumber,id,subscription.customer_id,billingPeriod,due,amounts.subtotal_idr,amounts.discount_idr,amounts.total_idr,invoiceNotes);
+      INSERT INTO invoices (invoice_number,subscription_id,customer_id,billing_period,due_date,subtotal_idr,discount_idr,total_idr,status,notes)
+      VALUES (?,?,?,?,?,?,?,?,?,?)
+    `).run(invoiceNumber,id,subscription.customer_id,billingPeriod,due,amounts.subtotal_idr,amounts.discount_idr,amounts.total_idr,amounts.total_idr === 0 ? "paid" : "unpaid",invoiceNotes);
     return db.prepare("SELECT * FROM invoices WHERE id=?").get(result.lastInsertRowid);
   })();
 }
