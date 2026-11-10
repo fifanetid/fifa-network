@@ -2,7 +2,7 @@
 
 **Custom ISP Management Platform** — aplikasi manajemen ISP modular untuk operasional pelanggan, billing, dan integrasi jaringan.
 
-> Status: early development. Versi 0.3.0 menyediakan login/manajemen pengguna dan fondasi billing awal. Belum dinyatakan siap production.
+> Status: early development. Versi 0.4.0 menyediakan login/manajemen pengguna dan fondasi billing awal. Belum dinyatakan siap production.
 
 ## Fitur tersedia
 
@@ -20,6 +20,8 @@
 - Pembuatan invoice bulanan per langganan dan periode dengan snapshot harga
 - Pencatatan pembayaran tunai, transfer bank, QRIS manual, dan metode lain
 - Pembayaran parsial, status unpaid/partial/paid/void, dan perhitungan sisa tagihan
+- Constraint/trigger SQLite untuk kecocokan pelanggan-invoice, mencegah pembayaran melebihi tagihan, sinkronisasi status invoice, serta menjaga catatan pembayaran append-only
+- Langganan terminated tidak dapat diaktifkan kembali; invoice paket gratis bernilai nol langsung berstatus paid
 - Seluruh nilai uang disimpan sebagai integer Rupiah (IDR)
 
 ### Belum tersedia
@@ -101,7 +103,7 @@ fifa-network/
 ## Data dan keamanan
 
 - SQLite menyimpan users, customers, internet_plans, subscriptions, invoices, dan payments.
-- Foreign key dan constraint SQLite menjaga konsistensi relasi serta nilai nominal.
+- Foreign key, CHECK constraint, dan trigger SQLite menjaga konsistensi relasi, nominal, pembayaran, dan status invoice.
 - Data invoice menyimpan snapshot subtotal/diskon/total agar perubahan harga paket berikutnya tidak mengubah invoice lama.
 - MongoDB GenieACS tetap terpisah dan dikelola GenieACS. NBI dan MongoDB harus dibatasi ke localhost/jaringan privat.
 - Jangan commit `.env`, secret, database produksi, backup, atau data pribadi pelanggan.
