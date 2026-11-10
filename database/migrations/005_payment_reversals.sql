@@ -30,10 +30,14 @@ BEGIN
   UPDATE invoices
   SET status = CASE
     WHEN status = 'void' THEN 'void'
-    WHEN (SELECT COALESCE(SUM(p.amount_idr),0) - COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r JOIN payments rp ON rp.id=r.payment_id WHERE rp.invoice_id=NEW_INVOICE.id),0)
-          FROM payments p WHERE p.invoice_id=NEW_INVOICE.id) >= total_idr THEN 'paid'
-    WHEN (SELECT COALESCE(SUM(p.amount_idr),0) - COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r JOIN payments rp ON rp.id=r.payment_id WHERE rp.invoice_id=NEW_INVOICE.id),0)
-          FROM payments p WHERE p.invoice_id=NEW_INVOICE.id) > 0 THEN 'partial'
+    WHEN
+      (SELECT COALESCE(SUM(p.amount_idr),0) FROM payments p WHERE p.invoice_id=invoices.id)
+      - (SELECT COALESCE(SUM(r.amount_idr),0) FROM payment_reversals r JOIN payments rp ON rp.id=r.payment_id WHERE rp.invoice_id=invoices.id)
+      >= total_idr THEN 'paid'
+    WHEN
+      (SELECT COALESCE(SUM(p.amount_idr),0) FROM payments p WHERE p.invoice_id=invoices.id)
+      - (SELECT COALESCE(SUM(r.amount_idr),0) FROM payment_reversals r JOIN payments rp ON rp.id=r.payment_id WHERE rp.invoice_id=invoices.id)
+      > 0 THEN 'partial'
     ELSE 'unpaid'
   END
   WHERE id = (SELECT invoice_id FROM payments WHERE id=NEW.payment_id);
