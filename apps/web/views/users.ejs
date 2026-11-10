@@ -1,0 +1,32 @@
+<%- include("partials/header", { title }) %>
+<section class="panel user-management">
+  <div class="panel-heading"><div><span class="eyebrow">ACCESS CONTROL</span><h3>Daftar pengguna</h3></div><span class="pill muted"><%= users.length %> akun</span></div>
+  <% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
+  <% if (error) { %><div class="notice error"><%= error %></div><% } %>
+  <div class="table-wrap"><table class="users-table">
+    <thead><tr><th>Nama / Email</th><th>Role</th><th>Status</th><th>Terakhir login</th><th>Aksi</th></tr></thead>
+    <tbody><% users.forEach((user) => { %><tr>
+      <td><strong><%= user.name %></strong><small><%= user.email %></small></td>
+      <td><span class="role-pill"><%= user.role %></span></td>
+      <td><span class="pill <%= user.is_active ? "success" : "muted" %>"><%= user.is_active ? "Aktif" : "Nonaktif" %></span></td>
+      <td><%= user.last_login_at || "Belum pernah" %></td>
+      <td class="actions-cell"><% if (user.id !== currentUser.id) { %>
+        <form method="post" action="/admin/users/<%= user.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button" type="submit"><%= user.is_active ? "Nonaktifkan" : "Aktifkan" %></button></form>
+        <details class="reset-details"><summary>Reset password</summary><form method="post" action="/admin/users/<%= user.id %>/password"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="password" type="password" minlength="12" maxlength="200" placeholder="Password baru (min. 12)" required><button class="small-button" type="submit">Simpan</button></form></details>
+      <% } else { %><span class="muted-text">Akun kamu</span><% } %></td>
+    </tr><% }) %></tbody>
+  </table></div>
+</section>
+<section class="panel create-user-panel">
+  <div class="panel-heading"><div><span class="eyebrow">NEW ACCOUNT</span><h3>Tambah pengguna</h3></div></div>
+  <form method="post" action="/admin/users" class="create-user-form">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Nama<input name="name" required minlength="2" maxlength="80" placeholder="Nama pengguna"></label>
+    <label>Email<input name="email" type="email" required maxlength="254" placeholder="teknisi@fifanetwork.id"></label>
+    <label>Password<input name="password" type="password" required minlength="12" maxlength="200" placeholder="Minimal 12 karakter"></label>
+    <label>Role<select name="role" required><option value="teknisi">Teknisi</option><option value="finance">Finance</option><option value="admin">Admin</option></select></label>
+    <button class="primary-button" type="submit">Buat akun <span>＋</span></button>
+  </form>
+  <p class="form-hint">Role admin memiliki akses penuh ke manajemen pengguna. Hak akses modul teknisi dan finance akan diperluas saat modul billing dan jaringan dibuat.</p>
+</section>
+<%- include("partials/footer") %>
