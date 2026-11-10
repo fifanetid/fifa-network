@@ -1,6 +1,6 @@
 {
   "name": "fifa-network",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "FIFA NETWORK - Custom ISP Management Platform",
   "main": "apps/web/server.js",
@@ -8,13 +8,19 @@
     "start": "node apps/web/server.js",
     "dev": "nodemon apps/web/server.js",
     "test": "node --test",
-    "check": "node --check apps/web/server.js && node --check apps/web/app.js && node --check apps/web/routes/dashboard.js"
+    "check": "node --check apps/web/server.js && node --check apps/web/app.js && node --check apps/web/routes/dashboard.js && node --check apps/web/routes/auth.js && node --check apps/web/routes/users.js && node --check database/db.js",
+    "create-admin": "node scripts/create-admin.js"
   },
   "engines": { "node": ">=20" },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.8.1",
+    "connect-sqlite3": "^0.9.15",
+    "csrf-sync": "^4.2.1",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
     "express-session": "^1.18.1",
     "helmet": "^8.0.0"
   },
