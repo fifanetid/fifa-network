@@ -29,3 +29,14 @@ test("teknisi ditolak dari route billing manager", () => {
 test("pengguna anonim diarahkan ke login", () => {
   invoke(null, "login");
 });
+
+
+test("hanya admin yang dapat mencatat reversal pembayaran", () => {
+  const adminRes = { statusCode: 200, status(code) { this.statusCode=code; return this; }, send(body) { this.body=body; return this; }, redirect(path) { this.redirected=path; return this; } };
+  let adminNext=false;
+  requireRole("admin")({session:{user:{role:"admin"}}},adminRes,()=>{adminNext=true;});
+  assert.equal(adminNext,true);
+  const financeRes = { statusCode: 200, status(code) { this.statusCode=code; return this; }, send(body) { this.body=body; return this; }, redirect(path) { this.redirected=path; return this; } };
+  requireRole("admin")({session:{user:{role:"finance"}}},financeRes,()=>{});
+  assert.equal(financeRes.statusCode,403);
+});
