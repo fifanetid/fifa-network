@@ -81,3 +81,22 @@ test("pembayaran menolak nominal melebihi sisa dan metode tidak dikenal", () => 
 test("database menolak relasi pelanggan yang tidak ada", () => {
   assert.throws(()=>db.prepare("INSERT INTO subscriptions (customer_id,plan_id,start_date) VALUES (999999,999999,'2026-11-01')").run());
 });
+
+test("status langganan yang dihentikan bersifat terminal", () => {
+  assert.equal(domain.validateSubscriptionStatus("active","suspended"),"suspended");
+  assert.equal(domain.validateSubscriptionStatus("suspended","active"),"active");
+  assert.throws(() => domain.validateSubscriptionStatus("terminated","active"), /tidak dapat diaktifkan kembali/);
+});
+test("catatan dan referensi perangkat memiliki batas panjang", () => {
+  assert.throws(() => domain.optionalText("x".repeat(501),"Catatan"), /maksimal 500/);
+  assert.throws(() => domain.optionalText("x".repeat(151),"Referensi perangkat",150), /maksimal 150/);
+});
+test("invoice yang sudah lunas atau void tidak menerima pembayaran tambahan", () => {
+  const {subscriptionId}=seed();
+  const invoice=billing.createInvoice({subscriptionId,period:"2027-02",dueDate:"2027-02-20"});
+  billing.recordPayment({invoiceId:invoice.id,input:{amount_idr:100000,payment_method:"cash",paid_at:"2027-02-01"}});
+  assert.throws(() => billing.recordPayment({invoiceId:invoice.id,input:{amount_idr:1,payment_method:"cash",paid_at:"2027-02-02"}}));
+  const second=billing.createInvoice({subscriptionId,period:"2027-03",dueDate:"2027-03-20"});
+  db.prepare("UPDATE invoices SET status='void' WHERE id=?").run(second.id);
+  assert.throws(() => billing.recordPayment({invoiceId:second.id,input:{amount_idr:1,payment_method:"cash",paid_at:"2027-03-02"}}));
+});
