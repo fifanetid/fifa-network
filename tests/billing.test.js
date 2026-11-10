@@ -43,6 +43,7 @@ test("validasi menolak email, harga, periode, dan diskon yang tidak valid", () =
   assert.throws(() => domain.validateCustomer({customer_code:"A",full_name:"Nama",phone:"081234567",address:"Alamat rumah",email:"bukan-email"}));
   assert.throws(() => domain.validatePlan({plan_code:"X",name:"Paket",speed_mbps:0,monthly_price_idr:100}));
   assert.throws(() => domain.validatePeriod("2026-13"));
+  assert.throws(() => domain.validateDate("2026-02-31","Tanggal"));
   assert.throws(() => domain.calculateInvoice(100000,100001));
 });
 
