@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const rateLimit = require("express-rate-limit");
-const { db } = require("../../database/db");
+const { db } = require("../../../database/db");
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
