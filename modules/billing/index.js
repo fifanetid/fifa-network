@@ -30,7 +30,12 @@ function recordPayment({ invoiceId, input, userId }) {
   return db.transaction(() => {
     const invoice = db.prepare("SELECT * FROM invoices WHERE id=?").get(id);
     if (!invoice || invoice.status === "void") throw new Error("Invoice tidak ditemukan atau sudah dibatalkan.");
-    const paid = db.prepare("SELECT COALESCE(SUM(amount_idr),0) AS total FROM payments WHERE invoice_id=?").get(id).total;
+    const paid = db.prepare(`
+      SELECT COALESCE(SUM(p.amount_idr),0) - COALESCE((
+        SELECT SUM(r.amount_idr) FROM payment_reversals r JOIN payments rp ON rp.id=r.payment_id WHERE rp.invoice_id=p.invoice_id
+      ),0) AS total
+      FROM payments p WHERE p.invoice_id=?
+    `).get(id).total;
     const payment = domain.validatePayment(input, invoice.total_idr - paid);
     const reference = "PAY-" + randomUUID().replace(/-/g, "").slice(0, 16).toUpperCase();
     const result = db.prepare(`
@@ -42,4 +47,23 @@ function recordPayment({ invoiceId, input, userId }) {
     return db.prepare("SELECT * FROM payments WHERE id=?").get(result.lastInsertRowid);
   })();
 }
-module.exports = { ...domain, createInvoice, recordPayment };
+function recordPaymentReversal({ paymentId, input, userId }) {
+  const id = Number(paymentId);
+  if (!Number.isSafeInteger(id) || id < 1) throw new Error("Pembayaran tidak valid.");
+  return db.transaction(() => {
+    const payment = db.prepare(`
+      SELECT p.*, i.status AS invoice_status
+      FROM payments p JOIN invoices i ON i.id=p.invoice_id WHERE p.id=?
+    `).get(id);
+    if (!payment || payment.invoice_status === "void") throw new Error("Pembayaran tidak ditemukan atau invoice sudah dibatalkan.");
+    const reversed = db.prepare("SELECT COALESCE(SUM(amount_idr),0) AS total FROM payment_reversals WHERE payment_id=?").get(id).total;
+    const reversal = domain.validateReversal(input, payment.amount_idr - reversed);
+    const reference = "REV-" + randomUUID().replace(/-/g, "").slice(0, 16).toUpperCase();
+    const result = db.prepare(`
+      INSERT INTO payment_reversals (payment_id,reversal_reference,amount_idr,reason,created_by)
+      VALUES (?,?,?,?,?)
+    `).run(id, reference, reversal.amount_idr, reversal.reason, userId || null);
+    return db.prepare("SELECT * FROM payment_reversals WHERE id=?").get(result.lastInsertRowid);
+  })();
+}
+module.exports = { ...domain, createInvoice, recordPayment, recordPaymentReversal };
