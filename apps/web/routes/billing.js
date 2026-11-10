@@ -62,7 +62,7 @@ router.post("/subscriptions", managers, (req,res) => {
 router.post("/subscriptions/:id/status", managers, (req,res) => {
   const id=Number(req.params.id),status=String(req.body.status||"");
   if(!Number.isSafeInteger(id)||id<1||!billing.SUBSCRIPTION_STATUSES.includes(status))return res.status(400).send("Data status tidak valid.");
-  const r=db.prepare("UPDATE subscriptions SET status=?,end_date=CASE WHEN ?='terminated' THEN date('now') ELSE end_date END,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(status,status,id);
+  const r=db.prepare("UPDATE subscriptions SET status=?,end_date=CASE WHEN ?='terminated' THEN CASE WHEN date('now') < start_date THEN start_date ELSE date('now') END ELSE end_date END,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(status,status,id);
   if(!r.changes)return res.status(404).send("Langganan tidak ditemukan.");res.redirect("/billing?notice=Status%20langganan%20diperbarui.");
 });
 router.post("/invoices", managers, (req,res) => {
