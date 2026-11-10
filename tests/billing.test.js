@@ -27,7 +27,7 @@ function seed() {
   return { customerId: customer.lastInsertRowid, planId: plan.lastInsertRowid, subscriptionId: subscription.lastInsertRowid };
 }
 
-test("migrasi membuat lima tabel billing dan foreign key aktif", () => {
+test("migrasi membuat tabel billing dan reversal serta foreign key aktif", () => {
   for (const table of ["customers","internet_plans","subscriptions","invoices","payments","payment_reversals"]) {
     assert.ok(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table));
   }
