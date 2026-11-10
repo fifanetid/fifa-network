@@ -9,6 +9,8 @@ const fail = (res, error) => res.status(400).render("billing/index", pageData({ 
 function pageData(extra = {}) {
   return {
     title: "Billing & Pelanggan",
+    notice: null,
+    error: null,
     customers: db.prepare("SELECT * FROM customers ORDER BY id DESC").all(),
     plans: db.prepare("SELECT * FROM internet_plans ORDER BY id DESC").all(),
     subscriptions: db.prepare("SELECT s.*,c.customer_code,c.full_name,p.name AS plan_name,p.monthly_price_idr FROM subscriptions s JOIN customers c ON c.id=s.customer_id JOIN internet_plans p ON p.id=s.plan_id ORDER BY s.id DESC").all(),
