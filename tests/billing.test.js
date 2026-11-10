@@ -172,3 +172,14 @@ test("reversal ditolak untuk invoice void", () => {
   db.prepare("UPDATE invoices SET status='void' WHERE id=?").run(invoice.id);
   assert.throws(()=>billing.recordPaymentReversal({paymentId:payment.id,input:{amount_idr:10000,reason:"Pembatalan transaksi"},userId:null}),/invoice sudah dibatalkan/);
 });
+
+
+test("trigger status invoice memakai saldo bersih saat pembayaran baru masuk setelah reversal", () => {
+  const {subscriptionId}=seed();
+  const invoice=billing.createInvoice({subscriptionId,period:"2027-11",dueDate:"2027-11-20"});
+  const payment=billing.recordPayment({invoiceId:invoice.id,input:{amount_idr:100000,payment_method:"cash",paid_at:"2027-11-01"}});
+  billing.recordPaymentReversal({paymentId:payment.id,input:{amount_idr:40000,reason:"Koreksi sebagian pembayaran"},userId:null});
+  db.prepare("INSERT INTO payments (invoice_id,payment_reference,amount_idr,payment_method,paid_at) VALUES (?,?,?,?,?)")
+    .run(invoice.id,"PAY-DIRECT-AFTER-REVERSAL",10000,"cash","2027-11-02");
+  assert.equal(db.prepare("SELECT status FROM invoices WHERE id=?").get(invoice.id).status,"partial");
+});
