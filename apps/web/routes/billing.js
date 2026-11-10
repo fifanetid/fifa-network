@@ -68,7 +68,7 @@ router.post("/subscriptions/:id/status", managers, (req,res) => {
     const existing=db.prepare("SELECT status FROM subscriptions WHERE id=?").get(id);
     if(!existing)return res.status(404).send("Langganan tidak ditemukan.");
     billing.validateSubscriptionStatus(existing.status,status);
-    db.prepare("UPDATE subscriptions SET status=?,end_date=CASE WHEN ?='terminated' THEN date('now') ELSE NULL END,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(status,status,id);
+    db.prepare("UPDATE subscriptions SET status=?,end_date=CASE WHEN ?='terminated' THEN CASE WHEN date('now') < start_date THEN start_date ELSE date('now') END ELSE NULL END,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(status,status,id);
     res.redirect("/billing?notice=Status%20langganan%20diperbarui.");
   } catch(e) { return fail(res,e); }
 });
