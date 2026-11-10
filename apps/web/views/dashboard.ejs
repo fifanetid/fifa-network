@@ -1,6 +1,6 @@
 <%- include("partials/header", { title }) %>
 <section class="welcome">
-  <div><span class="eyebrow light">NETWORK OVERVIEW</span><h2>Selamat datang, <%= currentUser.name %></h2><p>Kelola pelanggan, billing, router, dan perangkat ONT dari satu tempat.</p></div>
+  <div><span class="eyebrow light">NETWORK OVERVIEW</span><h2>Selamat datang, <%= currentUser.name %></h2><p>Pantau pelanggan, langganan, dan tagihan FIFA NETWORK dari satu dashboard.</p></div>
   <div class="welcome-orb">FN</div>
 </section>
 <section class="stat-grid">
@@ -8,7 +8,7 @@
     <article class="stat-card">
       <div class="stat-top"><span><%= item.label %></span><span class="stat-icon"><%= ["♙","⌁","▤","◎"][index] %></span></div>
       <strong><%= item.value %></strong>
-      <small>Modul billing dan jaringan akan dihubungkan pada tahap berikutnya</small>
+      <small>Ringkasan data billing saat ini</small>
     </article>
   <% }) %>
 </section>
@@ -18,7 +18,7 @@
     <div class="empty-state"><div class="empty-icon">✓</div><strong>Login berhasil</strong><p>Akun kamu sudah masuk ke FIFA NETWORK. Menu yang tersedia mengikuti hak akses akun.</p></div>
   </article>
   <article class="panel quick-panel">
-    <span class="eyebrow">TAHAP BERIKUTNYA</span><h3>Modul yang akan dibangun</h3>
+    <span class="eyebrow">OPERASIONAL</span><h3>Modul aplikasi</h3>
     <div class="module-row"><span class="module-icon blue">♙</span><div><strong>Manajemen pelanggan</strong><small>Profil, paket, dan status layanan</small></div><span class="pill muted">Berikutnya</span></div>
     <div class="module-row"><span class="module-icon violet">▤</span><div><strong>Billing</strong><small>Invoice dan pencatatan pembayaran</small></div><span class="pill muted">Rencana</span></div>
     <div class="module-row"><span class="module-icon green">◎</span><div><strong>GenieACS / ONT</strong><small>Perangkat, parameter, dan task</small></div><span class="pill muted">Rencana</span></div>
