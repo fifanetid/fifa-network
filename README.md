@@ -2,7 +2,7 @@
 
 **Custom ISP Management Platform** — aplikasi manajemen ISP modular untuk operasional pelanggan, billing, dan integrasi jaringan.
 
-> Status: early development. Versi 0.4.0 menyediakan login/manajemen pengguna dan fondasi billing awal. Belum dinyatakan siap production.
+> Status: early development. Versi 0.5.0 menyediakan login/manajemen pengguna dan fondasi billing awal. Belum dinyatakan siap production.
 
 ## Fitur tersedia
 
@@ -19,8 +19,9 @@
 - Referensi perangkat eksternal opsional (mis. GenieACS device ID/serial), tanpa menyimpan dokumen perangkat
 - Pembuatan invoice bulanan per langganan dan periode dengan snapshot harga
 - Pencatatan pembayaran tunai, transfer bank, QRIS manual, dan metode lain
-- Pembayaran parsial, status unpaid/partial/paid/void, dan perhitungan sisa tagihan
-- Constraint/trigger SQLite untuk kecocokan pelanggan-invoice, mencegah pembayaran melebihi tagihan, sinkronisasi status invoice, serta menjaga catatan pembayaran append-only
+- Pembayaran parsial, pembalikan pembayaran sebagian/penuh khusus admin dengan alasan wajib, serta riwayat reversal append-only
+- Status invoice unpaid/partial/paid/void dihitung dari pembayaran bersih setelah reversal
+- Constraint/trigger SQLite untuk kecocokan pelanggan-invoice, mencegah pembayaran melebihi tagihan, sinkronisasi status invoice, serta menjaga catatan pembayaran dan reversal tetap append-only
 - Langganan terminated tidak dapat diaktifkan kembali; invoice paket gratis bernilai nol langsung berstatus paid
 - Seluruh nilai uang disimpan sebagai integer Rupiah (IDR)
 
