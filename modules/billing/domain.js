@@ -59,9 +59,16 @@ function validatePayment(input, remaining) {
   if (!PAYMENT_METHODS.includes(payment_method)) throw new Error("Metode pembayaran tidak valid.");
   return { amount_idr, payment_method, paid_at: validateDate(input.paid_at, "Tanggal pembayaran"), notes: optionalText(input.notes) };
 }
+function validateReversal(input, remaining) {
+  const amount_idr = positiveInteger(input.amount_idr, "Nominal pembalikan");
+  if (amount_idr > remaining) throw new Error("Nominal pembalikan melebihi pembayaran yang belum dikembalikan.");
+  const reason = text(input.reason, 500);
+  if (reason.length < 5) throw new Error("Alasan pembalikan minimal 5 karakter.");
+  return { amount_idr, reason };
+}
 function validateSubscriptionStatus(currentStatus, nextStatus) {
   if (!SUBSCRIPTION_STATUSES.includes(currentStatus) || !SUBSCRIPTION_STATUSES.includes(nextStatus)) throw new Error("Status langganan tidak valid.");
   if (currentStatus === "terminated" && nextStatus !== "terminated") throw new Error("Langganan yang sudah dihentikan tidak dapat diaktifkan kembali; buat langganan baru.");
   return nextStatus;
 }
-module.exports = { PAYMENT_METHODS, INVOICE_STATUSES, SUBSCRIPTION_STATUSES, validateCustomer, validatePlan, validatePeriod, validateDate, calculateInvoice, calculateInvoiceStatus, validatePayment, optionalText, validateSubscriptionStatus };
+module.exports = { PAYMENT_METHODS, INVOICE_STATUSES, SUBSCRIPTION_STATUSES, validateCustomer, validatePlan, validatePeriod, validateDate, calculateInvoice, calculateInvoiceStatus, validatePayment, validateReversal, optionalText, validateSubscriptionStatus };
