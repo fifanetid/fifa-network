@@ -8,6 +8,7 @@ const { csrfSync } = require("csrf-sync");
 const dashboardRoutes = require("./routes/dashboard");
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
+const billingRoutes = require("./routes/billing");
 const { dbDir } = require("../../database/db");
 
 const app = express();
@@ -55,6 +56,7 @@ app.get("/healthz", (req, res) => {
 app.use("/", authRoutes);
 app.use("/", dashboardRoutes);
 app.use("/admin/users", userRoutes);
+app.use("/billing", billingRoutes);
 
 app.use((req, res) => {
   res.status(404).send("Halaman tidak ditemukan");
