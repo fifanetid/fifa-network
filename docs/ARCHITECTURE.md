@@ -1,52 +1,32 @@
 # Arsitektur FIFA NETWORK
 
-## Prinsip
-
-FIFA NETWORK dibangun sebagai aplikasi modular dengan service terpisah untuk Billing, ACS, dan integrasi router. Dashboard menyatukan pengalaman pengguna, tetapi tidak mengambil alih fungsi inti GenieACS.
-
 ## Komponen
 
-- `apps/web`: aplikasi Express/EJS untuk admin, teknisi, dan portal pelanggan.
-- `apps/worker`: pekerjaan terjadwal seperti pembuatan invoice, notifikasi, dan sinkronisasi.
-- `modules`: aturan bisnis per domain.
-- `integrations/genieacs`: adapter HTTP terautentikasi ke GenieACS NBI.
-- `integrations/mikrotik`: adapter RouterOS API.
-- `database`: migrasi dan seed database Billing.
-- `deploy`: konfigurasi service, reverse proxy, backup, dan deployment.
+- `apps/web`: Express/EJS UI dan autentikasi.
+- `modules/billing`: validasi domain, perhitungan invoice, pencatatan pembayaran.
+- `database`: SQLite billing/app data dan migrasi.
+- `integrations/genieacs`: adapter NBI yang direncanakan.
+- `integrations/mikrotik`: adapter RouterOS API yang direncanakan.
+- `apps/worker`: pekerjaan terjadwal yang direncanakan.
 
-## Pemisahan data
+## Model billing SQLite
 
-**Billing SQLite**
-- users dan roles
-- customers
-- service packages
-- subscriptions
-- invoices dan payments
-- routers
-- customer_devices
-- audit_logs
+- `customers`: identitas pelanggan dan status.
+- `internet_plans`: kecepatan dan harga bulanan IDR.
+- `subscriptions`: relasi pelanggan-paket, tanggal layanan, status, billing day, serta `external_device_ref` opsional.
+- `invoices`: snapshot nominal dan periode tagihan, unik per langganan/periode.
+- `payments`: catatan pembayaran append-only yang mengurangi saldo invoice.
 
-**GenieACS MongoDB**
-- Data perangkat dan parameter TR-069
-- Tasks
-- Presets dan konfigurasi internal GenieACS
+Nominal uang disimpan sebagai integer rupiah. Status invoice: `unpaid`, `partial`, `paid`, atau `void`. Status jatuh tempo (overdue) dapat diturunkan dari due date dan saldo, bukan status pembayaran baru yang disimpan.
 
-FIFA NETWORK hanya menyimpan pengenal perangkat dan relasi pelanggan. Jangan mengubah struktur internal MongoDB GenieACS secara langsung kecuali melalui prosedur resmi yang memang diperlukan.
+## Pemisahan GenieACS
 
-## Alur integrasi ONT
+GenieACS tetap mengelola perangkat TR-069 dan MongoDB internalnya sendiri. Database FIFA NETWORK tidak menyimpan salinan dokumen perangkat. Kolom `subscriptions.external_device_ref` hanya menjadi pengenal eksternal untuk adapter NBI pada tahap berikutnya. Jangan menghubungkan aplikasi langsung ke koleksi MongoDB GenieACS.
 
-1. Pelanggan dibuat di FIFA NETWORK.
-2. Perangkat diidentifikasi melalui serial number atau device ID.
-3. Admin menghubungkan perangkat ke pelanggan.
-4. Backend FIFA NETWORK meminta data perangkat ke GenieACS NBI.
-5. Perintah konfigurasi dikirim sebagai task melalui NBI.
-6. Hasil dan status task ditampilkan di dashboard.
-7. Perubahan penting dicatat di audit log.
+## Tahapan berikutnya
 
-## Keamanan
-
-- NBI GenieACS dan MongoDB hanya boleh diakses dari jaringan privat.
-- Semua endpoint perubahan perangkat wajib memerlukan autentikasi dan otorisasi.
-- Validasi parameter sebelum membuat task.
-- Simpan secret di environment/secret manager.
-- Gunakan HTTPS, secure session cookies, CSRF protection, rate limiting, dan audit log sebelum production.
+1. Audit trail, koreksi/void payment dengan jejak audit, invoice PDF, dan pengujian HTTP end-to-end.
+2. Siklus invoice otomatis, denda/prorata, notifikasi, dan laporan.
+3. Adapter GenieACS NBI dan relasi perangkat pelanggan.
+4. Adapter MikroTik dan sinkronisasi status layanan.
+5. Backup/restore, deployment service, HTTPS, monitoring, dan hardening production.
