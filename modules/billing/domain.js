@@ -23,7 +23,7 @@ function validateCustomer(input) {
   const address = text(input.address, 500);
   const email = String(input.email ?? "").trim().toLowerCase();
   if (full_name.length < 2 || phone.length < 6 || address.length < 5) throw new Error("Nama, nomor telepon, atau alamat terlalu pendek.");
-  if (email && (email.length > 254 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))) throw new Error("Format email tidak valid.");
+  if (email && (email.length > 254 || !/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email))) throw new Error("Format email tidak valid.");
   return { full_name, phone, address, email: email || null, customer_code: text(input.customer_code, 30).toUpperCase(), identity_number: optionalText(input.identity_number, "Nomor identitas", 80), notes: optionalText(input.notes) };
 }
 function validatePlan(input) {
@@ -33,12 +33,12 @@ function validatePlan(input) {
 }
 function validatePeriod(period) {
   const value = String(period || "");
-  if (!/^\\d{4}-(0[1-9]|1[0-2])$/.test(value)) throw new Error("Periode tagihan harus berformat YYYY-MM.");
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) throw new Error("Periode tagihan harus berformat YYYY-MM.");
   return value;
 }
 function validateDate(value, field) {
   const date = String(value || "");
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || Number.isNaN(Date.parse(date + "T00:00:00Z")) || new Date(date + "T00:00:00Z").toISOString().slice(0,10) !== date) throw new Error(field + " tidak valid.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date + "T00:00:00Z")) || new Date(date + "T00:00:00Z").toISOString().slice(0,10) !== date) throw new Error(field + " tidak valid.");
   return date;
 }
 function calculateInvoice(subtotal, discount = 0) {
