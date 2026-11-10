@@ -6,23 +6,25 @@
   <title><%= title %> | FIFA NETWORK</title>
   <link rel="stylesheet" href="/assets/css/app.css">
   <link rel="stylesheet" href="/assets/css/auth.css">
+  <link rel="stylesheet" href="/assets/css/billing.css">
 </head>
 <body>
 <div class="app-shell">
   <aside class="sidebar">
     <div class="brand"><span class="brand-mark">F</span><div><strong>FIFA NETWORK</strong><small>ISP MANAGEMENT</small></div></div>
     <nav>
-      <a class="active" href="/">▦ <span>Dashboard</span></a>
+      <a href="/">▦ <span>Dashboard</span></a>
       <% if (currentUser && currentUser.role === "admin") { %>
         <a href="/admin/users"><span>♙</span><span>Manajemen Pengguna</span></a>
       <% } %>
-      <a href="#"><span>♧</span><span>Pelanggan (segera)</span></a>
-      <a href="#"><span>▤</span><span>Billing (segera)</span></a>
+      <% if (currentUser && ["admin","finance"].includes(currentUser.role)) { %>
+        <a class="active" href="/billing"><span>▤</span><span>Pelanggan & Billing</span></a>
+      <% } %>
       <a href="#"><span>⌁</span><span>MikroTik (segera)</span></a>
       <a href="#"><span>◎</span><span>GenieACS / ONT (segera)</span></a>
       <a href="#"><span>⚙</span><span>Pengaturan</span></a>
     </nav>
-    <div class="sidebar-foot">Custom ISP Platform<br><span>Version 0.2.0 · Development</span></div>
+    <div class="sidebar-foot">Custom ISP Platform<br><span>Version 0.3.0 · Development</span></div>
   </aside>
   <main class="main">
     <header class="topbar">
