@@ -2,7 +2,7 @@
 
 **ISP Billing Management Platform** — aplikasi manajemen ISP untuk operasional pelanggan, paket internet, langganan, invoice, pembayaran, dan integrasi jaringan.
 
-> Status: early development. Versi 0.6.0 menyediakan login/manajemen pengguna dan fondasi billing awal. Belum dinyatakan siap production.
+> Status: early development. Versi 0.5.0 menyediakan login/manajemen pengguna dan fondasi billing awal. Belum dinyatakan siap production.
 
 ## Fitur tersedia
 
