@@ -183,3 +183,41 @@ test("trigger status invoice memakai saldo bersih saat pembayaran baru masuk set
     .run(invoice.id,"PAY-DIRECT-AFTER-REVERSAL",10000,"cash","2027-11-02");
   assert.equal(db.prepare("SELECT status FROM invoices WHERE id=?").get(invoice.id).status,"partial");
 });
+
+
+test("generate invoice massal hanya untuk langganan aktif yang beririsan dengan periode", () => {
+  const first = seed();
+  const second = seed();
+  const third = seed();
+  db.prepare("UPDATE subscriptions SET status='suspended' WHERE id=?").run(second.subscriptionId);
+  db.prepare("UPDATE subscriptions SET status='terminated',end_date='2026-10-31' WHERE id=?").run(third.subscriptionId);
+
+  const result = billing.generateInvoicesForPeriod({
+    period: "2026-11",
+    dueDate: "2026-11-20",
+    notes: "Tagihan bulanan"
+  });
+  assert.equal(result.eligibleCount, 1);
+  assert.equal(result.createdCount, 1);
+  assert.equal(result.skippedCount, 0);
+  assert.equal(result.created[0].subscription_id, first.subscriptionId);
+  assert.equal(result.created[0].total_idr, 100000);
+  assert.equal(result.created[0].notes, "Tagihan bulanan");
+});
+
+test("generate invoice massal idempotent dan melewati invoice periode yang sudah ada", () => {
+  const {subscriptionId} = seed();
+  const first = billing.generateInvoicesForPeriod({period:"2026-11",dueDate:"2026-11-20"});
+  const second = billing.generateInvoicesForPeriod({period:"2026-11",dueDate:"2026-11-25"});
+  assert.equal(first.createdCount, 1);
+  assert.equal(second.createdCount, 0);
+  assert.equal(second.skippedCount, 1);
+  assert.equal(db.prepare("SELECT COUNT(*) AS total FROM invoices WHERE subscription_id=? AND billing_period='2026-11'").get(subscriptionId).total, 1);
+});
+
+test("generate invoice massal memasukkan langganan yang mulai di tengah periode", () => {
+  const {subscriptionId} = seed();
+  db.prepare("UPDATE subscriptions SET start_date='2026-11-15' WHERE id=?").run(subscriptionId);
+  const result = billing.generateInvoicesForPeriod({period:"2026-11",dueDate:"2026-11-30"});
+  assert.equal(result.createdCount, 1);
+});
