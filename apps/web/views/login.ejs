@@ -1,19 +1,19 @@
 <!doctype html>
 <html lang="id">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Login | FIFA NETWORK</title><link rel="stylesheet" href="/assets/css/app.css"><link rel="stylesheet" href="/assets/css/auth.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Login | FF BILLING</title><link rel="stylesheet" href="/assets/css/app.css"><link rel="stylesheet" href="/assets/css/auth.css"></head>
 <body class="auth-page">
 <main class="auth-card">
-  <div class="auth-brand"><span class="brand-mark">F</span><div><strong>FIFA NETWORK</strong><small>ISP MANAGEMENT PLATFORM</small></div></div>
+  <div class="auth-brand"><span class="brand-mark">FF</span><div><strong>FF BILLING</strong><small>ISP BILLING MANAGEMENT</small></div></div>
   <span class="eyebrow">SECURE ACCESS</span><h1>Masuk ke dashboard</h1>
-  <p class="auth-subtitle">Gunakan akun FIFA NETWORK yang sudah dibuat oleh administrator.</p>
-  <% if (setupRequired) { %><div class="notice info">Belum ada akun administrator. Buat akun pertama melalui terminal Linux dengan perintah <code>npm run create-admin</code>.</div><% } %>
+  <p class="auth-subtitle">Gunakan username atau email dan password akun administrator.</p>
+  <% if (setupRequired) { %><div class="notice info">Belum ada akun pengguna. Untuk membuat akun awal pada lingkungan pengembangan, jalankan <code>npm run create-default-admin</code>.</div><% } %>
   <% if (error) { %><div class="notice error"><%= error %></div><% } %>
   <form method="post" action="/login" class="auth-form">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-    <label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="254" placeholder="admin@fifanetwork.id">
+    <label for="identifier">Username atau email</label><input id="identifier" name="identifier" type="text" autocomplete="username" required maxlength="254" placeholder="admin">
     <label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="200" placeholder="Masukkan password">
     <button class="primary-button" type="submit">Masuk <span>→</span></button>
   </form>
-  <div class="auth-foot">FIFA NETWORK · Custom ISP Platform</div>
+  <div class="auth-foot">FF BILLING · ISP Management</div>
 </main>
 </body></html>
