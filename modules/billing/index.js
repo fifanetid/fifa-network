@@ -24,6 +24,54 @@ function createInvoice({ subscriptionId, period, dueDate, discount = 0, notes = 
     return db.prepare("SELECT * FROM invoices WHERE id=?").get(result.lastInsertRowid);
   })();
 }
+function generateInvoicesForPeriod({ period, dueDate, notes = "" }) {
+  const billingPeriod = domain.validatePeriod(period);
+  const due = domain.validateDate(dueDate, "Tanggal jatuh tempo");
+  const invoiceNotes = domain.optionalText(notes, "Catatan invoice");
+  const [year, month] = billingPeriod.split("-").map(Number);
+  const periodStart = billingPeriod + "-01";
+  const periodEnd = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+
+  return db.transaction(() => {
+    const candidates = db.prepare(`
+      SELECT s.id AS subscription_id, s.customer_id, p.monthly_price_idr
+      FROM subscriptions s
+      JOIN customers c ON c.id = s.customer_id
+      JOIN internet_plans p ON p.id = s.plan_id
+      WHERE s.status = 'active'
+        AND c.status = 'active'
+        AND s.start_date <= ?
+        AND (s.end_date IS NULL OR s.end_date >= ?)
+      ORDER BY s.id
+    `).all(periodEnd, periodStart);
+
+    const insert = db.prepare(`
+      INSERT OR IGNORE INTO invoices
+        (invoice_number, subscription_id, customer_id, billing_period, due_date,
+         subtotal_idr, discount_idr, total_idr, status, notes)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+    `);
+    const created = [];
+    let skipped = 0;
+
+    for (const subscription of candidates) {
+      const amounts = domain.calculateInvoice(subscription.monthly_price_idr);
+      const invoiceNumber = "FN-" + billingPeriod.replace("-", "") + "-" +
+        randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
+      const result = insert.run(
+        invoiceNumber, subscription.subscription_id, subscription.customer_id,
+        billingPeriod, due, amounts.subtotal_idr, amounts.total_idr,
+        amounts.total_idr === 0 ? "paid" : "unpaid", invoiceNotes
+      );
+      if (result.changes) {
+        created.push(db.prepare("SELECT * FROM invoices WHERE id=?").get(result.lastInsertRowid));
+      } else {
+        skipped += 1;
+      }
+    }
+    return { period: billingPeriod, created, createdCount: created.length, skippedCount: skipped, eligibleCount: candidates.length };
+  })();
+}
 function recordPayment({ invoiceId, input, userId }) {
   const id = Number(invoiceId);
   if (!Number.isSafeInteger(id) || id < 1) throw new Error("Invoice tidak valid.");
@@ -66,4 +114,4 @@ function recordPaymentReversal({ paymentId, input, userId }) {
     return db.prepare("SELECT * FROM payment_reversals WHERE id=?").get(result.lastInsertRowid);
   })();
 }
-module.exports = { ...domain, createInvoice, recordPayment, recordPaymentReversal };
+module.exports = { ...domain, createInvoice, generateInvoicesForPeriod, recordPayment, recordPaymentReversal };
