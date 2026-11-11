@@ -1,7 +1,7 @@
 <%- include("partials/header", { title }) %>
 <section class="welcome">
-  <div><span class="eyebrow light">NETWORK OVERVIEW</span><h2>Selamat datang, <%= currentUser.name %></h2><p>Pantau pelanggan, langganan, dan tagihan FIFA NETWORK dari satu dashboard.</p></div>
-  <div class="welcome-orb">FN</div>
+  <div><span class="eyebrow light">BILLING OVERVIEW</span><h2>Selamat datang, <%= currentUser.name %></h2><p>Pantau pelanggan, langganan, dan tagihan FF BILLING dari satu dashboard.</p></div>
+  <div class="welcome-orb">FF</div>
 </section>
 <section class="stat-grid">
   <% stats.forEach((item, index) => { %>
@@ -15,7 +15,7 @@
 <section class="panel-grid">
   <article class="panel">
     <div class="panel-heading"><div><span class="eyebrow">AKUN AKTIF</span><h3>Akses aplikasi</h3></div><span class="pill muted"><%= currentUser.role %></span></div>
-    <div class="empty-state"><div class="empty-icon">✓</div><strong>Login berhasil</strong><p>Akun kamu sudah masuk ke FIFA NETWORK. Menu yang tersedia mengikuti hak akses akun.</p></div>
+    <div class="empty-state"><div class="empty-icon">✓</div><strong>Login berhasil</strong><p>Akun kamu sudah masuk ke FF BILLING. Menu yang tersedia mengikuti hak akses akun.</p></div>
   </article>
   <article class="panel quick-panel">
     <span class="eyebrow">OPERASIONAL</span><h3>Modul aplikasi</h3>
