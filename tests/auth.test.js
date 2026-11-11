@@ -10,29 +10,47 @@ const bcrypt = require("bcryptjs");
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "ff-billing-auth-test-"));
 const dbPath = path.join(tempDir, "auth.sqlite");
 const scriptPath = path.join(__dirname, "..", "scripts", "create-default-admin.js");
+const projectDir = path.join(__dirname, "..");
 
-test("akun admin/admin dibuat hanya pada database kosong non-production", () => {
-  const env = { ...process.env, NODE_ENV: "development", BILLING_DB_PATH: dbPath };
-  const created = spawnSync(process.execPath, [scriptPath], { cwd: path.join(__dirname, ".."), env, encoding: "utf8" });
+function runBootstrap(nodeEnv = "development", targetDb = dbPath) {
+  return spawnSync(process.execPath, [scriptPath], {
+    cwd: projectDir,
+    env: { ...process.env, NODE_ENV: nodeEnv, BILLING_DB_PATH: targetDb },
+    encoding: "utf8"
+  });
+}
+
+test("akun admin/admin dibuat dan admin lama dapat diatur ulang tanpa mengubah pengguna lain", () => {
+  const created = runBootstrap();
   assert.equal(created.status, 0, created.stderr);
 
   const db = new Database(dbPath);
-  const user = db.prepare("SELECT name,email,password_hash,role FROM users WHERE lower(name)='admin'").get();
+  let user = db.prepare("SELECT id,name,email,password_hash,role FROM users WHERE lower(name)='admin'").get();
   assert.ok(user);
   assert.equal(user.email, "admin@ffbilling.local");
   assert.equal(user.role, "admin");
   assert.equal(bcrypt.compareSync("admin", user.password_hash), true);
+
+  db.prepare("UPDATE users SET name='Administrator', password_hash=? WHERE id=?")
+    .run(bcrypt.hashSync("password-lama", 4), user.id);
+  db.prepare("INSERT INTO users (name,email,password_hash,role) VALUES (?,?,?,'finance')")
+    .run("Finance User", "finance@example.test", bcrypt.hashSync("finance-password", 4));
   db.close();
 
-  const secondRun = spawnSync(process.execPath, [scriptPath], { cwd: path.join(__dirname, ".."), env, encoding: "utf8" });
-  assert.equal(secondRun.status, 1);
-  assert.match(secondRun.stderr, /database sudah memiliki pengguna/);
+  const reset = runBootstrap();
+  assert.equal(reset.status, 0, reset.stderr);
+  const verify = new Database(dbPath);
+  user = verify.prepare("SELECT name,password_hash,role FROM users WHERE email='admin@ffbilling.local'").get();
+  assert.equal(user.name, "admin");
+  assert.equal(user.role, "admin");
+  assert.equal(bcrypt.compareSync("admin", user.password_hash), true);
+  assert.equal(verify.prepare("SELECT name FROM users WHERE email='finance@example.test'").get().name, "Finance User");
+  verify.close();
 });
 
-test("pembuatan admin default ditolak pada production", () => {
+test("pembuatan atau pengaturan ulang admin default ditolak pada production", () => {
   const productionDb = path.join(tempDir, "production.sqlite");
-  const env = { ...process.env, NODE_ENV: "production", BILLING_DB_PATH: productionDb };
-  const result = spawnSync(process.execPath, [scriptPath], { cwd: path.join(__dirname, ".."), env, encoding: "utf8" });
+  const result = runBootstrap("production", productionDb);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /non-production/);
 });
