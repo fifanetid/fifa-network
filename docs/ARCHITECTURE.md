@@ -30,7 +30,7 @@ Login menerima username (nama pengguna) atau email. Akun awal admin/admin hanya 
 
 GenieACS tetap mengelola perangkat TR-069 dan MongoDB internalnya sendiri. Database FF BILLING tidak menyimpan salinan dokumen perangkat. Kolom subscriptions.external_device_ref hanya menjadi pengenal eksternal untuk adapter NBI pada tahap berikutnya. Jangan menghubungkan aplikasi langsung ke koleksi MongoDB GenieACS.
 
-## Tahapan berikutnya
+## Pembuatan invoice berkala\n\nAdmin dan finance dapat menjalankan generate invoice massal per periode melalui halaman Billing. Sistem memilih langganan berstatus active milik pelanggan active yang tanggal layanannya beririsan dengan periode kalender tersebut. Invoice menggunakan snapshot harga paket saat dibuat, tanpa diskon otomatis. Kombinasi langganan/periode tetap unik; invoice yang sudah ada dilewati sehingga proses aman dijalankan ulang. Langganan suspended atau terminated tidak dibuatkan invoice otomatis oleh proses massal. Penagihan prorata dan kebijakan penagihan saat suspend masih memerlukan aturan bisnis tersendiri.\n\n## Tahapan berikutnya
 
 1. Invoice PDF, audit log aktivitas lintas modul, dan pengujian HTTP end-to-end.
 2. Siklus invoice otomatis, denda/prorata, notifikasi, dan laporan.
