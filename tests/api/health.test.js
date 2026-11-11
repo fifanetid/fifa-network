@@ -13,7 +13,7 @@ test("GET /healthz returns application health", async () => {
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), {
       status: "ok",
-      application: "FIFA NETWORK"
+      application: "FF BILLING"
     });
   } finally {
     await new Promise((resolve, reject) =>
