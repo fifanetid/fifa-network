@@ -73,6 +73,19 @@ router.post("/subscriptions/:id/status", managers, (req,res) => {
     res.redirect("/billing?notice=Status%20langganan%20diperbarui.");
   } catch(e) { return fail(res,e); }
 });
+router.post("/invoices/generate", managers, (req, res) => {
+  try {
+    const result = billing.generateInvoicesForPeriod({
+      period: req.body.billing_period,
+      dueDate: req.body.due_date,
+      notes: req.body.notes || ""
+    });
+    const message = `Invoice periode ${result.period}: ${result.createdCount} dibuat, ${result.skippedCount} dilewati (sudah ada).`;
+    res.redirect("/billing?notice=" + encodeURIComponent(message));
+  } catch (e) {
+    return fail(res, e);
+  }
+});
 router.post("/invoices", managers, (req,res) => {
   try{billing.createInvoice({subscriptionId:req.body.subscription_id,period:req.body.billing_period,dueDate:req.body.due_date,discount:req.body.discount_idr||0,notes:req.body.notes||""});res.redirect("/billing?notice=Invoice%20berhasil%20dibuat.");}
   catch(e){if(String(e.message).includes("UNIQUE"))return fail(res,new Error("Invoice untuk langganan dan periode ini sudah ada."));return fail(res,e);}
