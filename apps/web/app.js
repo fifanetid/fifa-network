@@ -28,7 +28,7 @@ app.use(express.urlencoded({ extended: false, limit: "20kb" }));
 app.use(express.json({ limit: "20kb" }));
 app.use("/assets", express.static(path.join(__dirname, "public")));
 app.use(session({
-  name: "fifa.sid",
+  name: "ffbilling.sid",
   store: new SQLiteStore({ db: "sessions.sqlite", dir: dbDir, table: "sessions" }),
   secret: sessionSecret || "development-only-change-this-secret-before-deploying",
   resave: false,
@@ -50,7 +50,7 @@ app.use((req, res, next) => {
 });
 
 app.get("/healthz", (req, res) => {
-  res.json({ status: "ok", application: "FIFA NETWORK" });
+  res.json({ status: "ok", application: "FF BILLING" });
 });
 
 app.use("/", authRoutes);
