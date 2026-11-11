@@ -17,18 +17,23 @@ router.get("/login", (req, res) => {
   res.render("login", {
     title: "Login",
     setupRequired: userCount === 0,
-    error: req.query.error ? "Email atau password salah, atau akun tidak aktif." : null
+    error: req.query.error ? "Username/email atau password salah, atau akun tidak aktif." : null
   });
 });
 
 router.post("/login", loginLimiter, (req, res, next) => {
-  const email = String(req.body.email || "").trim().toLowerCase();
+  const identifier = String(req.body.identifier ?? req.body.email ?? "").trim().toLowerCase();
   const password = String(req.body.password || "");
-  if (!email || !password || email.length > 254 || password.length > 200) {
+  if (!identifier || !password || identifier.length > 254 || password.length > 200) {
     return res.redirect("/login?error=1");
   }
 
-  const user = db.prepare("SELECT * FROM users WHERE email = ? AND is_active = 1").get(email);
+  const user = db.prepare(`
+    SELECT * FROM users
+    WHERE (email = ? OR lower(name) = ?) AND is_active = 1
+    ORDER BY CASE WHEN email = ? THEN 0 ELSE 1 END
+    LIMIT 1
+  `).get(identifier, identifier, identifier);
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.redirect("/login?error=1");
   }
@@ -52,7 +57,7 @@ router.post("/login", loginLimiter, (req, res, next) => {
 router.post("/logout", (req, res, next) => {
   req.session.destroy((err) => {
     if (err) return next(err);
-    res.clearCookie("fifa.sid");
+    res.clearCookie("ffbilling.sid");
     res.redirect("/login");
   });
 });
