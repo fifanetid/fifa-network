@@ -1,16 +1,17 @@
-# FIFA NETWORK
+# FF BILLING
 
-**Custom ISP Management Platform** — aplikasi manajemen ISP modular untuk operasional pelanggan, billing, dan integrasi jaringan.
+**ISP Billing Management Platform** — aplikasi manajemen ISP untuk operasional pelanggan, paket internet, langganan, invoice, pembayaran, dan integrasi jaringan.
 
-> Status: early development. Versi 0.5.0 menyediakan login/manajemen pengguna dan fondasi billing awal. Belum dinyatakan siap production.
+> Status: early development. Versi 0.6.0 menyediakan login/manajemen pengguna dan fondasi billing awal. Belum dinyatakan siap production.
 
 ## Fitur tersedia
 
 ### Akun dan keamanan dasar
-- Login/logout dengan session SQLite dan password bcrypt
+- Login/logout dengan username atau email, session SQLite, dan password bcrypt
 - Role admin, teknisi, finance
 - Manajemen pengguna khusus admin
 - Proteksi CSRF, pembatasan percobaan login, dan secure cookie di production
+- Pembuatan akun awal admin/admin khusus lingkungan pengembangan yang belum memiliki pengguna
 
 ### Billing (fondasi awal)
 - Data pelanggan: tambah, ubah, aktif/nonaktif
@@ -38,48 +39,58 @@
 - Node.js 20+, Express.js, EJS
 - SQLite untuk akun dan data aplikasi/billing
 - GenieACS tetap menggunakan MongoDB internalnya sendiri
-- FIFA NETWORK hanya menyimpan referensi perangkat eksternal; tidak membaca/menulis koleksi MongoDB GenieACS secara langsung
+- FF BILLING hanya menyimpan referensi perangkat eksternal; tidak membaca/menulis koleksi MongoDB GenieACS secara langsung
 - Nginx/HTTPS disarankan untuk akses jarak jauh
 
 ## Instalasi Linux
 
 Persyaratan: Node.js 20 atau lebih baru, npm, Git, dan toolchain build untuk modul SQLite native jika prebuilt binary tidak tersedia.
 
-```bash
+~~~bash
 sudo apt update
 sudo apt install -y git build-essential python3
 git clone https://github.com/fifanetid/fifa-network.git
 cd fifa-network
 cp .env.example .env
 npm install
-```
+~~~
 
-Buat secret acak dan simpan di `.env`:
+Buat secret acak dan simpan di .env:
 
-```bash
+~~~bash
 openssl rand -hex 32
 nano .env
-```
+~~~
 
-Ganti nilai `SESSION_SECRET` dengan hasil acak tersebut. Jangan commit `.env`.
+Ganti nilai SESSION_SECRET dengan hasil acak tersebut. Jangan commit .env.
 
 ### Membuat administrator pertama
 
-```bash
-ADMIN_NAME="Administrator" ADMIN_EMAIL="admin@domain-kamu.id" ADMIN_PASSWORD="Password-kuat-minimal-12" npm run create-admin
-```
+Untuk lingkungan pengembangan lokal yang database-nya masih kosong:
 
-Gunakan email dan password milik sendiri; contoh di atas bukan kredensial untuk dipakai. Perintah hanya membuat admin pertama ketika tabel pengguna masih kosong.
+~~~bash
+npm run create-default-admin
+~~~
+
+Kredensial awal: username **admin**, password **admin**. Perintah ini hanya membuat akun jika belum ada pengguna dan menolak berjalan saat NODE_ENV=production. Segera ganti password sebelum aplikasi dipakai bersama atau diakses dari jaringan lain. Jangan gunakan kredensial ini di server production.
+
+Untuk akun production, buat administrator dengan password kuat:
+
+~~~bash
+ADMIN_NAME="Administrator" ADMIN_EMAIL="admin@domain-kamu.id" ADMIN_PASSWORD="Password-kuat-minimal-12" npm run create-admin
+~~~
+
+Perintah production hanya membuat admin pertama ketika tabel pengguna masih kosong.
 
 ### Pemeriksaan dan menjalankan
 
-```bash
+~~~bash
 npm run check
 npm test
 npm start
-```
+~~~
 
-Aplikasi mendengarkan di `127.0.0.1:3000`. Untuk akses internet, pasang reverse proxy HTTPS seperti Nginx; jangan langsung mengekspos Node.js. Mode production memerlukan `NODE_ENV=production` dan `SESSION_SECRET` unik minimal 32 karakter.
+Aplikasi mendengarkan di 127.0.0.1:3000. Untuk akses internet, pasang reverse proxy HTTPS seperti Nginx; jangan langsung mengekspos Node.js. Mode production memerlukan NODE_ENV=production dan SESSION_SECRET unik minimal 32 karakter.
 
 ## Role
 
@@ -91,7 +102,7 @@ Aplikasi mendengarkan di `127.0.0.1:3000`. Untuk akses internet, pasang reverse 
 
 ## Struktur proyek
 
-```text
+~~~text
 fifa-network/
 ├── apps/web/                 # Express web app, routes, views, public assets
 ├── modules/billing/          # Validasi domain dan aturan invoice/pembayaran
@@ -99,7 +110,7 @@ fifa-network/
 ├── scripts/                  # Setup administrator
 ├── docs/                     # Dokumentasi teknis
 └── tests/                    # Automated tests
-```
+~~~
 
 ## Data dan keamanan
 
@@ -107,7 +118,7 @@ fifa-network/
 - Foreign key, CHECK constraint, dan trigger SQLite menjaga konsistensi relasi, nominal, pembayaran, dan status invoice.
 - Data invoice menyimpan snapshot subtotal/diskon/total agar perubahan harga paket berikutnya tidak mengubah invoice lama.
 - MongoDB GenieACS tetap terpisah dan dikelola GenieACS. NBI dan MongoDB harus dibatasi ke localhost/jaringan privat.
-- Jangan commit `.env`, secret, database produksi, backup, atau data pribadi pelanggan.
+- Jangan commit .env, secret, database produksi, backup, atau data pribadi pelanggan.
 - Sebelum production perlu audit keamanan menyeluruh, logging/audit trail, kebijakan backup/restore, pemantauan, serta pengujian beban.
 
-Lihat [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) dan [SECURITY.md](SECURITY.md).
+Lihat docs/ARCHITECTURE.md dan SECURITY.md.
