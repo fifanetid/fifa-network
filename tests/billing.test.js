@@ -74,6 +74,28 @@ test("invoice bulanan otomatis membuat tagihan aktif dan aman dijalankan ulang",
   assert.throws(() => billing.generateMonthlyInvoices({ period: "2026-13", dueDate: "2026-11-20" }));
 });
 
+test("pengingat jatuh tempo menampilkan sisa bersih dan mengecualikan lunas", () => {
+  const first = seed();
+  const overdue = billing.createInvoice({ subscriptionId: first.subscriptionId, period: "2026-10", dueDate: "2026-11-05" });
+  const payment = billing.recordPayment({ invoiceId: overdue.id, input: { amount_idr: 30000, payment_method: "cash", paid_at: "2026-11-01" } });
+  billing.recordPaymentReversal({ paymentId: payment.id, input: { amount_idr: 10000, reason: "Koreksi pembayaran" }, userId: null });
+
+  const second = seed();
+  billing.createInvoice({ subscriptionId: second.subscriptionId, period: "2026-11", dueDate: "2026-11-15" });
+  const third = seed();
+  const paid = billing.createInvoice({ subscriptionId: third.subscriptionId, period: "2026-11", dueDate: "2026-11-10" });
+  billing.recordPayment({ invoiceId: paid.id, input: { amount_idr: 100000, payment_method: "cash", paid_at: "2026-11-02" } });
+
+  const reminders = billing.getDueReminders({ today: "2026-11-10", daysAhead: 7 });
+  assert.equal(reminders.length, 2);
+  assert.equal(reminders[0].invoice_number, overdue.invoice_number);
+  assert.equal(reminders[0].remaining_idr, 80000);
+  assert.equal(reminders[0].is_overdue, true);
+  assert.equal(reminders[1].is_overdue, false);
+  assert.equal(reminders[1].remaining_idr, 100000);
+  assert.throws(() => billing.getDueReminders({ today: "2026-11-10", daysAhead: 45 }));
+});
+
 test("pembayaran parsial lalu lunas memperbarui status invoice", () => {
   const {subscriptionId}=seed();
   const invoice=billing.createInvoice({subscriptionId,period:"2026-12",dueDate:"2026-12-20"});
