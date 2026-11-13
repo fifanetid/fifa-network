@@ -105,6 +105,34 @@ function recordPaymentReversal({ paymentId, input, userId }) {
     return db.prepare("SELECT * FROM payment_reversals WHERE id=?").get(result.lastInsertRowid);
   })();
 }
+function getDueReminders({ today, daysAhead = 7 }) {
+  const referenceDate = domain.validateDate(today, "Tanggal acuan");
+  if (!Number.isInteger(daysAhead) || daysAhead < 0 || daysAhead > 31) {
+    throw new Error("Rentang pengingat harus 0 sampai 31 hari.");
+  }
+  return db.prepare(`
+    SELECT i.id, i.invoice_number, i.billing_period, i.due_date, i.total_idr,
+      c.customer_code, c.full_name, c.phone,
+      COALESCE((SELECT SUM(p.amount_idr) FROM payments p WHERE p.invoice_id=i.id),0)
+      - COALESCE((
+        SELECT SUM(r.amount_idr) FROM payment_reversals r
+        JOIN payments rp ON rp.id=r.payment_id WHERE rp.invoice_id=i.id
+      ),0) AS paid_idr,
+      CAST(julianday(?) - julianday(i.due_date) AS INTEGER) AS days_overdue
+    FROM invoices i
+    JOIN customers c ON c.id=i.customer_id
+    WHERE i.status IN ('unpaid','partial')
+      AND i.due_date <= date(?, '+' || ? || ' days')
+      AND i.status <> 'void'
+    HAVING (i.total_idr - paid_idr) > 0
+    ORDER BY i.due_date ASC, c.full_name COLLATE NOCASE
+  `).all(referenceDate, referenceDate, daysAhead).map(row => ({
+    ...row,
+    remaining_idr: row.total_idr - row.paid_idr,
+    is_overdue: row.days_overdue > 0
+  }));
+}
+
 function getOutstandingBalance() {
   return db.prepare(`
     SELECT COALESCE(SUM(
@@ -122,4 +150,4 @@ function getOutstandingBalance() {
   `).get().total;
 }
 
-module.exports = { ...domain, createInvoice, generateMonthlyInvoices, recordPayment, recordPaymentReversal, getOutstandingBalance };
+module.exports = { ...domain, createInvoice, generateMonthlyInvoices, getDueReminders, recordPayment, recordPaymentReversal, getOutstandingBalance };
