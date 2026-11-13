@@ -291,4 +291,34 @@
 </tbody></table></div>
 </details>
 </section>
+<script>
+(() => {
+  const search = document.getElementById("customerSearch");
+  const status = document.getElementById("customerStatusFilter");
+  const rows = Array.from(document.querySelectorAll("[data-customer-row]"));
+  const count = document.getElementById("customerVisibleCount");
+  const empty = document.getElementById("customerNoResults");
+  if (!search || !status) return;
+
+  function filterCustomers() {
+    const query = search.value.trim().toLowerCase();
+    const selectedStatus = status.value;
+    let visible = 0;
+
+    rows.forEach((row) => {
+      const matchesText = (row.dataset.search || "").includes(query);
+      const matchesStatus = selectedStatus === "all" || row.dataset.status === selectedStatus;
+      const show = matchesText && matchesStatus;
+      row.hidden = !show;
+      if (show) visible++;
+    });
+
+    if (empty) empty.hidden = visible !== 0;
+    if (count) count.textContent = visible + " pelanggan";
+  }
+
+  search.addEventListener("input", filterCustomers);
+  status.addEventListener("change", filterCustomers);
+})();
+</script>
 <%- include("../partials/footer") %>
