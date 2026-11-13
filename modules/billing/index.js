@@ -124,7 +124,12 @@ function getDueReminders({ today, daysAhead = 7 }) {
     WHERE i.status IN ('unpaid','partial')
       AND i.due_date <= date(?, '+' || ? || ' days')
       AND i.status <> 'void'
-    HAVING (i.total_idr - paid_idr) > 0
+      AND (i.total_idr
+        - COALESCE((SELECT SUM(p.amount_idr) FROM payments p WHERE p.invoice_id=i.id),0)
+        + COALESCE((
+          SELECT SUM(pr.amount_idr) FROM payment_reversals pr
+          JOIN payments pp ON pp.id=pr.payment_id WHERE pp.invoice_id=i.id
+        ),0)) > 0
     ORDER BY i.due_date ASC, c.full_name COLLATE NOCASE
   `).all(referenceDate, referenceDate, daysAhead).map(row => ({
     ...row,
