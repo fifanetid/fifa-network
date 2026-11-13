@@ -133,6 +133,9 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
 
   const admin = await login("admin-http@example.test");
   await refreshToken(admin);
+  const adminBillingPage = await get("/billing", admin);
+  assert.equal(adminBillingPage.status, 200);
+  assert.match(await adminBillingPage.text(), /name="create_portal_account"/);
   const createdPlan = await post("/billing/plans", admin, {
     plan_code: "HTTP-FIF10",
     name: "Paket Uji 10 Mbps",
@@ -222,4 +225,72 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.match(billingHtml, /name="address"/);
   assert.match(billingHtml, /Informasi tambahan \(opsional\)/);
   assert.match(billingHtml, /name="whatsapp_opt_in"/);
+  assert.match(billingHtml, /name="plan_id"/);
+  assert.match(billingHtml, /name="start_date"/);
+  assert.doesNotMatch(billingHtml, /name="create_portal_account"/);
+
+  // Admin can create the customer, selected package subscription and portal
+  // credentials in one atomic form submission.
+  await refreshToken(admin);
+  const combinedCreate = await post("/billing/customers", admin, {
+    customer_code: "HTTP-COMBINED-001",
+    full_name: "Pelanggan Gabungan HTTP",
+    phone: "081234567891",
+    address: "Jl. Gabungan HTTP No. 1",
+    plan_id: String(planId),
+    start_date: "2026-11-15",
+    billing_day: "15",
+    external_device_ref: "ONU-COMBINED-001",
+    subscription_notes: "Langganan dari formulir tambah pelanggan",
+    create_portal_account: "1",
+    portal_password: "portal-combined-secret-2026"
+  });
+  assert.equal(combinedCreate.status, 302);
+  assert.match(combinedCreate.headers.get("location"), /langganan/);
+  assert.match(combinedCreate.headers.get("location"), /akses%20portal/);
+
+  const combinedCustomer = db.prepare(
+    "SELECT id FROM customers WHERE customer_code='HTTP-COMBINED-001'"
+  ).get();
+  assert.ok(combinedCustomer);
+  const combinedSubscription = db.prepare(
+    "SELECT * FROM subscriptions WHERE customer_id=?"
+  ).get(combinedCustomer.id);
+  assert.ok(combinedSubscription);
+  assert.equal(combinedSubscription.plan_id, planId);
+  assert.equal(combinedSubscription.start_date, "2026-11-15");
+  assert.equal(combinedSubscription.billing_day, 15);
+  assert.equal(combinedSubscription.external_device_ref, "ONU-COMBINED-001");
+
+  const combinedPortal = db.prepare(
+    "SELECT password_hash,is_active FROM customer_portal_accounts WHERE customer_id=?"
+  ).get(combinedCustomer.id);
+  assert.ok(combinedPortal);
+  assert.equal(combinedPortal.is_active, 1);
+  assert.equal(bcrypt.compareSync("portal-combined-secret-2026", combinedPortal.password_hash), true);
+
+  // Invalid portal credentials must roll back the customer and subscription.
+  await refreshToken(admin);
+  const failedCombined = await post("/billing/customers", admin, {
+    customer_code: "HTTP-COMBINED-ROLLBACK",
+    full_name: "Pelanggan Harus Rollback",
+    phone: "081234567892",
+    address: "Jl. Rollback HTTP No. 1",
+    plan_id: String(planId),
+    start_date: "2026-11-15",
+    create_portal_account: "1",
+    portal_password: "short"
+  });
+  assert.equal(failedCombined.status, 302);
+  assert.match(failedCombined.headers.get("location"), /customerError=/);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) AS n FROM customers WHERE customer_code='HTTP-COMBINED-ROLLBACK'").get().n,
+    0
+  );
+  const errorLocation = failedCombined.headers.get("location");
+  const errorPage = await get(errorLocation, admin);
+  assert.equal(errorPage.status, 200);
+  const errorHtml = await errorPage.text();
+  assert.match(errorHtml, /Password portal harus 12/);
+  assert.match(errorHtml, /customer-create-disclosure[^>]*open/);
 });
