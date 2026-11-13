@@ -66,16 +66,122 @@ function pageData(extra = {}) {
 }
 router.get("/", managers, (req,res) => res.render("billing/index", pageData({
   notice: req.query.notice || null,
-  error: req.query.error || null
+  error: req.query.error || null,
+  customerFormError: req.query.customerError || null,
+  openCustomerForm: req.query.openCustomerForm === "1" || Boolean(req.query.customerError)
 })));
 
 router.post("/customers", managers, (req,res) => {
   try {
-    const v=billing.validateCustomer(req.body);
-    const result = db.prepare("INSERT INTO customers (customer_code,full_name,email,phone,address,identity_number,notes,whatsapp_opt_in,whatsapp_opt_in_at) VALUES (?,?,?,?,?,?,?,?,CASE WHEN ?=1 THEN CURRENT_TIMESTAMP ELSE NULL END)").run(v.customer_code,v.full_name,v.email,v.phone,v.address,v.identity_number,v.notes,req.body.whatsapp_opt_in === "1" ? 1 : 0,req.body.whatsapp_opt_in === "1" ? 1 : 0);
-    recordAudit({ user: req.session.user, action: "customer.create", entityType: "customer", entityId: result.lastInsertRowid, summary: "Menambahkan pelanggan " + v.customer_code });
-    res.redirect("/billing?notice=Pelanggan%20berhasil%20ditambahkan.");
-  } catch(e) { if(e.code==="SQLITE_CONSTRAINT_UNIQUE") return fail(res,new Error("Kode pelanggan sudah digunakan.")); return fail(res,e); }
+    const customer = billing.validateCustomer(req.body);
+    const planIdRaw = String(req.body.plan_id || "").trim();
+    const portalRequested = req.body.create_portal_account === "1";
+    let subscription = null;
+    let portalPasswordHash = null;
+
+    if (planIdRaw) {
+      const planId = Number(planIdRaw);
+      const billingDay = Number(req.body.billing_day || 1);
+      if (!Number.isSafeInteger(planId) || planId < 1 ||
+          !Number.isInteger(billingDay) || billingDay < 1 || billingDay > 28) {
+        throw new Error("Pilihan paket atau tanggal billing tidak valid.");
+      }
+      const plan = db.prepare("SELECT id,plan_code,name FROM internet_plans WHERE id=? AND is_active=1").get(planId);
+      if (!plan) throw new Error("Paket internet tidak aktif atau tidak ditemukan.");
+      subscription = {
+        planId,
+        planName: plan.name,
+        startDate: billing.validateDate(req.body.start_date, "Tanggal mulai langganan"),
+        billingDay,
+        externalRef: billing.optionalText(req.body.external_device_ref, "Referensi perangkat", 150),
+        notes: billing.optionalText(req.body.subscription_notes, "Catatan langganan")
+      };
+    }
+
+    if (portalRequested) {
+      if (req.session.user.role !== "admin") {
+        throw new Error("Hanya admin yang dapat membuat akses portal pelanggan.");
+      }
+      const password = String(req.body.portal_password || "");
+      if (password.length < 12 || password.length > 200) {
+        throw new Error("Password portal harus 12–200 karakter.");
+      }
+      portalPasswordHash = bcrypt.hashSync(password, 12);
+    }
+
+    const whatsappOptIn = req.body.whatsapp_opt_in === "1" ? 1 : 0;
+    const created = db.transaction(() => {
+      const result = db.prepare(`
+        INSERT INTO customers
+          (customer_code,full_name,email,phone,address,identity_number,notes,
+           whatsapp_opt_in,whatsapp_opt_in_at)
+        VALUES (?,?,?,?,?,?,?, ?,CASE WHEN ?=1 THEN CURRENT_TIMESTAMP ELSE NULL END)
+      `).run(
+        customer.customer_code, customer.full_name, customer.email, customer.phone,
+        customer.address, customer.identity_number, customer.notes,
+        whatsappOptIn, whatsappOptIn
+      );
+      const customerId = Number(result.lastInsertRowid);
+
+      recordAudit({
+        user: req.session.user,
+        action: "customer.create",
+        entityType: "customer",
+        entityId: customerId,
+        summary: "Menambahkan pelanggan " + customer.customer_code
+      });
+
+      let subscriptionId = null;
+      if (subscription) {
+        const sub = db.prepare(`
+          INSERT INTO subscriptions
+            (customer_id,plan_id,start_date,billing_day,external_device_ref,notes)
+          VALUES (?,?,?,?,?,?)
+        `).run(
+          customerId, subscription.planId, subscription.startDate,
+          subscription.billingDay, subscription.externalRef, subscription.notes
+        );
+        subscriptionId = Number(sub.lastInsertRowid);
+        recordAudit({
+          user: req.session.user,
+          action: "subscription.create",
+          entityType: "subscription",
+          entityId: subscriptionId,
+          summary: "Membuat langganan " + subscription.planName + " untuk " + customer.customer_code
+        });
+      }
+
+      let portalCreated = false;
+      if (portalPasswordHash) {
+        db.prepare(`
+          INSERT INTO customer_portal_accounts (customer_id,password_hash,is_active)
+          VALUES (?,?,1)
+        `).run(customerId, portalPasswordHash);
+        portalCreated = true;
+        recordAudit({
+          user: req.session.user,
+          action: "customer.portal_account.create",
+          entityType: "customer_portal_account",
+          entityId: customerId,
+          summary: "Membuat akses portal untuk pelanggan " + customer.customer_code
+        });
+      }
+
+      return { customerId, subscriptionId, portalCreated };
+    })();
+
+    const completed = [
+      "Pelanggan " + customer.customer_code + " berhasil ditambahkan",
+      created.subscriptionId ? "langganan " + subscription.planName + " dibuat" : null,
+      created.portalCreated ? "akses portal pelanggan dibuat" : null
+    ].filter(Boolean).join("; ");
+    res.redirect("/billing?notice=" + encodeURIComponent(completed + "."));
+  } catch(e) {
+    const message = e.code === "SQLITE_CONSTRAINT_UNIQUE"
+      ? "Kode pelanggan sudah digunakan."
+      : e.message;
+    res.redirect("/billing?customerError=" + encodeURIComponent(message) + "&openCustomerForm=1");
+  }
 });
 router.post("/customers/:id/update", managers, (req,res) => {
   const id=Number(req.params.id); if(!Number.isSafeInteger(id)||id<1) return res.status(400).send("ID tidak valid.");
