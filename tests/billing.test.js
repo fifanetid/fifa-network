@@ -60,6 +60,20 @@ test("invoice dibuat dari snapshot harga paket dan periode unik", () => {
   assert.throws(()=>billing.createInvoice({subscriptionId,period:"2026-11",dueDate:"2026-11-20"}));
 });
 
+test("invoice bulanan otomatis membuat tagihan aktif dan aman dijalankan ulang", () => {
+  const { subscriptionId } = seed();
+  const first = billing.generateMonthlyInvoices({ period: "2026-11", dueDate: "2026-11-20" });
+  assert.equal(first.length, 1);
+  assert.equal(first[0].subscription_id, subscriptionId);
+  assert.equal(first[0].total_idr, 100000);
+  assert.equal(first[0].notes, "Invoice bulanan otomatis");
+
+  const second = billing.generateMonthlyInvoices({ period: "2026-11", dueDate: "2026-11-20" });
+  assert.equal(second.length, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) AS total FROM invoices WHERE subscription_id=? AND billing_period='2026-11'").get(subscriptionId).total, 1);
+  assert.throws(() => billing.generateMonthlyInvoices({ period: "2026-13", dueDate: "2026-11-20" }));
+});
+
 test("pembayaran parsial lalu lunas memperbarui status invoice", () => {
   const {subscriptionId}=seed();
   const invoice=billing.createInvoice({subscriptionId,period:"2026-12",dueDate:"2026-12-20"});
