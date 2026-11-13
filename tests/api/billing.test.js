@@ -212,9 +212,14 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.equal(page.status, 200);
   const billingHtml = await page.text();
   assert.match(billingHtml, /Pelanggan HTTP Diperbarui/);
-  assert.match(billingHtml, /Tambah pelanggan baru/);
-  assert.match(billingHtml, /Informasi pelanggan/);
-  assert.match(billingHtml, /Preferensi &amp; catatan|Preferensi & catatan/);
+  assert.match(billingHtml, /Tambah Pelanggan/);
+  assert.match(billingHtml, /customerSearch/);
+  assert.match(billingHtml, /customerStatusFilter/);
+  assert.match(billingHtml, /customerTableBody/);
   assert.match(billingHtml, /name="customer_code"/);
+  assert.match(billingHtml, /name="full_name"/);
+  assert.match(billingHtml, /name="phone"/);
+  assert.match(billingHtml, /name="address"/);
+  assert.match(billingHtml, /Informasi tambahan \(opsional\)/);
   assert.match(billingHtml, /name="whatsapp_opt_in"/);
 });
