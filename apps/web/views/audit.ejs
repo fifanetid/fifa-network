@@ -1,0 +1,23 @@
+<%- include("partials/header", { title }) %>
+<section class="panel">
+  <div class="panel-heading">
+    <div><span class="eyebrow">SECURITY & ACCOUNTABILITY</span><h3>Riwayat aktivitas</h3></div>
+    <span class="pill muted"><%= logs.length %> aktivitas terbaru</span>
+  </div>
+  <p class="form-hint">Menampilkan maksimal 200 aktivitas terbaru. Riwayat ini bersifat append-only melalui aplikasi.</p>
+  <% if (!logs.length) { %>
+    <div class="empty-state"><div class="empty-icon">◎</div><strong>Belum ada aktivitas</strong><p>Perubahan data yang tercatat akan muncul di halaman ini.</p></div>
+  <% } else { %>
+    <div class="table-wrap"><table class="users-table">
+      <thead><tr><th>Waktu</th><th>Pengguna</th><th>Aksi</th><th>Data</th><th>Ringkasan</th></tr></thead>
+      <tbody><% logs.forEach((log) => { %><tr>
+        <td><%= log.created_at %></td>
+        <td><strong><%= log.actor_name %></strong><small><%= log.actor_role %></small></td>
+        <td><span class="role-pill"><%= log.action %></span></td>
+        <td><%= log.entity_type %><small><%= log.entity_id || "-" %></small></td>
+        <td><%= log.summary %></td>
+      </tr><% }) %></tbody>
+    </table></div>
+  <% } %>
+</section>
+<%- include("partials/footer") %>
