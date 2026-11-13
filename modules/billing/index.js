@@ -24,6 +24,45 @@ function createInvoice({ subscriptionId, period, dueDate, discount = 0, notes = 
     return db.prepare("SELECT * FROM invoices WHERE id=?").get(result.lastInsertRowid);
   })();
 }
+function generateMonthlyInvoices({ period, dueDate }) {
+  const billingPeriod = domain.validatePeriod(period);
+  const due = domain.validateDate(dueDate, "Tanggal jatuh tempo");
+  const periodStart = billingPeriod + "-01";
+  const eligible = db.prepare(`
+    SELECT s.id AS subscription_id, s.customer_id, p.monthly_price_idr
+    FROM subscriptions s
+    JOIN internet_plans p ON p.id=s.plan_id
+    WHERE s.status='active'
+      AND s.start_date <= ?
+      AND (s.end_date IS NULL OR s.end_date >= ?)
+    ORDER BY s.id
+  `).all(periodStart, periodStart);
+
+  return db.transaction(() => {
+    const created = [];
+    const insert = db.prepare(`
+      INSERT INTO invoices
+        (invoice_number,subscription_id,customer_id,billing_period,due_date,
+         subtotal_idr,discount_idr,total_idr,status,notes)
+      VALUES (?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(subscription_id,billing_period) DO NOTHING
+    `);
+    for (const subscription of eligible) {
+      const amount = subscription.monthly_price_idr;
+      const invoiceNumber = "FN-" + billingPeriod.replace("-", "") + "-" +
+        randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
+      const result = insert.run(
+        invoiceNumber, subscription.subscription_id, subscription.customer_id,
+        billingPeriod, due, amount, 0, amount, amount === 0 ? "paid" : "unpaid",
+        "Invoice bulanan otomatis"
+      );
+      if (result.changes) {
+        created.push(db.prepare("SELECT * FROM invoices WHERE id=?").get(result.lastInsertRowid));
+      }
+    }
+    return created;
+  })();
+}
 function recordPayment({ invoiceId, input, userId }) {
   const id = Number(invoiceId);
   if (!Number.isSafeInteger(id) || id < 1) throw new Error("Invoice tidak valid.");
@@ -83,4 +122,4 @@ function getOutstandingBalance() {
   `).get().total;
 }
 
-module.exports = { ...domain, createInvoice, recordPayment, recordPaymentReversal, getOutstandingBalance };
+module.exports = { ...domain, createInvoice, generateMonthlyInvoices, recordPayment, recordPaymentReversal, getOutstandingBalance };
