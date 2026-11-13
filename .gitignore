@@ -12,3 +12,6 @@ npm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# WhatsApp Web multi-file authentication state (never commit)
+data/whatsapp-auth/
