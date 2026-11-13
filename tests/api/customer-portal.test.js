@@ -68,8 +68,8 @@ function cookieFrom(response,current) {
   const value=response.headers.get("set-cookie");
   return value?value.split(";")[0]:current;
 }
-async function get(pathname,session) {
-  const response=await fetch(baseUrl+pathname,{headers:{cookie:session.cookie||""}});
+async function get(pathname,session,redirect="follow") {
+  const response=await fetch(baseUrl+pathname,{headers:{cookie:session.cookie||""},redirect});
   session.cookie=cookieFrom(response,session.cookie||"");
   return response;
 }
@@ -103,8 +103,9 @@ async function login(pathname,identifier,password) {
 async function refreshToken(pathname,session) {
   const page=await get(pathname,session);
   assert.equal(page.status,200);
-  session.token=tokenFrom(await page.text());
-  return page.text();
+  const html=await page.text();
+  session.token=tokenFrom(html);
+  return html;
 }
 
 test("portal pelanggan membatasi data dan aksi pada pelanggan yang sedang login", async () => {
@@ -143,7 +144,7 @@ test("portal pelanggan membatasi data dan aksi pada pelanggan yang sedang login"
   assert.equal(saved.status,"pending");
   assert.equal(db.prepare("SELECT status FROM invoices WHERE id=?").get(invoiceA).status,"unpaid");
 
-  const forbiddenAdmin=await get("/billing",customer);
+  const forbiddenAdmin=await get("/billing",customer,"manual");
   assert.equal(forbiddenAdmin.status,302);
   assert.equal(forbiddenAdmin.headers.get("location"),"/login");
 });
