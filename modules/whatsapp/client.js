@@ -110,8 +110,10 @@ async function disconnect() {
 }
 
 function normalizePhone(value) {
-  const phone = String(value || "").replace(/[^0-9]/g, "");
-  if (!/^62[0-9]{8,13}$/.test(phone)) throw new Error("Nomor harus format internasional Indonesia, contoh 62812xxxxxxxx.");
+  let phone = String(value || "").replace(/[^0-9]/g, "");
+  if (phone.startsWith("0")) phone = "62" + phone.slice(1);
+  else if (phone.startsWith("8")) phone = "62" + phone;
+  if (!/^62[0-9]{8,13}$/.test(phone)) throw new Error("Nomor harus nomor Indonesia yang valid, contoh 0812xxxxxxxx atau 62812xxxxxxxx.");
   return phone;
 }
 
