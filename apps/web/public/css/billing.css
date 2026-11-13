@@ -176,3 +176,16 @@
   .customer-add-button{padding:8px 10px!important;font-size:10px!important}
   .customer-overview article span{font-size:9px}
 }
+
+
+/* Additional customer setup inside the quick-add dialog */
+.customer-extra-help{margin:8px 0 10px;color:#8995a7;font-size:10px;line-height:1.6}
+.customer-extra-grid select{width:100%;min-width:0;min-height:38px;padding:9px 10px;border:1px solid #dce3ed;border-radius:8px;background:#fff;color:#263751;font:inherit;font-size:11px}
+.customer-portal-password{display:grid;gap:5px;margin-top:10px;color:#4b5b73;font-size:10px;font-weight:750}
+.customer-portal-password input{width:100%;min-height:38px;padding:9px 10px;border:1px solid #dce3ed;border-radius:8px;background:#fff;color:#263751;font:inherit;font-size:11px;font-weight:500}
+.customer-portal-password input:disabled{background:#f1f4f8;color:#a4adba;cursor:not-allowed}
+.customer-form-error{padding:10px 12px;border:1px solid #f2caca;border-radius:8px;color:#9d3030;background:#fff5f5;font-size:11px;line-height:1.5}
+.customer-create-form .customer-extra-fields[open]{padding:10px 11px;border:1px solid #e7edf5;border-radius:9px;background:#f9fbfe}
+.customer-create-form .customer-extra-fields[open]>summary{color:#53627a!important}
+.customer-create-form .customer-extra-fields[open] .customer-extra-grid{margin-top:10px}
+.customer-create-form .customer-extra-fields .customer-consent{margin-top:8px}
