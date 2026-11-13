@@ -11,6 +11,7 @@ const userRoutes = require("./routes/users");
 const billingRoutes = require("./routes/billing");
 const auditRoutes = require("./routes/audit");
 const reportsRoutes = require("./routes/reports");
+const whatsappRoutes = require("./routes/whatsapp");
 const { dbDir } = require("../../database/db");
 
 const app = express();
@@ -60,6 +61,7 @@ app.use("/", dashboardRoutes);
 app.use("/admin/users", userRoutes);
 app.use("/admin/audit", auditRoutes);
 app.use("/reports", reportsRoutes);
+app.use("/admin/whatsapp", whatsappRoutes);
 app.use("/billing", billingRoutes);
 
 app.use((req, res) => {
