@@ -9,6 +9,7 @@ const dashboardRoutes = require("./routes/dashboard");
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const billingRoutes = require("./routes/billing");
+const auditRoutes = require("./routes/audit");
 const { dbDir } = require("../../database/db");
 
 const app = express();
@@ -56,6 +57,7 @@ app.get("/healthz", (req, res) => {
 app.use("/", authRoutes);
 app.use("/", dashboardRoutes);
 app.use("/admin/users", userRoutes);
+app.use("/admin/audit", auditRoutes);
 app.use("/billing", billingRoutes);
 
 app.use((req, res) => {
