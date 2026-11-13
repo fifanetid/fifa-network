@@ -77,6 +77,24 @@ router.post("/subscriptions/:id/status", managers, (req,res) => {
     res.redirect("/billing?notice=Status%20langganan%20diperbarui.");
   } catch(e) { return fail(res,e); }
 });
+router.post("/invoices/generate-monthly", managers, (req,res) => {
+  try {
+    const invoices = billing.generateMonthlyInvoices({
+      period: req.body.billing_period,
+      dueDate: req.body.due_date
+    });
+    recordAudit({
+      user: req.session.user,
+      action: "invoice.batch_create",
+      entityType: "invoice_batch",
+      entityId: invoices[0]?.id || null,
+      summary: "Menerbitkan " + invoices.length + " invoice otomatis untuk periode " + req.body.billing_period
+    });
+    res.redirect("/billing?notice=" + encodeURIComponent(
+      invoices.length + " invoice berhasil dibuat. Invoice yang sudah ada dilewati."
+    ));
+  } catch(e) { return fail(res,e); }
+});
 router.post("/invoices", managers, (req,res) => {
   try{const invoice=billing.createInvoice({subscriptionId:req.body.subscription_id,period:req.body.billing_period,dueDate:req.body.due_date,discount:req.body.discount_idr||0,notes:req.body.notes||""});recordAudit({ user: req.session.user, action: "invoice.create", entityType: "invoice", entityId: invoice.id, summary: "Membuat invoice " + invoice.invoice_number });res.redirect("/billing?notice=Invoice%20berhasil%20dibuat.");}
   catch(e){if(String(e.message).includes("UNIQUE"))return fail(res,new Error("Invoice untuk langganan dan periode ini sudah ada."));return fail(res,e);}
