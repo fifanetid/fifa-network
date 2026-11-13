@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/assets/css/app.css">
   <link rel="stylesheet" href="/assets/css/auth.css">
   <link rel="stylesheet" href="/assets/css/billing.css">
+  <link rel="stylesheet" href="/assets/css/whatsapp.css">
 </head>
 <body>
 <div class="app-shell">
@@ -17,6 +18,7 @@
       <% if (currentUser && currentUser.role === "admin") { %>
         <a href="/admin/users"><span>♙</span><span>Manajemen Pengguna</span></a>
         <a href="/admin/audit"><span>◷</span><span>Audit Log</span></a>
+        <a class="<%= title === 'WhatsApp Gateway' ? 'active' : '' %>" href="/admin/whatsapp"><span>◉</span><span>WhatsApp Gateway</span></a>
       <% } %>
       <% if (currentUser && ["admin","finance"].includes(currentUser.role)) { %>
         <a class="<%= title === 'Billing & Pelanggan' ? 'active' : '' %>" href="/billing"><span>▤</span><span>Pelanggan & Billing</span></a>
