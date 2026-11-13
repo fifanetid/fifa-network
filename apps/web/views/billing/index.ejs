@@ -69,6 +69,14 @@
 
 <section class="panel billing-panel">
   <div class="panel-heading"><div><span class="eyebrow">ACCOUNTS RECEIVABLE</span><h3>Buat invoice</h3></div></div>
+  <p class="muted-text">Terbitkan invoice sekaligus untuk semua langganan aktif yang sudah berjalan pada awal periode. Periode yang sudah memiliki invoice akan dilewati otomatis.</p>
+  <form class="billing-form" method="post" action="/billing/invoices/generate-monthly">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Periode tagihan<input type="month" name="billing_period" required></label>
+    <label>Jatuh tempo<input type="date" name="due_date" required></label>
+    <button class="primary-button" type="submit">Buat invoice bulanan otomatis</button>
+  </form>
+  <div class="divider"></div>
   <form class="billing-form" method="post" action="/billing/invoices">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <label>Langganan<select name="subscription_id" required><option value="">Pilih langganan</option><% subscriptions.filter(s=>s.status!=="terminated").forEach(s=>{ %><option value="<%= s.id %>"><%= s.customer_code %> — <%= s.full_name %> / <%= s.plan_name %></option><% }) %></select></label>
