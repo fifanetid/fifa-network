@@ -210,5 +210,11 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
 
   const page = await get("/billing", finance);
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /Pelanggan HTTP Diperbarui/);
+  const billingHtml = await page.text();
+  assert.match(billingHtml, /Pelanggan HTTP Diperbarui/);
+  assert.match(billingHtml, /Tambah pelanggan baru/);
+  assert.match(billingHtml, /Informasi pelanggan/);
+  assert.match(billingHtml, /Preferensi &amp; catatan|Preferensi & catatan/);
+  assert.match(billingHtml, /name="customer_code"/);
+  assert.match(billingHtml, /name="whatsapp_opt_in"/);
 });

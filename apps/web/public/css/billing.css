@@ -56,3 +56,48 @@
 .actions-cell{min-width:155px}
 .actions-cell form{margin:4px 0}
 .actions-cell .danger-button{margin-top:3px}
+
+
+/* Compact customer creation dialog */
+.customer-create-disclosure{margin-top:10px}
+.customer-create-disclosure>summary.customer-create-trigger{display:flex!important;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid #dce7fb;border-radius:11px;color:#234f9d!important;background:linear-gradient(110deg,#f6f9ff,#fff);cursor:pointer}
+.customer-create-trigger>span:first-child{display:grid;gap:3px}
+.customer-create-trigger strong{color:#244a8d;font-size:12px}
+.customer-create-trigger small{color:#8a97aa;font-size:10px;font-weight:500}
+.customer-create-disclosure>summary.customer-create-trigger::after{content:none!important}
+.customer-create-plus{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;color:#2458c6;background:#e9f0ff;font-size:19px;line-height:1}
+.customer-create-disclosure[open] .customer-create-plus{transform:rotate(45deg)}
+.billing-grid .customer-create-disclosure[open]{position:fixed;z-index:1000;inset:50% auto auto 50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;width:min(650px,calc(100vw - 36px));max-height:min(90vh,850px);margin:0;padding:0;border:1px solid #e1e8f2;border-radius:16px;background:#fff;box-shadow:0 24px 75px #07172f55,0 0 0 100vmax #08162b99;overflow:hidden}
+.billing-grid .customer-create-disclosure[open]>summary.customer-create-trigger{position:relative;z-index:2;flex:0 0 auto;padding:16px 19px;border:0;border-bottom:1px solid #edf1f6;border-radius:0;background:#fff}
+.customer-create-form{display:flex;flex:1;flex-direction:column;gap:13px;min-height:0;margin:0;padding:15px 18px 0;overflow:auto;overscroll-behavior:contain}
+.customer-form-section{padding:14px;border:1px solid #e9eef5;border-radius:12px;background:#fbfcff}
+.customer-form-section-heading{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.customer-form-step{display:grid;place-items:center;flex:0 0 29px;width:29px;height:29px;border-radius:9px;color:#275bc0;background:#eaf1ff;font-size:10px;font-weight:800}
+.customer-form-section-heading h4{margin:0;color:#263751;font-size:12px;font-weight:800}
+.customer-form-section-heading p{margin:2px 0 0;color:#8995a7;font-size:10px}
+.customer-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px 12px}
+.customer-form-grid label,.customer-notes-label{display:grid;align-content:start;gap:5px;color:#4b5b73;font-size:10px;font-weight:750}
+.customer-form-grid input,.customer-form-grid textarea,.customer-notes-label textarea{width:100%;min-width:0;min-height:37px;padding:9px 10px;border:1px solid #dce3ed;border-radius:8px;background:#fff;color:#263751;font:inherit;font-size:11px;font-weight:500}
+.customer-form-grid textarea,.customer-notes-label textarea{min-height:62px;resize:vertical}
+.customer-field-wide{grid-column:1/-1}
+.customer-optional{display:inline;color:#96a2b2;font-size:9px;font-weight:500}
+.customer-form-grid input:focus,.customer-form-grid textarea:focus,.customer-notes-label textarea:focus{outline:0;border-color:#79a1ed;box-shadow:0 0 0 3px #2864dc16}
+.customer-consent{display:flex;align-items:flex-start;gap:9px;padding:10px 11px;border:1px solid #e0e9f8;border-radius:9px;background:#fff;cursor:pointer}
+.customer-consent>input{width:15px;height:15px;flex:0 0 15px;margin:2px 0 0;accent-color:#2864dc}
+.customer-consent>span{display:grid;gap:3px}
+.customer-consent strong{color:#40516a;font-size:10px}
+.customer-consent small{color:#8995a7;font-size:9px;font-weight:450}
+.customer-notes-label{margin-top:10px}
+.customer-form-actions{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:8px;margin-top:auto;padding:12px 0 max(12px,env(safe-area-inset-bottom));border-top:1px solid #edf1f6;background:#fff}
+.customer-form-actions .small-button{min-width:84px;min-height:38px;color:#66758b}
+.customer-form-actions .primary-button{min-height:38px}
+@media(max-width:600px){
+  .billing-grid .customer-create-disclosure[open]{inset:8px;width:auto;max-height:none;transform:none;border-radius:13px}
+  .billing-grid .customer-create-disclosure[open]>summary.customer-create-trigger{padding:13px 14px}
+  .customer-create-form{gap:10px;padding:10px 11px 0}
+  .customer-form-section{padding:11px}
+  .customer-form-grid{grid-template-columns:1fr;gap:9px}
+  .customer-field-wide{grid-column:auto}
+  .customer-form-section-heading{margin-bottom:10px}
+  .customer-form-actions{padding-bottom:max(12px,env(safe-area-inset-bottom))}
+}

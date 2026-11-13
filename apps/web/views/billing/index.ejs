@@ -5,20 +5,46 @@
 <section class="billing-grid">
   <article class="panel">
     <div class="panel-heading"><div><span class="eyebrow">DATA PELANGGAN</span><h3>Tambah pelanggan</h3></div><span class="pill muted"><%= customers.length %> data</span></div>
-    <details class="billing-disclosure">
-      <summary>Buka formulir pelanggan</summary>
-    <form class="billing-form" method="post" action="/billing/customers">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <label>Kode pelanggan<input name="customer_code" maxlength="30" required placeholder="FN-0001"></label>
-      <label>Nama lengkap<input name="full_name" maxlength="120" required></label>
-      <label>Nomor telepon<input name="phone" maxlength="30" required></label>
-      <label class="wide"><span><input type="checkbox" name="whatsapp_opt_in" value="1"> Pelanggan menyetujui pengingat tagihan melalui WhatsApp</span></label>
-      <label>Email (opsional)<input type="email" name="email" maxlength="254"></label>
-      <label class="wide">Alamat<textarea name="address" maxlength="500" required></textarea></label>
-      <label>No. identitas (opsional)<input name="identity_number" maxlength="80"></label>
-      <label>Catatan<input name="notes" maxlength="500"></label>
-      <button class="primary-button" type="submit">Simpan pelanggan</button>
-    </form>
+    <details class="billing-disclosure customer-create-disclosure">
+      <summary class="customer-create-trigger">
+        <span><strong>Tambah pelanggan baru</strong><small>Isi informasi dasar pelanggan</small></span>
+        <span class="customer-create-plus" aria-hidden="true">＋</span>
+      </summary>
+      <form class="customer-create-form" method="post" action="/billing/customers">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+        <section class="customer-form-section">
+          <div class="customer-form-section-heading">
+            <span class="customer-form-step">01</span>
+            <div><h4>Informasi pelanggan</h4><p>Identitas dan kontak utama pelanggan</p></div>
+          </div>
+          <div class="customer-form-grid">
+            <label>Kode pelanggan<input name="customer_code" maxlength="30" required placeholder="FN-0001"></label>
+            <label>Nama lengkap<input name="full_name" maxlength="120" required placeholder="Nama pelanggan"></label>
+            <label>Nomor telepon<input name="phone" maxlength="30" required placeholder="08xxxxxxxxxx"></label>
+            <label>Email <span class="customer-optional">Opsional</span><input type="email" name="email" maxlength="254" placeholder="nama@email.com"></label>
+            <label>No. identitas <span class="customer-optional">Opsional</span><input name="identity_number" maxlength="80" placeholder="NIK / nomor identitas"></label>
+            <label class="customer-field-wide">Alamat lengkap<textarea name="address" maxlength="500" required placeholder="Jalan, RT/RW, desa, kecamatan"></textarea></label>
+          </div>
+        </section>
+
+        <section class="customer-form-section">
+          <div class="customer-form-section-heading">
+            <span class="customer-form-step">02</span>
+            <div><h4>Preferensi & catatan</h4><p>Atur komunikasi dan informasi tambahan</p></div>
+          </div>
+          <label class="customer-consent">
+            <input type="checkbox" name="whatsapp_opt_in" value="1">
+            <span><strong>Setuju menerima pengingat WhatsApp</strong><small>Pesan tagihan hanya dikirim setelah pelanggan menyetujui.</small></span>
+          </label>
+          <label class="customer-notes-label">Catatan <span class="customer-optional">Opsional</span><textarea name="notes" maxlength="500" placeholder="Catatan tambahan tentang pelanggan"></textarea></label>
+        </section>
+
+        <div class="customer-form-actions">
+          <button class="small-button" type="button" onclick="this.closest('details').open=false">Batal</button>
+          <button class="primary-button" type="submit">Simpan pelanggan <span>＋</span></button>
+        </div>
+      </form>
     </details>
   </article>
   <article class="panel">
