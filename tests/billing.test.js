@@ -183,3 +183,21 @@ test("trigger status invoice memakai saldo bersih saat pembayaran baru masuk set
     .run(invoice.id,"PAY-DIRECT-AFTER-REVERSAL",10000,"cash","2027-11-02");
   assert.equal(db.prepare("SELECT status FROM invoices WHERE id=?").get(invoice.id).status,"partial");
 });
+
+
+test("saldo tagihan dashboard menghitung pembayaran bersih setelah reversal", () => {
+  const before = billing.getOutstandingBalance();
+  const { subscriptionId } = seed();
+  const invoice = billing.createInvoice({ subscriptionId, period: "2027-12", dueDate: "2027-12-20" });
+  const payment = billing.recordPayment({
+    invoiceId: invoice.id,
+    input: { amount_idr: 60000, payment_method: "cash", paid_at: "2027-12-01" },
+    userId: null
+  });
+  billing.recordPaymentReversal({
+    paymentId: payment.id,
+    input: { amount_idr: 20000, reason: "Koreksi pembayaran" },
+    userId: null
+  });
+  assert.equal(billing.getOutstandingBalance(), before + 60000);
+});
