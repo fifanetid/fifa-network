@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | FF BILLING</title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="/assets/css/portal.css">
+</head>
+<body class="portal-page">
+  <header class="portal-topbar">
+    <a class="portal-brand" href="/customer"><span class="brand-mark">FF</span><span><strong>FF BILLING</strong><small>PORTAL PELANGGAN</small></span></a>
+    <div class="portal-user">
+      <span><%= customer.full_name %></span>
+      <form method="post" action="/customer/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button">Keluar</button></form>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <% if (notice) { %><div class="notice info portal-notice"><%= notice %></div><% } %>
+    <section class="portal-welcome">
+      <div><span class="eyebrow">RINGKASAN PELANGGAN</span><h1>Halo, <%= customer.full_name %></h1><p>ID pelanggan <strong><%= customer.customer_code %></strong> · <%= customer.phone %></p></div>
+      <div class="portal-welcome-mark">FF</div>
+    </section>
+
+    <% const outstanding = invoices.filter(i => i.status !== "paid").reduce((sum,i) => sum + i.remaining_idr,0); %>
+    <% const unpaidCount = invoices.filter(i => i.status !== "paid").length; %>
+    <section class="portal-stat-grid">
+      <article class="portal-stat"><span>Sisa tagihan</span><strong><%= rupiah(outstanding) %></strong><small>Akumulasi invoice belum lunas</small></article>
+      <article class="portal-stat"><span>Invoice belum lunas</span><strong><%= unpaidCount %></strong><small>Termasuk tagihan sebagian</small></article>
+      <article class="portal-stat"><span>Langganan aktif</span><strong><%= subscriptions.filter(s=>s.status==="active").length %></strong><small>Dari <%= subscriptions.length %> langganan</small></article>
+    </section>
+
+    <section class="portal-panel">
+      <div class="portal-section-heading"><div><span class="eyebrow">LAYANAN INTERNET</span><h2>Paket dan langganan</h2></div></div>
+      <% if (subscriptions.length) { %>
+        <div class="portal-service-grid">
+          <% subscriptions.forEach(s => { %>
+            <article class="portal-service">
+              <div class="portal-service-top"><strong><%= s.plan_name %></strong><span class="pill <%= s.status==="active"?"success":"muted" %>"><%= s.status %></span></div>
+              <strong class="portal-speed"><%= s.speed_mbps %> Mbps</strong>
+              <span class="portal-muted"><%= rupiah(s.monthly_price_idr) %> / bulan</span>
+              <small>Mulai: <%= s.start_date %><%= s.end_date ? " · Berakhir: " + s.end_date : "" %></small>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %><p class="portal-empty">Belum ada data langganan.</p><% } %>
+    </section>
+
+    <section class="portal-panel">
+      <div class="portal-section-heading"><div><span class="eyebrow">TAGIHAN</span><h2>Invoice dan pembayaran</h2></div><span class="pill muted"><%= invoices.length %> invoice</span></div>
+      <div class="portal-table-wrap">
+        <table class="portal-table">
+          <thead><tr><th>Invoice</th><th>Periode</th><th>Jatuh tempo</th><th>Total</th><th>Dibayar</th><th>Sisa</th><th>Status</th><th>Aksi</th></tr></thead>
+          <tbody>
+            <% invoices.forEach(i => { %>
+              <tr>
+                <td><strong><%= i.invoice_number %></strong></td>
+                <td><%= i.billing_period %></td>
+                <td><%= i.due_date %></td>
+                <td><%= rupiah(i.total_idr) %></td>
+                <td><%= rupiah(i.paid_idr) %></td>
+                <td><strong><%= rupiah(i.remaining_idr) %></strong></td>
+                <td><span class="pill <%= i.status==="paid"?"success":i.status==="partial"?"warning":"muted" %>"><%= i.status %></span></td>
+                <td><a class="portal-text-link" href="/customer/invoices/<%= i.id %>/print" target="_blank" rel="noopener">Cetak / PDF</a></td>
+              </tr>
+              <% if (i.status !== "paid" && i.remaining_idr > 0) { %>
+                <tr class="portal-action-row"><td colspan="8">
+                  <% if (i.pending_confirmations > 0) { %>
+                    <span class="portal-pending-note">Konfirmasi pembayaran untuk invoice ini sedang menunggu pemeriksaan admin.</span>
+                  <% } else { %>
+                    <details class="portal-confirm-details">
+                      <summary>Konfirmasi pembayaran untuk <%= i.invoice_number %></summary>
+                      <form class="portal-confirm-form" method="post" action="/customer/invoices/<%= i.id %>/confirm-payment">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <label>Nominal dibayar (IDR)<input type="number" name="amount_idr" min="1" max="<%= i.remaining_idr %>" required></label>
+                        <label>Metode<select name="payment_method" required><option value="bank_transfer">Transfer bank</option><option value="qris">QRIS</option><option value="other">Lainnya</option></select></label>
+                        <label>Nomor referensi transaksi<input name="payment_reference" minlength="3" maxlength="100" required placeholder="Nomor referensi bank / transaksi"></label>
+                        <label>Tanggal pembayaran<input type="date" name="paid_at" required></label>
+                        <label class="portal-form-wide">Catatan (opsional)<input name="notes" maxlength="500"></label>
+                        <button class="primary-button" type="submit">Kirim konfirmasi</button>
+                      </form>
+                    </details>
+                  <% } %>
+                </td></tr>
+              <% } %>
+            <% }) %>
+            <% if (!invoices.length) { %><tr><td colspan="8" class="portal-empty">Belum ada invoice yang diterbitkan.</td></tr><% } %>
+          </tbody>
+        </table>
+      </div>
+      <p class="portal-help">Konfirmasi pembayaran bukan bukti pembayaran otomatis. Status tagihan baru berubah setelah tim FF NETWORK memeriksa dan menyetujuinya.</p>
+    </section>
+
+    <section class="portal-panel">
+      <div class="portal-section-heading"><div><span class="eyebrow">RIWAYAT KONFIRMASI</span><h2>Status konfirmasi pembayaran</h2></div></div>
+      <div class="portal-table-wrap">
+        <table class="portal-table">
+          <thead><tr><th>Tanggal kirim</th><th>Invoice</th><th>Referensi</th><th>Nominal</th><th>Status</th><th>Catatan admin</th></tr></thead>
+          <tbody>
+            <% confirmations.forEach(c => { %><tr><td><%= c.created_at %></td><td><%= c.invoice_number %></td><td><%= c.payment_reference %></td><td><%= rupiah(c.amount_idr) %></td><td><span class="pill <%= c.status==="approved"?"success":c.status==="rejected"?"danger":"warning" %>"><%= c.status %></span></td><td><%= c.review_note || "-" %></td></tr><% }) %>
+            <% if (!confirmations.length) { %><tr><td colspan="6" class="portal-empty">Belum ada konfirmasi pembayaran.</td></tr><% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="portal-panel">
+      <details class="portal-password">
+        <summary>Ubah password portal</summary>
+        <form class="portal-confirm-form" method="post" action="/customer/account/password">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label>Password saat ini<input type="password" name="current_password" autocomplete="current-password" required maxlength="200"></label>
+          <label>Password baru (minimal 12 karakter)<input type="password" name="new_password" autocomplete="new-password" minlength="12" required maxlength="200"></label>
+          <button class="primary-button" type="submit">Perbarui password</button>
+        </form>
+      </details>
+    </section>
+    <footer class="portal-footer">FF BILLING · Portal pelanggan · Hubungi admin FF NETWORK untuk bantuan tagihan.</footer>
+  </main>
+</body>
+</html>
