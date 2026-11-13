@@ -47,3 +47,12 @@
   .billing-disclosure[open]{padding:9px}
   .billing-table-scroll{max-height:280px}
 }
+
+.danger-button{min-height:30px;border:1px solid #f0caca;border-radius:7px;padding:6px 10px;color:#b83232;background:#fff7f7;font-size:10px;font-weight:750;cursor:pointer}
+.danger-button:hover{border-color:#e7a7a7;background:#fff0f0}
+.customer-actions{display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap}
+.customer-actions form{margin:0!important}
+.delete-blocked{display:inline-flex;align-items:center;min-height:28px;padding:4px 7px;border-radius:7px;color:#8793a5;background:#f3f5f8;font-size:9px;font-weight:700}
+.actions-cell{min-width:155px}
+.actions-cell form{margin:4px 0}
+.actions-cell .danger-button{margin-top:3px}
