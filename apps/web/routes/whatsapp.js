@@ -5,6 +5,7 @@ const { db } = require("../../../database/db");
 const { recordAudit } = require("../../../modules/audit");
 const whatsapp = require("../../../modules/whatsapp/client");
 const { runReminderJob, getAutomaticReminderSettings, setAutomaticRemindersEnabled } = require("../../../modules/whatsapp/scheduler");
+const { getReminderPreview, jakartaDate } = require("../../../modules/whatsapp/reminders");
 const { requireRole } = require("../middleware/auth");
 const admins = requireRole("admin");
 
@@ -22,6 +23,8 @@ router.get("/", (req, res) => {
     title: "WhatsApp Gateway",
     status: whatsapp.snapshot(),
     reminderSettings: getAutomaticReminderSettings(),
+    reminderPreview: getReminderPreview(),
+    reminderPreviewDate: jakartaDate(),
     logs,
     notice: req.query.notice || null,
     error: null
