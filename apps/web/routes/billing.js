@@ -18,6 +18,7 @@ function pageData(extra = {}) {
     invoices: db.prepare("SELECT i.*,c.full_name,c.customer_code,COALESCE((SELECT SUM(amount_idr) FROM payments WHERE invoice_id=i.id),0) - COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r JOIN payments p ON p.id=r.payment_id WHERE p.invoice_id=i.id),0) AS paid_idr FROM invoices i JOIN customers c ON c.id=i.customer_id ORDER BY i.id DESC").all(),
     payments: db.prepare("SELECT p.*,i.invoice_number,COALESCE((SELECT SUM(amount_idr) FROM payment_reversals WHERE payment_id=p.id),0) AS reversed_idr FROM payments p JOIN invoices i ON i.id=p.invoice_id ORDER BY p.id DESC LIMIT 100").all(),
     reversals: db.prepare("SELECT r.*,p.payment_reference,i.invoice_number FROM payment_reversals r JOIN payments p ON p.id=r.payment_id JOIN invoices i ON i.id=p.invoice_id ORDER BY r.id DESC LIMIT 100").all(),
+    dueReminders: billing.getDueReminders({ today: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date()), daysAhead: 7 }),
     ...extra
   };
 }
