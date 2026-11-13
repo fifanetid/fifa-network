@@ -25,7 +25,23 @@
     <div class="panel-heading"><div><span class="eyebrow">PENGINGAT TAGIHAN</span><h3>Jalankan sekarang</h3></div></div>
     <p class="muted-text">Memproses maksimal 20 pengingat untuk pelanggan yang sudah menyetujui WhatsApp. Sistem mencegah pengiriman ganda per invoice dan tahap pengingat.</p>
     <form method="post" action="/admin/whatsapp/reminders/run"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="primary-button">Proses pengingat sekarang</button></form>
-    <p class="muted-text">Jadwal: H-3, hari jatuh tempo, H+3, lalu setiap 7 hari selama invoice belum lunas. Batas 20 pesan per proses.</p>
+    <p class="muted-text">Jadwal tahap: H-3, hari jatuh tempo, H+3, lalu setiap 7 hari selama invoice belum lunas. Batas 20 pesan per proses.</p>
+
+    <div class="divider"></div>
+    <div class="wa-scheduler">
+      <div class="panel-heading">
+        <div><span class="eyebrow">JADWAL OTOMATIS</span><h3>Pengingat harian</h3></div>
+        <span class="pill <%= reminderSettings.enabled ? 'success' : 'muted' %>"><%= reminderSettings.enabled ? 'Aktif' : 'Nonaktif' %></span>
+      </div>
+      <p class="wa-scheduler-time">09.00 WIB · Setiap hari</p>
+      <p class="muted-text">Saat aktif, FF BILLING memeriksa tagihan setiap hari pukul 09.00 WIB. Pesan hanya ditujukan kepada pelanggan aktif yang menyetujui WhatsApp. Gateway harus terhubung ketika jadwal berjalan.</p>
+      <form method="post" action="/admin/whatsapp/reminders/automatic">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="enabled" value="<%= reminderSettings.enabled ? '0' : '1' %>">
+        <button class="primary-button" type="submit"><%= reminderSettings.enabled ? 'Nonaktifkan pengingat otomatis' : 'Aktifkan pengingat otomatis' %></button>
+      </form>
+      <small class="muted-text">Pengaturan tersimpan di database. Default nonaktif dan dapat diubah kapan saja oleh admin.</small>
+    </div>
   </article>
 </section>
 <section class="panel billing-panel">

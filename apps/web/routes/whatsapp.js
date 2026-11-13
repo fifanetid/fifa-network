@@ -4,7 +4,7 @@ const router = require("express").Router();
 const { db } = require("../../../database/db");
 const { recordAudit } = require("../../../modules/audit");
 const whatsapp = require("../../../modules/whatsapp/client");
-const { processReminders } = require("../../../modules/whatsapp/reminders");
+const { runReminderJob, getAutomaticReminderSettings, setAutomaticRemindersEnabled } = require("../../../modules/whatsapp/scheduler");
 const { requireRole } = require("../middleware/auth");
 const admins = requireRole("admin");
 
@@ -21,6 +21,7 @@ router.get("/", (req, res) => {
   res.render("whatsapp/index", {
     title: "WhatsApp Gateway",
     status: whatsapp.snapshot(),
+    reminderSettings: getAutomaticReminderSettings(),
     logs,
     notice: req.query.notice || null,
     error: null
@@ -62,11 +63,44 @@ router.post("/test", async (req, res) => {
   }
 });
 
+router.post("/reminders/automatic", (req, res) => {
+  const value = String(req.body.enabled || "");
+  if (!["0", "1"].includes(value)) {
+    return res.status(400).send("Status pengingat otomatis tidak valid.");
+  }
+
+  const enabled = value === "1";
+  const settings = setAutomaticRemindersEnabled(enabled, req.session.user.id);
+  recordAudit({
+    user: req.session.user,
+    action: enabled ? "whatsapp.reminders.automatic_enabled" : "whatsapp.reminders.automatic_disabled",
+    entityType: "whatsapp_scheduler",
+    summary: enabled
+      ? "Mengaktifkan pengingat WhatsApp otomatis setiap hari pukul 09.00 WIB"
+      : "Menonaktifkan pengingat WhatsApp otomatis"
+  });
+
+  const notice = settings.enabled
+    ? "Pengingat otomatis aktif. Jadwal berikutnya setiap hari pukul 09.00 WIB."
+    : "Pengingat otomatis dinonaktifkan. Pengiriman manual tetap tersedia.";
+  res.redirect("/admin/whatsapp?notice=" + encodeURIComponent(notice));
+});
+
 router.post("/reminders/run", async (req, res) => {
   try {
-    const result = await processReminders({ limit: 20, delayMs: 5000 });
-    recordAudit({ user: req.session.user, action: "whatsapp.reminders.run", entityType: "whatsapp_gateway", summary: "Menjalankan pengingat: " + result.sent + " terkirim, " + result.failed + " gagal" });
-    res.redirect("/admin/whatsapp?notice=" + encodeURIComponent("Pengingat selesai. Terkirim: " + result.sent + ", gagal: " + result.failed + ", dilewati: " + result.skipped + "."));
+    const result = await runReminderJob({ automatic: false, limit: 20, delayMs: 5000 });
+    if (result.busy) {
+      return res.redirect("/admin/whatsapp?notice=" + encodeURIComponent("Pengingat sedang diproses oleh proses lain. Coba lagi setelah proses selesai."));
+    }
+    recordAudit({
+      user: req.session.user,
+      action: "whatsapp.reminders.run",
+      entityType: "whatsapp_gateway",
+      summary: "Menjalankan pengingat manual: " + result.sent + " terkirim, " + result.failed + " gagal"
+    });
+    res.redirect("/admin/whatsapp?notice=" + encodeURIComponent(
+      "Pengingat selesai. Terkirim: " + result.sent + ", gagal: " + result.failed + ", dilewati: " + result.skipped + "."
+    ));
   } catch (error) {
     res.redirect("/admin/whatsapp?notice=" + encodeURIComponent("Pengingat gagal: " + error.message));
   }
