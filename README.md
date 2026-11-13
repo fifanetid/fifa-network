@@ -31,7 +31,7 @@
 
 ### Belum tersedia
 - Payment gateway/otomatisasi pembayaran
-- Pengiriman pengingat keluar melalui WhatsApp/SMS/email (daftar pengingat internal sudah tersedia), prorata, denda, dan pajak
+- Pengiriman pengingat WhatsApp Web melalui Baileys, persetujuan pelanggan, QR perangkat, riwayat pesan, dan pengingat otomatis (H-3, hari jatuh tempo, H+3, lalu setiap 7 hari); SMS/email, prorata, denda, dan pajak belum tersedia
 - Penghapusan data dengan workflow retensi/audit
 - Integrasi MikroTik RouterOS API
 - Integrasi GenieACS NBI, provisioning TR-069, dan monitoring ONT
@@ -84,6 +84,12 @@ ADMIN_NAME="Administrator" ADMIN_EMAIL="admin@domain-kamu.id" ADMIN_PASSWORD="Pa
 ~~~
 
 Perintah production hanya membuat admin pertama ketika tabel pengguna masih kosong.
+
+### WhatsApp Gateway (Baileys)
+
+WhatsApp Gateway hanya dapat dikelola admin melalui menu **WhatsApp Gateway**. Gunakan nomor operasional khusus, hubungkan dengan QR, dan aktifkan persetujuan WhatsApp pada data pelanggan hanya setelah pelanggan menyetujuinya. Nomor pelanggan harus memakai format internasional Indonesia (`62812...`). Sesi tersimpan di `data/whatsapp-auth/` dan tidak boleh dibagikan atau di-commit. Jangan hapus folder ini saat memperbarui aplikasi.
+
+Pengingat otomatis berjalan setiap hari pukul 09.00 WIB ketika proses web aktif. Sistem mengirim maksimal 20 pesan per proses dan mencatat hasil untuk mencegah pengiriman ganda. Admin juga dapat menjalankan proses manual dari halaman WhatsApp Gateway. Koneksi Baileys menggunakan WhatsApp Web tidak resmi, dapat terputus atau berubah sewaktu-waktu, dan bukan WhatsApp Business Platform resmi. Gunakan secara wajar, dengan persetujuan penerima, serta pahami risiko pembatasan akun oleh WhatsApp.
 
 ### Menjadwalkan invoice bulanan
 
