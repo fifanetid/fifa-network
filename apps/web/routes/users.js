@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const { db } = require("../../../database/db");
+const { recordAudit } = require("../../../modules/audit");
 const { requireRole } = require("../middleware/auth");
 
 router.use(requireRole("admin"));
@@ -17,7 +18,8 @@ router.post("/", (req, res) => {
     return res.redirect("/admin/users?error=Data%20tidak%20valid.%20Password%20minimal%2012%20karakter.");
   }
   try {
-    db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)").run(name, email, bcrypt.hashSync(password, 12), role);
+    const result = db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)").run(name, email, bcrypt.hashSync(password, 12), role);
+    recordAudit({ user: req.session.user, action: "user.create", entityType: "user", entityId: result.lastInsertRowid, summary: "Membuat akun " + email + " dengan role " + role });
     res.redirect("/admin/users?notice=Akun%20berhasil%20dibuat.");
   } catch (err) {
     if (err.code === "SQLITE_CONSTRAINT_UNIQUE") return res.redirect("/admin/users?error=Email%20sudah%20digunakan.");
@@ -31,6 +33,7 @@ router.post("/:id/status", (req, res) => {
   const user = db.prepare("SELECT id, is_active FROM users WHERE id = ?").get(id);
   if (!user) return res.status(404).send("Pengguna tidak ditemukan.");
   db.prepare("UPDATE users SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(user.is_active ? 0 : 1, id);
+  recordAudit({ user: req.session.user, action: "user.status", entityType: "user", entityId: id, summary: (user.is_active ? "Menonaktifkan" : "Mengaktifkan") + " akun pengguna ID " + id });
   res.redirect("/admin/users?notice=Status%20akun%20diperbarui.");
 });
 router.post("/:id/password", (req, res) => {
@@ -39,6 +42,7 @@ router.post("/:id/password", (req, res) => {
   if (!Number.isSafeInteger(id) || id <= 0 || password.length < 12 || password.length > 200) return res.redirect("/admin/users?error=Password%20baru%20minimal%2012%20karakter.");
   if (!db.prepare("SELECT id FROM users WHERE id = ?").get(id)) return res.status(404).send("Pengguna tidak ditemukan.");
   db.prepare("UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(bcrypt.hashSync(password, 12), id);
+  recordAudit({ user: req.session.user, action: "user.password_reset", entityType: "user", entityId: id, summary: "Mengubah password akun pengguna ID " + id });
   res.redirect("/admin/users?notice=Password%20akun%20berhasil%20diubah.");
 });
 module.exports = router;
