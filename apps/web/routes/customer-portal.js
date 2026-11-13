@@ -188,7 +188,10 @@ router.post("/invoices/:id/confirm-payment", (req, res) => {
 
     res.redirect("/customer?notice=" + encodeURIComponent("Konfirmasi pembayaran berhasil dikirim dan menunggu pemeriksaan admin."));
   } catch (error) {
-    res.redirect("/customer?notice=" + encodeURIComponent(error.message));
+    const message = error.code === "SQLITE_CONSTRAINT_UNIQUE"
+      ? "Nomor referensi transaksi tersebut sudah pernah digunakan."
+      : error.message;
+    res.redirect("/customer?notice=" + encodeURIComponent(message));
   }
 });
 
