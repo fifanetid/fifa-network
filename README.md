@@ -20,6 +20,8 @@
 - Referensi perangkat eksternal opsional (mis. GenieACS device ID/serial), tanpa menyimpan dokumen perangkat
 - Pembuatan invoice bulanan per langganan dan periode dengan snapshot harga
 - Penerbitan invoice bulanan massal untuk langganan aktif; aman dijalankan ulang karena invoice duplikat otomatis dilewati
+- Skrip penjadwalan invoice bulanan yang dapat dijalankan melalui cron
+- Daftar pengingat tagihan jatuh tempo/terlambat 7 hari di halaman Billing, dengan sisa bersih setelah reversal
 - Pencatatan pembayaran tunai, transfer bank, QRIS manual, dan metode lain
 - Pembayaran parsial, pembalikan pembayaran sebagian/penuh khusus admin dengan alasan wajib, serta riwayat reversal append-only
 - Status invoice unpaid/partial/paid/void dihitung dari pembayaran bersih setelah reversal
@@ -29,7 +31,7 @@
 
 ### Belum tersedia
 - Payment gateway/otomatisasi pembayaran
-- Penagihan otomatis terjadwal, prorata, denda, pajak, dan notifikasi
+- Pengiriman pengingat keluar melalui WhatsApp/SMS/email (daftar pengingat internal sudah tersedia), prorata, denda, dan pajak
 - Penghapusan data dengan workflow retensi/audit
 - Integrasi MikroTik RouterOS API
 - Integrasi GenieACS NBI, provisioning TR-069, dan monitoring ONT
@@ -82,6 +84,21 @@ ADMIN_NAME="Administrator" ADMIN_EMAIL="admin@domain-kamu.id" ADMIN_PASSWORD="Pa
 ~~~
 
 Perintah production hanya membuat admin pertama ketika tabel pengguna masih kosong.
+
+### Menjadwalkan invoice bulanan
+
+Skrip ini memakai zona waktu Asia/Jakarta. Jalankan otomatis setiap tanggal 1 pukul 00.10 WIB dengan cron berikut (sesuaikan path instalasi dan user service):
+
+~~~cron
+10 0 1 * * cd /var/www/fifa-network && /usr/bin/npm run billing:monthly >> /var/log/ffbilling-monthly.log 2>&1
+~~~
+
+Skrip menerbitkan invoice periode bulan berjalan dengan tanggal jatuh tempo tanggal 10. Invoice yang sudah ada akan dilewati, sehingga aman dijalankan ulang. Uji manual:
+
+~~~bash
+npm run billing:monthly
+npm run billing:monthly -- 2026-11 2026-11-10
+~~~
 
 ### Pemeriksaan dan menjalankan
 
