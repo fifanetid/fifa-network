@@ -50,7 +50,7 @@ async function login(email) {
   const response = await fetch(baseUrl + "/login", {
     method: "POST",
     redirect: "manual",
-    headers: { "content-type": "application/x-www-form-urlencoded", cookie },
+    headers: { "content-type": "application/x-www-form-urlencoded", "x-csrf-token": token, cookie },
     body: new URLSearchParams({ identifier: email, password: "test-password-123", _csrf: token })
   });
   cookie = cookieFrom(response, cookie);
