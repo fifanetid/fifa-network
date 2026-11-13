@@ -86,6 +86,15 @@
     <label class="wide">Catatan<input name="notes" maxlength="500"></label>
     <button class="primary-button">Terbitkan invoice</button>
   </form>
+  <div class="reminder-summary">
+    <strong>Pengingat jatuh tempo</strong>
+    <span>Tagihan belum lunas yang jatuh tempo atau akan jatuh tempo dalam 7 hari ke depan.</span>
+    <b><%= dueReminders.length %> tagihan perlu ditindaklanjuti</b>
+  </div>
+  <div class="table-wrap"><table class="users-table"><thead><tr><th>Status</th><th>Pelanggan</th><th>Invoice</th><th>Jatuh tempo</th><th>Sisa tagihan</th><th>Kontak</th></tr></thead><tbody>
+  <% dueReminders.forEach(r=>{ %><tr><td><span class="pill <%= r.is_overdue ? 'danger' : 'warning' %>"><%= r.is_overdue ? 'Terlambat ' + r.days_overdue + ' hari' : (r.days_overdue === 0 ? 'Jatuh tempo hari ini' : 'Dalam ' + Math.abs(r.days_overdue) + ' hari') %></span></td><td><strong><%= r.customer_code %></strong><small><%= r.full_name %></small></td><td><%= r.invoice_number %><small><%= r.billing_period %></small></td><td><%= r.due_date %></td><td><strong><%= rupiah(r.remaining_idr) %></strong></td><td><%= r.phone %></td></tr><% }) %>
+  <% if(!dueReminders.length){ %><tr><td colspan="6" class="muted-text">Tidak ada tagihan yang perlu diingatkan dalam 7 hari ke depan.</td></tr><% } %>
+  </tbody></table></div>
   <div class="table-wrap"><table class="users-table"><thead><tr><th>Invoice</th><th>Pelanggan / Periode</th><th>Total</th><th>Dibayar</th><th>Sisa</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
   <% invoices.forEach(i=>{ const remaining=i.total_idr-i.paid_idr; %><tr><td><strong><%= i.invoice_number %></strong><small>Jatuh tempo: <%= i.due_date %></small></td><td><%= i.full_name %><small><%= i.billing_period %></small></td><td><%= rupiah(i.total_idr) %></td><td><%= rupiah(i.paid_idr) %></td><td><%= rupiah(remaining) %></td><td><span class="pill <%= i.status==='paid'?'success':'muted' %>"><%= i.status %></span></td><td><% if(i.status!=="paid"&&i.status!=="void"){ %><details><summary>Catat pembayaran</summary><form class="mini-edit" method="post" action="/billing/invoices/<%= i.id %>/payments"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="number" name="amount_idr" min="1" max="<%= remaining %>" placeholder="Nominal IDR" required><select name="payment_method"><option value="cash">Tunai</option><option value="bank_transfer">Transfer bank</option><option value="qris">QRIS</option><option value="other">Lainnya</option></select><input type="date" name="paid_at" required><input name="notes" placeholder="Catatan"><button class="small-button">Simpan pembayaran</button></form></details><% } %><% if(currentUser.role==="admin"&&i.status!=="void"&&i.paid_idr===0){ %><form method="post" action="/billing/invoices/<%= i.id %>/void"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button">Batalkan</button></form><% } %></td></tr><% }) %>
   <% if(!invoices.length){ %><tr><td colspan="7" class="muted-text">Belum ada invoice.</td></tr><% } %>
