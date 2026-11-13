@@ -17,7 +17,7 @@
         <% if (user.role === "admin" && user.is_active && activeAdminCount <= 1) { %>
           <span class="pill warning">Admin aktif terakhir</span>
         <% } else { %>
-          <form method="post" action="/admin/users/<%= user.id %>/delete" onsubmit="return confirm('Hapus akun <%= user.email %> secara permanen? Akun tidak dapat dipulihkan. Riwayat audit dan transaksi akan tetap disimpan.')">
+          <form method="post" action="/admin/users/<%= user.id %>/delete" onsubmit="return confirm('Hapus akun pengguna ini secara permanen? Akun tidak dapat dipulihkan. Riwayat audit dan transaksi akan tetap disimpan.')">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <button class="danger-button" type="submit">Hapus pengguna</button>
           </form>
