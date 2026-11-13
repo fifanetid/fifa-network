@@ -133,6 +133,9 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
 
   const admin = await login("admin-http@example.test");
   await refreshToken(admin);
+  const adminBillingPage = await get("/billing", admin);
+  assert.equal(adminBillingPage.status, 200);
+  assert.match(await adminBillingPage.text(), /name="create_portal_account"/);
   const createdPlan = await post("/billing/plans", admin, {
     plan_code: "HTTP-FIF10",
     name: "Paket Uji 10 Mbps",
@@ -224,7 +227,7 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.match(billingHtml, /name="whatsapp_opt_in"/);
   assert.match(billingHtml, /name="plan_id"/);
   assert.match(billingHtml, /name="start_date"/);
-  assert.match(billingHtml, /name="create_portal_account"/);
+  assert.doesNotMatch(billingHtml, /name="create_portal_account"/);
 
   // Admin can create the customer, selected package subscription and portal
   // credentials in one atomic form submission.
