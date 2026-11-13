@@ -62,4 +62,6 @@ router.post("/logout", (req, res, next) => {
   });
 });
 
+router.use("/customer", require("./customer-portal"));
+
 module.exports = router;
