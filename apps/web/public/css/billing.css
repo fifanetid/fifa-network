@@ -189,3 +189,113 @@
 .customer-create-form .customer-extra-fields[open]>summary{color:#53627a!important}
 .customer-create-form .customer-extra-fields[open] .customer-extra-grid{margin-top:10px}
 .customer-create-form .customer-extra-fields .customer-consent{margin-top:8px}
+
+
+/* Customer quick-add modal: fixed viewport height and a real scroll area */
+.customer-create-disclosure[open]{
+  top:50%!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:auto!important;
+  width:min(620px,calc(100vw - 28px))!important;
+  height:min(780px,calc(100vh - 28px))!important;
+  max-height:calc(100vh - 28px)!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  transform:translate(-50%,-50%)!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:visible!important;
+  box-sizing:border-box!important;
+}
+@supports (height:100dvh){
+  .customer-create-disclosure[open]{
+    height:min(780px,calc(100dvh - 28px))!important;
+    max-height:calc(100dvh - 28px)!important;
+  }
+}
+.customer-create-disclosure[open]>.customer-modal-backdrop{
+  position:fixed!important;
+  inset:-100vh -100vw!important;
+  z-index:-1!important;
+  display:block!important;
+  background:rgba(9,22,42,.66)!important;
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+}
+.customer-create-disclosure[open]>.customer-simple-form{
+  display:flex!important;
+  flex:1 1 auto!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:100%!important;
+  margin:0!important;
+  padding:16px 18px 0!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  box-sizing:border-box!important;
+  scrollbar-gutter:stable;
+}
+.customer-simple-form>.customer-modal-heading{
+  position:sticky;
+  top:-16px;
+  z-index:4;
+  flex:0 0 auto;
+  margin:0 -2px;
+  padding:4px 2px 12px;
+  background:#fff;
+}
+.customer-simple-form>.customer-form-actions{
+  position:sticky!important;
+  bottom:0!important;
+  z-index:5;
+  flex:0 0 auto!important;
+  margin:4px -18px 0!important;
+  padding:12px 18px max(12px,env(safe-area-inset-bottom))!important;
+  border-top:1px solid #e9eef5!important;
+  background:rgba(255,255,255,.98)!important;
+  box-shadow:0 -6px 16px rgba(24,43,73,.04);
+}
+.customer-simple-form .customer-extra-fields[open]{
+  flex:0 0 auto;
+}
+.customer-simple-form .customer-extra-fields[open]>.customer-extra-grid{
+  min-width:0;
+}
+.customer-simple-form input,
+.customer-simple-form select,
+.customer-simple-form textarea{
+  max-width:100%;
+}
+.customer-simple-form::-webkit-scrollbar{width:8px}
+.customer-simple-form::-webkit-scrollbar-thumb{border:2px solid #fff;border-radius:10px;background:#cbd5e1}
+.customer-simple-form::-webkit-scrollbar-track{background:transparent}
+@media(max-width:520px){
+  .customer-create-disclosure[open]{
+    top:8px!important;
+    left:8px!important;
+    right:8px!important;
+    bottom:8px!important;
+    width:auto!important;
+    height:auto!important;
+    max-height:none!important;
+    transform:none!important;
+    border-radius:13px!important;
+  }
+  .customer-create-disclosure[open]>.customer-simple-form{
+    height:100%!important;
+    padding:12px 12px 0!important;
+    gap:10px;
+  }
+  .customer-simple-form>.customer-modal-heading{top:-12px;padding-top:2px}
+  .customer-simple-form>.customer-form-actions{
+    margin-right:-12px!important;
+    margin-left:-12px!important;
+    padding-right:12px!important;
+    padding-left:12px!important;
+  }
+}
