@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | FF BILLING</title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="/assets/css/portal.css">
+</head>
+<body class="portal-auth-page">
+  <main class="portal-auth-card">
+    <div class="portal-brand"><span class="brand-mark">FF</span><div><strong>FF BILLING</strong><small>PORTAL PELANGGAN</small></div></div>
+    <span class="eyebrow">AKSES PELANGGAN</span>
+    <h1>Selamat datang</h1>
+    <p class="portal-muted">Masuk untuk melihat tagihan, paket internet, dan riwayat pembayaran Anda.</p>
+    <% if (error) { %><div class="notice error"><%= error %></div><% } %>
+    <form method="post" action="/customer/login" class="portal-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label>ID pelanggan<input name="customer_code" autocomplete="username" maxlength="30" required placeholder="Contoh: FN-0001"></label>
+      <label>Password<input type="password" name="password" autocomplete="current-password" maxlength="200" required placeholder="Password portal"></label>
+      <button class="primary-button" type="submit">Masuk ke portal</button>
+    </form>
+    <p class="portal-help">Belum memiliki akses? Hubungi admin FF NETWORK untuk mendapatkan akun portal.</p>
+    <a class="portal-admin-link" href="/login">Login administrator</a>
+  </main>
+</body>
+</html>
