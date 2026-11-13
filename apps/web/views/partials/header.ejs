@@ -19,7 +19,8 @@
         <a href="/admin/audit"><span>◷</span><span>Audit Log</span></a>
       <% } %>
       <% if (currentUser && ["admin","finance"].includes(currentUser.role)) { %>
-        <a class="active" href="/billing"><span>▤</span><span>Pelanggan & Billing</span></a>
+        <a class="<%= title === 'Billing & Pelanggan' ? 'active' : '' %>" href="/billing"><span>▤</span><span>Pelanggan & Billing</span></a>
+        <a class="<%= title === 'Laporan Keuangan' ? 'active' : '' %>" href="/reports"><span>▥</span><span>Laporan Keuangan</span></a>
       <% } %>
       <a href="#"><span>⌁</span><span>MikroTik (segera)</span></a>
       <a href="#"><span>◎</span><span>GenieACS / ONT (segera)</span></a>
