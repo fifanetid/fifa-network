@@ -42,6 +42,44 @@
   </tbody></table></div>
 </section>
 
+<% if (currentUser.role === "admin") { %>
+<section class="panel billing-panel">
+  <div class="panel-heading"><div><span class="eyebrow">CUSTOMER PORTAL</span><h3>Akses portal pelanggan</h3></div><a class="small-button" href="/customer/login" target="_blank" rel="noopener">Buka portal</a></div>
+  <p class="muted-text">Buat atau atur ulang password portal pelanggan. Password disimpan dalam bentuk hash. Sampaikan ID pelanggan dan password sementara melalui saluran pribadi yang aman.</p>
+  <div class="table-wrap"><table class="users-table">
+    <thead><tr><th>Pelanggan</th><th>Status akun portal</th><th>Login terakhir</th><th>Buat / atur ulang password</th><th>Aksi</th></tr></thead>
+    <tbody>
+      <% portalCustomers.forEach(c => { %>
+        <tr>
+          <td><strong><%= c.customer_code %></strong><small><%= c.full_name %></small></td>
+          <td>
+            <% if (c.portal_active === null) { %><span class="pill muted">Belum dibuat</span>
+            <% } else { %><span class="pill <%= c.portal_active ? 'success' : 'muted' %>"><%= c.portal_active ? 'Aktif' : 'Nonaktif' %></span><% } %>
+          </td>
+          <td><%= c.last_login_at || "-" %></td>
+          <td>
+            <form class="portal-admin-form" method="post" action="/billing/portal-accounts/<%= c.id %>">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="password" name="password" minlength="12" maxlength="200" required autocomplete="new-password" placeholder="Password sementara (min. 12)">
+              <button class="small-button"><%= c.portal_active === null ? "Buat akses" : "Atur ulang" %></button>
+            </form>
+          </td>
+          <td>
+            <% if (c.portal_active !== null) { %>
+              <form method="post" action="/billing/portal-accounts/<%= c.id %>/status">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="small-button"><%= c.portal_active ? "Nonaktifkan" : "Aktifkan" %></button>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!portalCustomers.length) { %><tr><td colspan="5" class="muted-text">Belum ada pelanggan.</td></tr><% } %>
+    </tbody>
+  </table></div>
+</section>
+<% } %>
+
 <section class="panel billing-panel">
   <div class="panel-heading"><div><span class="eyebrow">INTERNET CATALOG</span><h3>Paket internet</h3></div></div>
   <div class="table-wrap"><table class="users-table"><thead><tr><th>Kode / Paket</th><th>Kecepatan</th><th>Harga / bulan</th><th>Status</th><th>Ubah</th><th>Aksi</th></tr></thead><tbody>
@@ -101,6 +139,45 @@
   <% if(!invoices.length){ %><tr><td colspan="7" class="muted-text">Belum ada invoice.</td></tr><% } %>
   </tbody></table></div>
 </section>
+<section class="panel billing-panel">
+  <div class="panel-heading"><div><span class="eyebrow">CUSTOMER PAYMENT REVIEW</span><h3>Konfirmasi pembayaran pelanggan</h3></div><span class="pill muted"><%= paymentConfirmations.filter(c=>c.status==='pending').length %> menunggu</span></div>
+  <p class="muted-text">Pembayaran dari portal tidak langsung mengubah saldo invoice. Periksa referensi transaksi dan bukti pada rekening / kanal pembayaran sebelum menyetujui.</p>
+  <div class="table-wrap"><table class="users-table">
+    <thead><tr><th>Dikirim</th><th>Pelanggan</th><th>Invoice</th><th>Nominal</th><th>Metode</th><th>Referensi</th><th>Tanggal bayar</th><th>Status / Aksi</th></tr></thead>
+    <tbody>
+      <% paymentConfirmations.forEach(c => { %>
+        <tr>
+          <td><%= c.created_at %></td>
+          <td><strong><%= c.customer_code %></strong><small><%= c.full_name %></small></td>
+          <td><%= c.invoice_number %></td>
+          <td><strong><%= rupiah(c.amount_idr) %></strong></td>
+          <td><%= c.payment_method %></td>
+          <td><%= c.payment_reference %><small><%= c.notes || "-" %></small></td>
+          <td><%= c.paid_at %></td>
+          <td>
+            <% if (c.status === "pending") { %>
+              <span class="pill warning">Menunggu</span>
+              <form class="portal-review-form" method="post" action="/billing/payment-confirmations/<%= c.id %>/approve">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="small-button">Setujui & catat</button>
+              </form>
+              <details><summary>Tolak</summary><form class="mini-edit" method="post" action="/billing/payment-confirmations/<%= c.id %>/reject">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input name="review_note" minlength="5" maxlength="500" placeholder="Alasan penolakan" required>
+                <button class="small-button">Simpan penolakan</button>
+              </form></details>
+            <% } else { %>
+              <span class="pill <%= c.status==='approved'?'success':'danger' %>"><%= c.status %></span>
+              <small><%= c.review_note || "-" %></small>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!paymentConfirmations.length) { %><tr><td colspan="8" class="muted-text">Belum ada konfirmasi pembayaran pelanggan.</td></tr><% } %>
+    </tbody>
+  </table></div>
+</section>
+
 <section class="panel billing-panel"><div class="panel-heading"><div><span class="eyebrow">PAYMENT HISTORY</span><h3>Riwayat pembayaran</h3></div></div>
 <div class="table-wrap"><table class="users-table"><thead><tr><th>Referensi</th><th>Invoice</th><th>Nominal</th><th>Metode</th><th>Tanggal</th><th>Catatan</th></tr></thead><tbody>
 <% payments.forEach(p=>{ const refundable=p.amount_idr-p.reversed_idr; %><tr><td><strong><%= p.payment_reference %></strong><small>Dikembalikan: <%= rupiah(p.reversed_idr) %></small></td><td><%= p.invoice_number %></td><td><%= rupiah(p.amount_idr) %><small>Net: <%= rupiah(refundable) %></small></td><td><%= p.payment_method %></td><td><%= p.paid_at %></td><td><%= p.notes || "-" %><% if(currentUser.role==="admin"&&refundable>0){ %><details><summary>Reversal</summary><form class="mini-edit" method="post" action="/billing/payments/<%= p.id %>/reversals"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="number" name="amount_idr" min="1" max="<%= refundable %>" placeholder="Nominal reversal" required><input name="reason" minlength="5" maxlength="500" placeholder="Alasan koreksi (wajib)" required><button class="small-button">Catat reversal</button></form></details><% } %></td></tr><% }) %>

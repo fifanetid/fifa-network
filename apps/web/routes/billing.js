@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const bcrypt = require("bcryptjs");
 const { db } = require("../../../database/db");
 const billing = require("../../../modules/billing");
 const { recordAudit } = require("../../../modules/audit");
@@ -13,6 +14,19 @@ function pageData(extra = {}) {
     notice: null,
     error: null,
     customers: db.prepare("SELECT * FROM customers ORDER BY id DESC").all(),
+    portalCustomers: db.prepare(`
+      SELECT c.id,c.customer_code,c.full_name,c.status,a.is_active AS portal_active,a.last_login_at
+      FROM customers c LEFT JOIN customer_portal_accounts a ON a.customer_id=c.id
+      ORDER BY c.id DESC
+    `).all(),
+    paymentConfirmations: db.prepare(`
+      SELECT pc.*,c.customer_code,c.full_name,i.invoice_number
+      FROM customer_payment_confirmations pc
+      JOIN customers c ON c.id=pc.customer_id
+      JOIN invoices i ON i.id=pc.invoice_id
+      ORDER BY CASE pc.status WHEN 'pending' THEN 0 ELSE 1 END, pc.id DESC
+      LIMIT 100
+    `).all(),
     plans: db.prepare("SELECT * FROM internet_plans ORDER BY id DESC").all(),
     subscriptions: db.prepare("SELECT s.*,c.customer_code,c.full_name,p.name AS plan_name,p.monthly_price_idr FROM subscriptions s JOIN customers c ON c.id=s.customer_id JOIN internet_plans p ON p.id=s.plan_id ORDER BY s.id DESC").all(),
     invoices: db.prepare("SELECT i.*,c.full_name,c.customer_code,COALESCE((SELECT SUM(amount_idr) FROM payments WHERE invoice_id=i.id),0) - COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r JOIN payments p ON p.id=r.payment_id WHERE p.invoice_id=i.id),0) AS paid_idr FROM invoices i JOIN customers c ON c.id=i.customer_id ORDER BY i.id DESC").all(),
@@ -42,6 +56,80 @@ router.post("/customers/:id/status", managers, (req,res) => {
   const r=db.prepare("UPDATE customers SET status=CASE status WHEN 'active' THEN 'inactive' ELSE 'active' END,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
   if(!r.changes)return res.status(404).send("Pelanggan tidak ditemukan."); recordAudit({ user: req.session.user, action: "customer.status", entityType: "customer", entityId: id, summary: "Mengubah status pelanggan ID " + id }); res.redirect("/billing?notice=Status%20pelanggan%20diperbarui.");
 });
+
+router.post("/portal-accounts/:customerId", admins, (req,res) => {
+  const customerId=Number(req.params.customerId);
+  const password=String(req.body.password||"");
+  if(!Number.isSafeInteger(customerId)||customerId<1)return res.status(400).send("ID pelanggan tidak valid.");
+  if(password.length<12||password.length>200)return res.redirect("/billing?notice="+encodeURIComponent("Password portal harus 12–200 karakter."));
+  const customer=db.prepare("SELECT id,customer_code,status FROM customers WHERE id=?").get(customerId);
+  if(!customer||customer.status!=="active")return res.redirect("/billing?notice="+encodeURIComponent("Akun portal hanya dapat dibuat untuk pelanggan aktif."));
+  const hash=bcrypt.hashSync(password,12);
+  db.prepare(`
+    INSERT INTO customer_portal_accounts (customer_id,password_hash,is_active)
+    VALUES (?,?,1)
+    ON CONFLICT(customer_id) DO UPDATE SET
+      password_hash=excluded.password_hash,is_active=1,updated_at=CURRENT_TIMESTAMP
+  `).run(customerId,hash);
+  recordAudit({user:req.session.user,action:"customer.portal_account.upsert",entityType:"customer_portal_account",entityId:customerId,summary:"Membuat atau mengatur ulang akses portal untuk "+customer.customer_code});
+  res.redirect("/billing?notice="+encodeURIComponent("Akses portal pelanggan berhasil disimpan. Berikan ID pelanggan dan password sementara secara aman."));
+});
+
+router.post("/portal-accounts/:customerId/status", admins, (req,res) => {
+  const customerId=Number(req.params.customerId);
+  if(!Number.isSafeInteger(customerId)||customerId<1)return res.status(400).send("ID pelanggan tidak valid.");
+  const r=db.prepare("UPDATE customer_portal_accounts SET is_active=1-is_active,updated_at=CURRENT_TIMESTAMP WHERE customer_id=?").run(customerId);
+  if(!r.changes)return res.status(404).send("Akun portal tidak ditemukan.");
+  recordAudit({user:req.session.user,action:"customer.portal_account.status",entityType:"customer_portal_account",entityId:customerId,summary:"Mengubah status akses portal pelanggan ID "+customerId});
+  res.redirect("/billing?notice="+encodeURIComponent("Status akses portal diperbarui."));
+});
+
+router.post("/payment-confirmations/:id/approve", managers, (req,res) => {
+  const id=Number(req.params.id);
+  if(!Number.isSafeInteger(id)||id<1)return res.status(400).send("ID konfirmasi tidak valid.");
+  try {
+    let payment;
+    db.transaction(() => {
+      const confirmation=db.prepare("SELECT * FROM customer_payment_confirmations WHERE id=? AND status='pending'").get(id);
+      if(!confirmation)throw new Error("Konfirmasi tidak ditemukan atau sudah ditinjau.");
+      payment=billing.recordPayment({
+        invoiceId:confirmation.invoice_id,
+        input:{
+          amount_idr:confirmation.amount_idr,
+          payment_method:confirmation.payment_method,
+          paid_at:confirmation.paid_at,
+          notes:"Konfirmasi pelanggan: "+confirmation.payment_reference+(confirmation.notes?" · "+confirmation.notes:"")
+        },
+        userId:req.session.user.id
+      });
+      db.prepare(`
+        UPDATE customer_payment_confirmations
+        SET status='approved',payment_id=?,reviewed_by=?,reviewed_at=CURRENT_TIMESTAMP,review_note=NULL
+        WHERE id=? AND status='pending'
+      `).run(payment.id,req.session.user.id,id);
+    })();
+    recordAudit({user:req.session.user,action:"customer.payment_confirmation.approve",entityType:"customer_payment_confirmation",entityId:id,summary:"Menyetujui konfirmasi pembayaran pelanggan dan mencatat "+payment.payment_reference});
+    res.redirect("/billing?notice="+encodeURIComponent("Konfirmasi disetujui dan pembayaran berhasil dicatat."));
+  } catch(error) {
+    res.redirect("/billing?notice="+encodeURIComponent("Konfirmasi gagal disetujui: "+error.message));
+  }
+});
+
+router.post("/payment-confirmations/:id/reject", managers, (req,res) => {
+  const id=Number(req.params.id);
+  const note=String(req.body.review_note||"").trim();
+  if(!Number.isSafeInteger(id)||id<1)return res.status(400).send("ID konfirmasi tidak valid.");
+  if(note.length<5||note.length>500)return res.redirect("/billing?notice="+encodeURIComponent("Alasan penolakan harus 5–500 karakter."));
+  const result=db.prepare(`
+    UPDATE customer_payment_confirmations
+    SET status='rejected',reviewed_by=?,reviewed_at=CURRENT_TIMESTAMP,review_note=?
+    WHERE id=? AND status='pending'
+  `).run(req.session.user.id,note,id);
+  if(!result.changes)return res.redirect("/billing?notice="+encodeURIComponent("Konfirmasi tidak ditemukan atau sudah ditinjau."));
+  recordAudit({user:req.session.user,action:"customer.payment_confirmation.reject",entityType:"customer_payment_confirmation",entityId:id,summary:"Menolak konfirmasi pembayaran: "+note});
+  res.redirect("/billing?notice="+encodeURIComponent("Konfirmasi pembayaran ditolak."));
+});
+
 router.post("/plans", admins, (req,res) => {
   try {const v=billing.validatePlan(req.body);const result=db.prepare("INSERT INTO internet_plans (plan_code,name,speed_mbps,monthly_price_idr,description) VALUES (?,?,?,?,?)").run(v.plan_code,v.name,v.speed_mbps,v.monthly_price_idr,v.description);recordAudit({ user: req.session.user, action: "plan.create", entityType: "internet_plan", entityId: result.lastInsertRowid, summary: "Menambahkan paket " + v.plan_code });res.redirect("/billing?notice=Paket%20berhasil%20ditambahkan.");}
   catch(e){if(e.code==="SQLITE_CONSTRAINT_UNIQUE")return fail(res,new Error("Kode paket sudah digunakan."));return fail(res,e);}
