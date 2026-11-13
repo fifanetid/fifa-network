@@ -19,6 +19,7 @@
 - Langganan: buat dan ubah status active/suspended/terminated
 - Referensi perangkat eksternal opsional (mis. GenieACS device ID/serial), tanpa menyimpan dokumen perangkat
 - Pembuatan invoice bulanan per langganan dan periode dengan snapshot harga
+- Penerbitan invoice bulanan massal untuk langganan aktif; aman dijalankan ulang karena invoice duplikat otomatis dilewati
 - Pencatatan pembayaran tunai, transfer bank, QRIS manual, dan metode lain
 - Pembayaran parsial, pembalikan pembayaran sebagian/penuh khusus admin dengan alasan wajib, serta riwayat reversal append-only
 - Status invoice unpaid/partial/paid/void dihitung dari pembayaran bersih setelah reversal
