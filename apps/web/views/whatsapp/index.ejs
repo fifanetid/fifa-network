@@ -44,6 +44,36 @@
     </div>
   </article>
 </section>
+<section class="panel billing-panel wa-preview-panel">
+  <div class="panel-heading">
+    <div><span class="eyebrow">PENERIMA PENGINGAT</span><h3>Pratinjau calon penerima berikutnya</h3></div>
+    <span class="pill <%= reminderPreview.total ? 'warning' : 'muted' %>"><%= reminderPreview.total %> calon pesan</span>
+  </div>
+  <p class="muted-text">Tanggal acuan <strong><%= reminderPreview.date %></strong> (Asia/Jakarta). Daftar ini hanya membaca data; tidak ada pesan yang dikirim dari pratinjau. Pengingat yang sudah pernah terkirim pada tahap yang sama otomatis dikecualikan.</p>
+  <% if (reminderPreview.total > reminderPreview.candidates.length) { %>
+    <p class="muted-text">Menampilkan <%= reminderPreview.candidates.length %> dari <%= reminderPreview.total %> calon pesan. Maksimal 20 pesan diproses dalam satu jadwal.</p>
+  <% } %>
+  <div class="table-wrap">
+    <table class="users-table">
+      <thead><tr><th>Pelanggan</th><th>Invoice / Periode</th><th>Jatuh tempo</th><th>Tahap</th><th>Sisa tagihan</th><th>Nomor tujuan</th></tr></thead>
+      <tbody>
+        <% reminderPreview.candidates.forEach(row => { %>
+          <tr>
+            <td><strong><%= row.customer_code %></strong><small><%= row.full_name %></small></td>
+            <td><strong><%= row.invoice_number %></strong><small><%= row.billing_period %></small></td>
+            <td><%= row.due_date %></td>
+            <td><span class="pill warning"><%= row.stage_label %></span></td>
+            <td><strong><%= new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(row.remaining_idr) %></strong></td>
+            <td><%= row.masked_phone %></td>
+          </tr>
+        <% }) %>
+        <% if (!reminderPreview.candidates.length) { %>
+          <tr><td colspan="6" class="muted-text">Belum ada invoice yang memenuhi jadwal pengingat dari pelanggan aktif yang menyetujui WhatsApp.</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</section>
 <section class="panel billing-panel">
   <div class="panel-heading"><div><span class="eyebrow">MESSAGE HISTORY</span><h3>Riwayat pesan WhatsApp</h3></div><span class="pill muted"><%= logs.length %> terbaru</span></div>
   <div class="table-wrap"><table class="users-table"><thead><tr><th>Waktu</th><th>Jenis</th><th>Pelanggan / Invoice</th><th>Nomor</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>
