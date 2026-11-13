@@ -45,6 +45,47 @@
   </article>
 </section>
 <section class="panel billing-panel">
+  <% const previewReadyCount = reminderPreview.filter(item => item.delivery_status === "ready").length; %>
+  <% const previewRetryCount = reminderPreview.filter(item => item.delivery_status === "retry").length; %>
+  <% const previewSentCount = reminderPreview.filter(item => item.delivery_status === "already_sent").length; %>
+  <div class="panel-heading">
+    <div><span class="eyebrow">REMINDER PREVIEW</span><h3>Pratinjau penerima pengingat</h3></div>
+    <span class="pill muted">Per <%= reminderPreviewDate %> WIB</span>
+  </div>
+  <p class="muted-text">Daftar ini hanya membaca database. Tidak ada pesan yang dikirim saat pratinjau dibuka. Aturan penerima sama dengan proses pengingat: pelanggan aktif, menyetujui WhatsApp, invoice belum lunas, dan tahap pengingat sesuai jadwal.</p>
+  <div class="wa-preview-stats">
+    <div><strong><%= previewReadyCount %></strong><span>Siap dikirim</span></div>
+    <div><strong><%= previewRetryCount %></strong><span>Perlu dicoba ulang</span></div>
+    <div><strong><%= previewSentCount %></strong><span>Sudah terkirim / dilewati</span></div>
+  </div>
+  <div class="table-wrap">
+    <table class="users-table">
+      <thead><tr><th>Pelanggan</th><th>Nomor WhatsApp</th><th>Invoice</th><th>Jatuh tempo</th><th>Tahap</th><th>Sisa tagihan</th><th>Status</th></tr></thead>
+      <tbody>
+        <% reminderPreview.forEach(item => { %>
+          <tr>
+            <td><strong><%= item.full_name %></strong><small><%= item.customer_code %></small></td>
+            <td><%= item.phone %></td>
+            <td><strong><%= item.invoice_number %></strong><small>Periode <%= item.billing_period %></small></td>
+            <td><%= item.due_date %></td>
+            <td><span class="pill muted"><%= item.stage_label %></span></td>
+            <td><strong><%= new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(item.remaining_idr) %></strong></td>
+            <td>
+              <% if (item.delivery_status === "already_sent") { %><span class="pill success">Sudah terkirim</span>
+              <% } else if (item.delivery_status === "retry") { %><span class="pill warning">Percobaan ulang</span>
+              <% } else { %><span class="pill muted">Siap dikirim</span><% } %>
+            </td>
+          </tr>
+        <% }) %>
+        <% if (!reminderPreview.length) { %>
+          <tr><td colspan="7" class="muted-text">Belum ada invoice yang memenuhi jadwal pengingat untuk pelanggan yang menyetujui WhatsApp.</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+  <small class="muted-text">Status "Sudah terkirim" akan dilewati oleh sistem. "Percobaan ulang" berarti pengiriman sebelumnya gagal dan akan dicoba kembali pada tahap yang sama saat proses pengingat dijalankan.</small>
+</section>
+<section class="panel billing-panel">
   <div class="panel-heading"><div><span class="eyebrow">MESSAGE HISTORY</span><h3>Riwayat pesan WhatsApp</h3></div><span class="pill muted"><%= logs.length %> terbaru</span></div>
   <div class="table-wrap"><table class="users-table"><thead><tr><th>Waktu</th><th>Jenis</th><th>Pelanggan / Invoice</th><th>Nomor</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>
   <% logs.forEach(log => { %><tr><td><%= log.created_at %></td><td><%= log.message_type %></td><td><%= log.full_name || '-' %><small><%= log.invoice_number || '-' %></small></td><td><%= log.phone %></td><td><span class="pill <%= log.status === 'sent' ? 'success' : log.status === 'failed' ? 'danger' : 'muted' %>"><%= log.status %></span></td><td><%= log.error_message || '-' %></td></tr><% }) %>
