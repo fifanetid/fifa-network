@@ -35,3 +35,20 @@ test("laporan menolak rentang tanggal tidak valid", () => {
   assert.throws(() => reports.getFinancialReport({from:"2026-02-31",to:"2026-03-01"}));
   assert.throws(() => reports.getFinancialReport({from:"2026-11-30",to:"2026-11-01"}));
 });
+
+
+test("laporan metode tetap mencatat reversal walau pembayaran asal di luar periode", () => {
+  const customer = db.prepare("INSERT INTO customers (customer_code,full_name,phone,address) VALUES ('RPT-02','Pelanggan Reversal','081234567890','Alamat Reversal')").run();
+  const plan = db.prepare("INSERT INTO internet_plans (plan_code,name,speed_mbps,monthly_price_idr) VALUES ('RPT-PLAN-2','Paket Reversal',10,100000)").run();
+  const sub = db.prepare("INSERT INTO subscriptions (customer_id,plan_id,start_date) VALUES (?,?,'2026-10-01')").run(customer.lastInsertRowid,plan.lastInsertRowid);
+  const invoice = billing.createInvoice({subscriptionId:sub.lastInsertRowid,period:"2026-10",dueDate:"2026-10-20"});
+  const payment = billing.recordPayment({invoiceId:invoice.id,input:{amount_idr:50000,payment_method:"bank_transfer",paid_at:"2026-10-12"}});
+  billing.recordPaymentReversal({paymentId:payment.id,input:{amount_idr:10000,reason:"Reversal pada bulan berikutnya"},userId:null});
+  const report = reports.getFinancialReport({from:"2026-11-01",to:"2026-11-30"});
+  const transfer = report.methods.find(row => row.payment_method === "bank_transfer");
+  assert.equal(report.summary.received_idr,0);
+  assert.equal(report.summary.reversed_idr,10000);
+  assert.equal(report.summary.net_received_idr,-10000);
+  assert.equal(transfer.reversed_idr,10000);
+  assert.equal(transfer.net_idr,-10000);
+});
