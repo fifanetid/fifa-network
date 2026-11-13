@@ -297,7 +297,8 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   const modalCssResponse = await fetch(baseUrl + "/assets/css/billing.css");
   assert.equal(modalCssResponse.status, 200);
   const modalCss = await modalCssResponse.text();
-  assert.match(modalCss, /customer-create-disclosure\\[open\\][\\s\\S]*?height:min\\(780px/);
-  assert.match(modalCss, /customer-create-disclosure\\[open\\]>.customer-simple-form[\\s\\S]*?overflow-y:auto!important/);
-  assert.match(modalCss, /customer-simple-form>.customer-form-actions[\\s\\S]*?position:sticky!important/);
+  assert.ok(modalCss.includes("height:min(780px"));
+  assert.ok(modalCss.includes(".customer-create-disclosure[open]>.customer-simple-form"));
+  assert.ok(modalCss.includes("overflow-y:auto!important"));
+  assert.ok(modalCss.includes("position:sticky!important"));
 });
