@@ -7,7 +7,8 @@ const { requireRole } = require("../middleware/auth");
 router.use(requireRole("admin"));
 router.get("/", (req, res) => {
   const users = db.prepare("SELECT id, name, email, role, is_active, created_at, last_login_at FROM users ORDER BY id DESC").all();
-  res.render("users", { title: "Manajemen Pengguna", users, notice: req.query.notice || null, error: req.query.error || null });
+  const activeAdminCount = db.prepare("SELECT COUNT(*) AS total FROM users WHERE role='admin' AND is_active=1").get().total;
+  res.render("users", { title: "Manajemen Pengguna", users, activeAdminCount, notice: req.query.notice || null, error: req.query.error || null });
 });
 router.post("/", (req, res) => {
   const name = String(req.body.name || "").trim();
@@ -45,4 +46,51 @@ router.post("/:id/password", (req, res) => {
   recordAudit({ user: req.session.user, action: "user.password_reset", entityType: "user", entityId: id, summary: "Mengubah password akun pengguna ID " + id });
   res.redirect("/admin/users?notice=Password%20akun%20berhasil%20diubah.");
 });
+router.post("/:id/delete", (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.redirect("/admin/users?error=" + encodeURIComponent("ID pengguna tidak valid."));
+  }
+  if (id === Number(req.session.user.id)) {
+    return res.redirect("/admin/users?error=" + encodeURIComponent("Akun yang sedang digunakan tidak dapat dihapus."));
+  }
+
+  try {
+    const deleted = db.transaction(() => {
+      const target = db.prepare("SELECT id,name,email,role,is_active FROM users WHERE id=?").get(id);
+      if (!target) throw new Error("Pengguna tidak ditemukan.");
+
+      if (target.role === "admin" && target.is_active) {
+        const activeAdmins = db.prepare(
+          "SELECT COUNT(*) AS total FROM users WHERE role='admin' AND is_active=1"
+        ).get().total;
+        if (activeAdmins <= 1) {
+          throw new Error("Admin aktif terakhir tidak dapat dihapus. Buat admin pengganti terlebih dahulu.");
+        }
+      }
+
+      db.prepare("DELETE FROM users WHERE id=?").run(id);
+      recordAudit({
+        user: req.session.user,
+        action: "user.delete",
+        entityType: "user",
+        entityId: id,
+        summary: "Menghapus akun " + target.email + " (role " + target.role + ")"
+      });
+      return target;
+    })();
+
+    return res.redirect("/admin/users?notice=" + encodeURIComponent(
+      "Akun " + deleted.email + " berhasil dihapus. Referensi riwayat yang terkait tetap dipertahankan."
+    ));
+  } catch (error) {
+    if (error.code === "SQLITE_CONSTRAINT_FOREIGNKEY") {
+      return res.redirect("/admin/users?error=" + encodeURIComponent(
+        "Akun tidak dapat dihapus karena masih memiliki relasi yang dilindungi database."
+      ));
+    }
+    return res.redirect("/admin/users?error=" + encodeURIComponent(error.message));
+  }
+});
+
 module.exports = router;
