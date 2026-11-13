@@ -1,0 +1,38 @@
+<%- include("partials/header", { title }) %>
+<section class="report-intro">
+  <div><span class="eyebrow">FINANCE / REPORTING</span><h2>Ringkasan keuangan</h2><p>Pantau invoice, penerimaan pembayaran, reversal, dan saldo tagihan dalam rentang tanggal.</p></div>
+  <form class="report-filter" method="get" action="/reports">
+    <label>Dari tanggal<input type="date" name="from" value="<%= report ? report.from : from %>" required></label>
+    <label>Sampai tanggal<input type="date" name="to" value="<%= report ? report.to : to %>" required></label>
+    <button class="primary-button" type="submit">Tampilkan</button>
+  </form>
+</section>
+<% if (error) { %><div class="notice error"><%= error %></div><% } %>
+<% if (report) { %>
+<section class="report-grid">
+  <article class="report-card"><span>Invoice terbit</span><strong><%= report.summary.invoice_count.toLocaleString("id-ID") %></strong><small><%= formatIdr(report.summary.billed_idr) %></small></article>
+  <article class="report-card"><span>Pembayaran masuk</span><strong><%= formatIdr(report.summary.received_idr) %></strong><small><%= report.summary.payment_count %> transaksi</small></article>
+  <article class="report-card"><span>Reversal / pengembalian</span><strong><%= formatIdr(report.summary.reversed_idr) %></strong><small><%= report.summary.reversal_count %> transaksi</small></article>
+  <article class="report-card highlight"><span>Penerimaan bersih</span><strong><%= formatIdr(report.summary.net_received_idr) %></strong><small>Pembayaran dikurangi reversal pada periode</small></article>
+</section>
+<section class="report-grid secondary">
+  <article class="report-card"><span>Total piutang saat ini</span><strong><%= formatIdr(report.summary.outstanding_idr) %></strong><small>Semua invoice aktif, di luar invoice void</small></article>
+  <article class="report-card"><span>Tagihan jatuh tempo</span><strong><%= formatIdr(report.summary.overdue_idr) %></strong><small><%= report.summary.overdue_count %> invoice belum lunas</small></article>
+</section>
+<section class="panel report-panel">
+  <div class="panel-heading"><div><span class="eyebrow">CASH FLOW</span><h3>Rekap penerimaan per bulan</h3></div><span class="pill muted"><%= report.from %> — <%= report.to %></span></div>
+  <div class="table-wrap"><table class="users-table"><thead><tr><th>Bulan</th><th>Pembayaran masuk</th><th>Reversal</th><th>Bersih</th></tr></thead><tbody>
+  <% if (!report.monthly.length) { %><tr><td colspan="4">Belum ada transaksi pada periode ini.</td></tr><% } %>
+  <% report.monthly.forEach(row => { %><tr><td><strong><%= row.month %></strong></td><td><%= formatIdr(row.received_idr) %></td><td><%= formatIdr(row.reversed_idr) %></td><td><strong><%= formatIdr(row.net_idr) %></strong></td></tr><% }) %>
+  </tbody></table></div>
+</section>
+<section class="panel report-panel">
+  <div class="panel-heading"><div><span class="eyebrow">PAYMENT CHANNEL</span><h3>Rincian metode pembayaran</h3></div></div>
+  <div class="table-wrap"><table class="users-table"><thead><tr><th>Metode</th><th>Pembayaran masuk</th><th>Reversal periode</th><th>Bersih</th></tr></thead><tbody>
+  <% if (!report.methods.length) { %><tr><td colspan="4">Belum ada pembayaran pada periode ini.</td></tr><% } %>
+  <% report.methods.forEach(row => { %><tr><td><strong><%= ({cash:"Tunai",bank_transfer:"Transfer bank",qris:"QRIS",other:"Lainnya"})[row.payment_method] || row.payment_method %></strong></td><td><%= formatIdr(row.received_idr) %></td><td><%= formatIdr(row.reversed_idr) %></td><td><strong><%= formatIdr(row.net_idr) %></strong></td></tr><% }) %>
+  </tbody></table></div>
+</section>
+<p class="report-note">Catatan: penerimaan bersih adalah arus kas pembayaran dikurangi reversal berdasarkan tanggal masing-masing transaksi. Piutang dan tagihan jatuh tempo menampilkan posisi saat ini.</p>
+<% } %>
+<%- include("partials/footer") %>
