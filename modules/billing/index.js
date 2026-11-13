@@ -66,4 +66,21 @@ function recordPaymentReversal({ paymentId, input, userId }) {
     return db.prepare("SELECT * FROM payment_reversals WHERE id=?").get(result.lastInsertRowid);
   })();
 }
-module.exports = { ...domain, createInvoice, recordPayment, recordPaymentReversal };
+function getOutstandingBalance() {
+  return db.prepare(`
+    SELECT COALESCE(SUM(
+      i.total_idr
+      - COALESCE((SELECT SUM(p.amount_idr) FROM payments p WHERE p.invoice_id=i.id),0)
+      + COALESCE((
+        SELECT SUM(r.amount_idr)
+        FROM payment_reversals r
+        JOIN payments rp ON rp.id=r.payment_id
+        WHERE rp.invoice_id=i.id
+      ),0)
+    ),0) AS total
+    FROM invoices i
+    WHERE i.status <> 'void'
+  `).get().total;
+}
+
+module.exports = { ...domain, createInvoice, recordPayment, recordPaymentReversal, getOutstandingBalance };
