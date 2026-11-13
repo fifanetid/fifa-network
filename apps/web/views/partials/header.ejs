@@ -16,6 +16,7 @@
       <a href="/">▦ <span>Dashboard</span></a>
       <% if (currentUser && currentUser.role === "admin") { %>
         <a href="/admin/users"><span>♙</span><span>Manajemen Pengguna</span></a>
+        <a href="/admin/audit"><span>◷</span><span>Audit Log</span></a>
       <% } %>
       <% if (currentUser && ["admin","finance"].includes(currentUser.role)) { %>
         <a class="active" href="/billing"><span>▤</span><span>Pelanggan & Billing</span></a>
