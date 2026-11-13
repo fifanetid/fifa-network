@@ -17,7 +17,7 @@
 <section class="panel billing-panel customer-list-panel">
   <div class="customer-list-heading">
     <div><span class="eyebrow">DATABASE PELANGGAN</span><h3>Daftar pelanggan <span class="customer-count">(<%= customers.length %>)</span></h3></div>
-    <details class="customer-create-disclosure">
+    <details class="customer-create-disclosure" <%= openCustomerForm ? "open" : "" %>>
       <summary class="customer-add-button"><span>＋</span> Tambah Pelanggan</summary>
       <div class="customer-modal-backdrop" aria-hidden="true"></div>
       <form class="customer-create-form customer-simple-form" method="post" action="/billing/customers">
@@ -26,12 +26,44 @@
           <div><span class="eyebrow">DATA PELANGGAN</span><h3>Tambah pelanggan baru</h3><p>Isi data utama pelanggan untuk memulai.</p></div>
           <button class="customer-modal-close" type="button" aria-label="Tutup" onclick="this.closest('details').open=false">×</button>
         </div>
+        <% if (customerFormError) { %><div class="customer-form-error" role="alert"><%= customerFormError %></div><% } %>
         <div class="customer-simple-grid">
           <label>Kode pelanggan<input name="customer_code" maxlength="30" required placeholder="FN-0001"></label>
           <label>Nama lengkap<input name="full_name" maxlength="120" required placeholder="Nama pelanggan"></label>
           <label>Nomor telepon<input name="phone" maxlength="30" required placeholder="08xxxxxxxxxx"></label>
           <label class="customer-field-wide">Alamat lengkap<textarea name="address" maxlength="500" required placeholder="Jalan, RT/RW, desa, kecamatan"></textarea></label>
         </div>
+        <details class="customer-extra-fields customer-subscription-fields">
+          <summary>Paket & buat langganan (opsional)</summary>
+          <p class="customer-extra-help">Pilih paket untuk langsung membuat langganan pelanggan. Kosongkan jika ingin menambah layanan nanti.</p>
+          <div class="customer-extra-grid">
+            <label class="customer-field-wide">Paket internet
+              <select name="plan_id">
+                <option value="">— Belum pilih paket —</option>
+                <% plans.filter(plan => plan.is_active === 1).forEach(plan => { %>
+                  <option value="<%= plan.id %>"><%= plan.plan_code %> · <%= plan.name %> · <%= plan.speed_mbps %> Mbps · <%= rupiah(plan.monthly_price_idr) %>/bulan</option>
+                <% }) %>
+              </select>
+            </label>
+            <label>Tanggal mulai langganan<input type="date" name="start_date"></label>
+            <label>Tanggal billing<input type="number" name="billing_day" min="1" max="28" value="1"></label>
+            <label class="customer-field-wide">Referensi perangkat <span class="customer-optional">Opsional</span><input name="external_device_ref" maxlength="150" placeholder="Serial ONU / ID perangkat GenieACS"></label>
+            <label class="customer-field-wide">Catatan langganan <span class="customer-optional">Opsional</span><textarea name="subscription_notes" maxlength="500" placeholder="Catatan untuk layanan ini"></textarea></label>
+          </div>
+        </details>
+        <% if (currentUser.role === "admin") { %>
+        <details class="customer-extra-fields customer-portal-fields">
+          <summary>Akses portal pelanggan (opsional)</summary>
+          <p class="customer-extra-help">Buat akun agar pelanggan dapat login, melihat invoice, dan mengirim konfirmasi pembayaran.</p>
+          <label class="customer-consent">
+            <input type="checkbox" name="create_portal_account" value="1" data-portal-enable>
+            <span><strong>Buat akses portal sekarang</strong><small>ID login menggunakan kode pelanggan yang diisi di atas.</small></span>
+          </label>
+          <label class="customer-portal-password">Password sementara
+            <input type="password" name="portal_password" minlength="12" maxlength="200" autocomplete="new-password" placeholder="Minimal 12 karakter" data-portal-password disabled>
+          </label>
+        </details>
+        <% } %>
         <details class="customer-extra-fields">
           <summary>Informasi tambahan (opsional)</summary>
           <div class="customer-extra-grid">
@@ -293,6 +325,18 @@
 </section>
 <script>
 (() => {
+  const portalEnable = document.querySelector("[data-portal-enable]");
+  const portalPassword = document.querySelector("[data-portal-password]");
+  if (portalEnable && portalPassword) {
+    const syncPortalPassword = () => {
+      portalPassword.disabled = !portalEnable.checked;
+      portalPassword.required = portalEnable.checked;
+      if (!portalEnable.checked) portalPassword.value = "";
+    };
+    portalEnable.addEventListener("change", syncPortalPassword);
+    syncPortalPassword();
+  }
+
   const search = document.getElementById("customerSearch");
   const status = document.getElementById("customerStatusFilter");
   const rows = Array.from(document.querySelectorAll("[data-customer-row]"));
