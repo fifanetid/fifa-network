@@ -74,8 +74,6 @@ async function processReminders({ today = jakartaDate(), limit = 20, delayMs = 5
   running = true;
   try {
     const rows = getReminderPreview({ today });
-    const findLog = db.prepare("SELECT id,status FROM whatsapp_message_logs WHERE dedupe_key=?");
-
     let sent = 0, failed = 0, skipped = 0;
     for (const row of rows) {
       if (sent >= limit) break;
