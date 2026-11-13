@@ -127,8 +127,9 @@ async function login(email) {
 async function refreshToken(pathname, session) {
   const page = await get(pathname, session);
   assert.equal(page.status, 200);
-  session.token = tokenFrom(await page.text());
-  return page.text();
+  const html = await page.text();
+  session.token = tokenFrom(html);
+  return html;
 }
 
 test("admin dapat menghapus pengguna lain, tetapi bukan dirinya; sesi akun terhapus dicabut", async () => {
