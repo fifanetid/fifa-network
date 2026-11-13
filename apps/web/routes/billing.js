@@ -13,7 +13,20 @@ function pageData(extra = {}) {
     title: "Billing & Pelanggan",
     notice: null,
     error: null,
-    customers: db.prepare("SELECT * FROM customers ORDER BY id DESC").all(),
+    customers: db.prepare(`
+      SELECT c.*,
+        (SELECT COUNT(*) FROM subscriptions s WHERE s.customer_id=c.id) AS subscription_count,
+        (SELECT COUNT(*) FROM invoices i WHERE i.customer_id=c.id) AS invoice_count,
+        (SELECT COUNT(*) FROM customer_payment_confirmations pc WHERE pc.customer_id=c.id) AS confirmation_count,
+        (SELECT COUNT(*) FROM whatsapp_message_logs wl WHERE wl.customer_id=c.id) AS whatsapp_log_count,
+        CASE WHEN
+          (SELECT COUNT(*) FROM subscriptions s WHERE s.customer_id=c.id)=0
+          AND (SELECT COUNT(*) FROM invoices i WHERE i.customer_id=c.id)=0
+          AND (SELECT COUNT(*) FROM customer_payment_confirmations pc WHERE pc.customer_id=c.id)=0
+          AND (SELECT COUNT(*) FROM whatsapp_message_logs wl WHERE wl.customer_id=c.id)=0
+        THEN 1 ELSE 0 END AS can_delete
+      FROM customers c ORDER BY c.id DESC
+    `).all(),
     portalCustomers: db.prepare(`
       SELECT c.id,c.customer_code,c.full_name,c.status,a.is_active AS portal_active,a.last_login_at
       FROM customers c LEFT JOIN customer_portal_accounts a ON a.customer_id=c.id
@@ -51,7 +64,10 @@ function pageData(extra = {}) {
     ...extra
   };
 }
-router.get("/", managers, (req,res) => res.render("billing/index", pageData({ notice: req.query.notice || null })));
+router.get("/", managers, (req,res) => res.render("billing/index", pageData({
+  notice: req.query.notice || null,
+  error: req.query.error || null
+})));
 
 router.post("/customers", managers, (req,res) => {
   try {
@@ -70,6 +86,66 @@ router.post("/customers/:id/status", managers, (req,res) => {
   const id=Number(req.params.id); if(!Number.isSafeInteger(id)||id<1)return res.status(400).send("ID tidak valid.");
   const r=db.prepare("UPDATE customers SET status=CASE status WHEN 'active' THEN 'inactive' ELSE 'active' END,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
   if(!r.changes)return res.status(404).send("Pelanggan tidak ditemukan."); recordAudit({ user: req.session.user, action: "customer.status", entityType: "customer", entityId: id, summary: "Mengubah status pelanggan ID " + id }); res.redirect("/billing?notice=Status%20pelanggan%20diperbarui.");
+});
+
+router.post("/customers/:id/delete", admins, (req,res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.redirect("/billing?error=" + encodeURIComponent("ID pelanggan tidak valid."));
+  }
+
+  try {
+    const deleted = db.transaction(() => {
+      const customer = db.prepare(
+        "SELECT id,customer_code,full_name FROM customers WHERE id=?"
+      ).get(id);
+      if (!customer) throw new Error("Pelanggan tidak ditemukan.");
+
+      const counts = {
+        subscriptions: db.prepare("SELECT COUNT(*) AS total FROM subscriptions WHERE customer_id=?").get(id).total,
+        invoices: db.prepare("SELECT COUNT(*) AS total FROM invoices WHERE customer_id=?").get(id).total,
+        confirmations: db.prepare("SELECT COUNT(*) AS total FROM customer_payment_confirmations WHERE customer_id=?").get(id).total,
+        whatsappLogs: db.prepare("SELECT COUNT(*) AS total FROM whatsapp_message_logs WHERE customer_id=?").get(id).total
+      };
+      const blockers = [];
+      if (counts.subscriptions) blockers.push(counts.subscriptions + " langganan");
+      if (counts.invoices) blockers.push(counts.invoices + " invoice");
+      if (counts.confirmations) blockers.push(counts.confirmations + " konfirmasi pembayaran");
+      if (counts.whatsappLogs) blockers.push(counts.whatsappLogs + " riwayat WhatsApp");
+
+      if (blockers.length) {
+        throw new Error(
+          "Pelanggan tidak dapat dihapus karena memiliki " + blockers.join(", ") +
+          ". Nonaktifkan pelanggan agar seluruh riwayat tetap tersimpan."
+        );
+      }
+
+      // Remove only the dependent portal credential. The portal session will
+      // be rejected on its next request because its account no longer exists.
+      db.prepare("DELETE FROM customer_portal_accounts WHERE customer_id=?").run(id);
+      db.prepare("DELETE FROM customers WHERE id=?").run(id);
+
+      recordAudit({
+        user: req.session.user,
+        action: "customer.delete",
+        entityType: "customer",
+        entityId: id,
+        summary: "Menghapus permanen pelanggan " + customer.customer_code + " (" + customer.full_name + ") tanpa riwayat transaksi"
+      });
+      return customer;
+    })();
+
+    return res.redirect("/billing?notice=" + encodeURIComponent(
+      "Pelanggan " + deleted.customer_code + " berhasil dihapus."
+    ));
+  } catch (error) {
+    if (error.code === "SQLITE_CONSTRAINT_FOREIGNKEY") {
+      return res.redirect("/billing?error=" + encodeURIComponent(
+        "Pelanggan masih terhubung dengan data lain dan tidak dapat dihapus. Gunakan Nonaktifkan."
+      ));
+    }
+    return res.redirect("/billing?error=" + encodeURIComponent(error.message));
+  }
 });
 
 router.post("/portal-accounts/:customerId", admins, (req,res) => {

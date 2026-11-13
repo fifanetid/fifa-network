@@ -3,6 +3,7 @@
   <div class="panel-heading"><div><span class="eyebrow">ACCESS CONTROL</span><h3>Daftar pengguna</h3></div><span class="pill muted"><%= users.length %> akun</span></div>
   <% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
   <% if (error) { %><div class="notice error"><%= error %></div><% } %>
+  <p class="form-hint">Akun sendiri dan admin aktif terakhir tidak dapat dihapus. Akun yang sudah tercatat pada audit atau transaksi harus dinonaktifkan agar riwayat tetap utuh; hanya akun tanpa riwayat yang bisa dihapus permanen.</p>
   <div class="table-wrap"><table class="users-table">
     <thead><tr><th>Nama / Email</th><th>Role</th><th>Status</th><th>Terakhir login</th><th>Aksi</th></tr></thead>
     <tbody><% users.forEach((user) => { %><tr>
@@ -13,6 +14,16 @@
       <td class="actions-cell"><% if (user.id !== currentUser.id) { %>
         <form method="post" action="/admin/users/<%= user.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button" type="submit"><%= user.is_active ? "Nonaktifkan" : "Aktifkan" %></button></form>
         <details class="reset-details"><summary>Reset password</summary><form method="post" action="/admin/users/<%= user.id %>/password"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="password" type="password" minlength="12" maxlength="200" placeholder="Password baru (min. 12)" required><button class="small-button" type="submit">Simpan</button></form></details>
+        <% if (user.role === "admin" && user.is_active && activeAdminCount <= 1) { %>
+          <span class="pill warning">Admin aktif terakhir</span>
+        <% } else if (user.can_delete) { %>
+          <form method="post" action="/admin/users/<%= user.id %>/delete" onsubmit="return confirm('Hapus akun pengguna ini secara permanen? Akun tidak dapat dipulihkan.')">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="danger-button" type="submit">Hapus pengguna</button>
+          </form>
+        <% } else { %>
+          <span class="delete-blocked" title="Akun memiliki riwayat audit atau transaksi.">Riwayat terkunci</span>
+        <% } %>
       <% } else { %><span class="muted-text">Akun kamu</span><% } %></td>
     </tr><% }) %></tbody>
   </table></div>

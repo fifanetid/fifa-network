@@ -6,8 +6,24 @@ const { requireRole } = require("../middleware/auth");
 
 router.use(requireRole("admin"));
 router.get("/", (req, res) => {
-  const users = db.prepare("SELECT id, name, email, role, is_active, created_at, last_login_at FROM users ORDER BY id DESC").all();
-  res.render("users", { title: "Manajemen Pengguna", users, notice: req.query.notice || null, error: req.query.error || null });
+  const users = db.prepare(`
+    SELECT u.*,
+      (SELECT COUNT(*) FROM audit_logs a WHERE a.actor_user_id=u.id) AS audit_count,
+      (SELECT COUNT(*) FROM payments p WHERE p.received_by=u.id) AS payment_count,
+      (SELECT COUNT(*) FROM payment_reversals r WHERE r.created_by=u.id) AS reversal_count,
+      (SELECT COUNT(*) FROM customer_payment_confirmations pc WHERE pc.reviewed_by=u.id) AS reviewed_confirmation_count,
+      (SELECT COUNT(*) FROM app_settings s WHERE s.updated_by=u.id) AS settings_count,
+      CASE WHEN
+        (SELECT COUNT(*) FROM audit_logs a WHERE a.actor_user_id=u.id)=0
+        AND (SELECT COUNT(*) FROM payments p WHERE p.received_by=u.id)=0
+        AND (SELECT COUNT(*) FROM payment_reversals r WHERE r.created_by=u.id)=0
+        AND (SELECT COUNT(*) FROM customer_payment_confirmations pc WHERE pc.reviewed_by=u.id)=0
+        AND (SELECT COUNT(*) FROM app_settings s WHERE s.updated_by=u.id)=0
+      THEN 1 ELSE 0 END AS can_delete
+    FROM users u ORDER BY u.id DESC
+  `).all();
+  const activeAdminCount = db.prepare("SELECT COUNT(*) AS total FROM users WHERE role='admin' AND is_active=1").get().total;
+  res.render("users", { title: "Manajemen Pengguna", users, activeAdminCount, notice: req.query.notice || null, error: req.query.error || null });
 });
 router.post("/", (req, res) => {
   const name = String(req.body.name || "").trim();
@@ -45,4 +61,71 @@ router.post("/:id/password", (req, res) => {
   recordAudit({ user: req.session.user, action: "user.password_reset", entityType: "user", entityId: id, summary: "Mengubah password akun pengguna ID " + id });
   res.redirect("/admin/users?notice=Password%20akun%20berhasil%20diubah.");
 });
+router.post("/:id/delete", (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.redirect("/admin/users?error=" + encodeURIComponent("ID pengguna tidak valid."));
+  }
+  if (id === Number(req.session.user.id)) {
+    return res.redirect("/admin/users?error=" + encodeURIComponent("Akun yang sedang digunakan tidak dapat dihapus."));
+  }
+
+  try {
+    const deleted = db.transaction(() => {
+      const target = db.prepare("SELECT id,name,email,role,is_active FROM users WHERE id=?").get(id);
+      if (!target) throw new Error("Pengguna tidak ditemukan.");
+
+      const references = {
+        audit: db.prepare("SELECT COUNT(*) AS total FROM audit_logs WHERE actor_user_id=?").get(id).total,
+        payments: db.prepare("SELECT COUNT(*) AS total FROM payments WHERE received_by=?").get(id).total,
+        reversals: db.prepare("SELECT COUNT(*) AS total FROM payment_reversals WHERE created_by=?").get(id).total,
+        confirmations: db.prepare("SELECT COUNT(*) AS total FROM customer_payment_confirmations WHERE reviewed_by=?").get(id).total,
+        settings: db.prepare("SELECT COUNT(*) AS total FROM app_settings WHERE updated_by=?").get(id).total
+      };
+      const history = [];
+      if (references.audit) history.push(references.audit + " log audit");
+      if (references.payments) history.push(references.payments + " pembayaran");
+      if (references.reversals) history.push(references.reversals + " reversal");
+      if (references.confirmations) history.push(references.confirmations + " pemeriksaan konfirmasi");
+      if (references.settings) history.push(references.settings + " perubahan pengaturan");
+      if (history.length) {
+        throw new Error(
+          "Akun tidak dapat dihapus karena sudah tercatat pada " + history.join(", ") +
+          ". Nonaktifkan akun agar riwayat tetap utuh."
+        );
+      }
+
+      if (target.role === "admin" && target.is_active) {
+        const activeAdmins = db.prepare(
+          "SELECT COUNT(*) AS total FROM users WHERE role='admin' AND is_active=1"
+        ).get().total;
+        if (activeAdmins <= 1) {
+          throw new Error("Admin aktif terakhir tidak dapat dihapus. Buat admin pengganti terlebih dahulu.");
+        }
+      }
+
+      db.prepare("DELETE FROM users WHERE id=?").run(id);
+      recordAudit({
+        user: req.session.user,
+        action: "user.delete",
+        entityType: "user",
+        entityId: id,
+        summary: "Menghapus akun " + target.email + " (role " + target.role + ")"
+      });
+      return target;
+    })();
+
+    return res.redirect("/admin/users?notice=" + encodeURIComponent(
+      "Akun " + deleted.email + " berhasil dihapus. Referensi riwayat yang terkait tetap dipertahankan."
+    ));
+  } catch (error) {
+    if (error.code === "SQLITE_CONSTRAINT_FOREIGNKEY") {
+      return res.redirect("/admin/users?error=" + encodeURIComponent(
+        "Akun tidak dapat dihapus karena masih memiliki relasi yang dilindungi database."
+      ));
+    }
+    return res.redirect("/admin/users?error=" + encodeURIComponent(error.message));
+  }
+});
+
 module.exports = router;

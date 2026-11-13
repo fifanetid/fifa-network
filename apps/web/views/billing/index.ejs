@@ -44,8 +44,21 @@
   <div class="panel-heading"><div><span class="eyebrow">CUSTOMER DATABASE</span><h3>Daftar pelanggan</h3></div></div>
   <details class="billing-disclosure">
     <summary>Lihat daftar pelanggan (<%= customers.length %>)</summary>
+  <p class="muted-text">Pelanggan tanpa riwayat dapat dihapus permanen. Pelanggan yang sudah memiliki langganan, invoice, konfirmasi pembayaran, atau log WhatsApp hanya dapat dinonaktifkan agar riwayat tetap utuh.</p>
   <div class="table-wrap billing-table-scroll"><table class="users-table"><thead><tr><th>Kode / Nama</th><th>Kontak</th><th>Alamat</th><th>Status</th><th>Ubah data</th><th>Aksi</th></tr></thead><tbody>
-  <% customers.forEach(c => { %><tr><td><strong><%= c.customer_code %></strong><small><%= c.full_name %></small></td><td><%= c.phone %><small><%= c.email || "-" %></small></td><td><%= c.address %></td><td><span class="pill <%= c.status === 'active' ? 'success' : 'muted' %>"><%= c.status %></span></td><td><details><summary>Edit</summary><form class="mini-edit" method="post" action="/billing/customers/<%= c.id %>/update"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="customer_code" value="<%= c.customer_code %>" required><input name="full_name" value="<%= c.full_name %>" required><input name="phone" value="<%= c.phone %>" required><label><input type="checkbox" name="whatsapp_opt_in" value="1" <%= c.whatsapp_opt_in ? "checked" : "" %>> Setuju WhatsApp</label><input name="email" value="<%= c.email || '' %>"><input name="address" value="<%= c.address %>" required><input name="identity_number" value="<%= c.identity_number || '' %>"><input name="notes" value="<%= c.notes || '' %>"><button class="small-button">Simpan</button></form></details></td><td><form method="post" action="/billing/customers/<%= c.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button"><%= c.status === "active" ? "Nonaktifkan" : "Aktifkan" %></button></form></td></tr><% }) %>
+  <% customers.forEach(c => { %><tr><td><strong><%= c.customer_code %></strong><small><%= c.full_name %></small></td><td><%= c.phone %><small><%= c.email || "-" %></small></td><td><%= c.address %></td><td><span class="pill <%= c.status === 'active' ? 'success' : 'muted' %>"><%= c.status %></span></td><td><details><summary>Edit</summary><form class="mini-edit" method="post" action="/billing/customers/<%= c.id %>/update"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="customer_code" value="<%= c.customer_code %>" required><input name="full_name" value="<%= c.full_name %>" required><input name="phone" value="<%= c.phone %>" required><label><input type="checkbox" name="whatsapp_opt_in" value="1" <%= c.whatsapp_opt_in ? "checked" : "" %>> Setuju WhatsApp</label><input name="email" value="<%= c.email || '' %>"><input name="address" value="<%= c.address %>" required><input name="identity_number" value="<%= c.identity_number || '' %>"><input name="notes" value="<%= c.notes || '' %>"><button class="small-button">Simpan</button></form></details></td><td class="customer-actions">
+    <form method="post" action="/billing/customers/<%= c.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button"><%= c.status === "active" ? "Nonaktifkan" : "Aktifkan" %></button></form>
+    <% if (currentUser.role === "admin") { %>
+      <% if (c.can_delete) { %>
+        <form method="post" action="/billing/customers/<%= c.id %>/delete" onsubmit="return confirm('Hapus permanen pelanggan <%= c.customer_code %>? Akun portal terkait juga akan dihapus. Tindakan ini tidak dapat dibatalkan.')">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="danger-button" type="submit">Hapus</button>
+        </form>
+      <% } else { %>
+        <span class="delete-blocked" title="Pelanggan memiliki riwayat layanan atau transaksi.">Riwayat tersimpan</span>
+      <% } %>
+    <% } %>
+  </td></tr><% }) %>
   <% if (!customers.length) { %><tr><td colspan="6" class="muted-text">Belum ada pelanggan.</td></tr><% } %>
   </tbody></table></div>
   </details>
