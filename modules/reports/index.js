@@ -61,15 +61,18 @@ function getFinancialReport({ from, to }) {
   `).all(start, end, start, end);
 
   const methods = db.prepare(`
-    SELECT p.payment_method, SUM(p.amount_idr) AS received_idr,
-      COALESCE(SUM((SELECT SUM(r.amount_idr) FROM payment_reversals r WHERE r.payment_id=p.id
-        AND date(r.reversed_at) BETWEEN ? AND ?)),0) AS reversed_idr
-    FROM payments p WHERE date(p.paid_at) BETWEEN ? AND ?
-    GROUP BY p.payment_method ORDER BY received_idr DESC
-  `).all(start, end, start, end).map(row => ({
-    ...row,
-    net_idr: row.received_idr - row.reversed_idr
-  }));
+    SELECT payment_method, SUM(received_idr) AS received_idr,
+      SUM(reversed_idr) AS reversed_idr,
+      SUM(received_idr)-SUM(reversed_idr) AS net_idr
+    FROM (
+      SELECT payment_method, SUM(amount_idr) AS received_idr, 0 AS reversed_idr
+      FROM payments WHERE date(paid_at) BETWEEN ? AND ? GROUP BY payment_method
+      UNION ALL
+      SELECT p.payment_method, 0 AS received_idr, SUM(r.amount_idr) AS reversed_idr
+      FROM payment_reversals r JOIN payments p ON p.id=r.payment_id
+      WHERE date(r.reversed_at) BETWEEN ? AND ? GROUP BY p.payment_method
+    ) movements GROUP BY payment_method ORDER BY received_idr DESC
+  `).all(start, end, start, end);
 
   return {
     from: start, to: end,
