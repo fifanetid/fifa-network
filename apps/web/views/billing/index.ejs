@@ -2,93 +2,100 @@
 <% const rupiah = (n) => new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n); %>
 <% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
 <% if (error) { %><div class="notice error"><%= error %></div><% } %>
-<section class="billing-grid">
-  <article class="panel">
-    <div class="panel-heading"><div><span class="eyebrow">DATA PELANGGAN</span><h3>Tambah pelanggan</h3></div><span class="pill muted"><%= customers.length %> data</span></div>
-    <details class="billing-disclosure customer-create-disclosure">
-      <summary class="customer-create-trigger">
-        <span><strong>Tambah pelanggan baru</strong><small>Isi informasi dasar pelanggan</small></span>
-        <span class="customer-create-plus" aria-hidden="true">＋</span>
-      </summary>
-      <form class="customer-create-form" method="post" action="/billing/customers">
+<%
+  const activeCustomerCount = customers.filter(c => c.status === "active").length;
+  const inactiveCustomerCount = customers.length - activeCustomerCount;
+  const whatsappOptInCount = customers.filter(c => c.whatsapp_opt_in === 1).length;
+%>
+<section class="customer-overview">
+  <article><span>Total pelanggan</span><strong><%= customers.length %></strong></article>
+  <article><span>Aktif</span><strong><%= activeCustomerCount %></strong></article>
+  <article><span>Nonaktif</span><strong><%= inactiveCustomerCount %></strong></article>
+  <article><span>Setuju WhatsApp</span><strong><%= whatsappOptInCount %></strong></article>
+</section>
+
+<section class="panel billing-panel customer-list-panel">
+  <div class="customer-list-heading">
+    <div><span class="eyebrow">DATABASE PELANGGAN</span><h3>Daftar pelanggan <span class="customer-count">(<%= customers.length %>)</span></h3></div>
+    <details class="customer-create-disclosure">
+      <summary class="customer-add-button"><span>＋</span> Tambah Pelanggan</summary>
+      <div class="customer-modal-backdrop" aria-hidden="true"></div>
+      <form class="customer-create-form customer-simple-form" method="post" action="/billing/customers">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-
-        <section class="customer-form-section">
-          <div class="customer-form-section-heading">
-            <span class="customer-form-step">01</span>
-            <div><h4>Informasi pelanggan</h4><p>Identitas dan kontak utama pelanggan</p></div>
+        <div class="customer-modal-heading">
+          <div><span class="eyebrow">DATA PELANGGAN</span><h3>Tambah pelanggan baru</h3><p>Isi data utama pelanggan untuk memulai.</p></div>
+          <button class="customer-modal-close" type="button" aria-label="Tutup" onclick="this.closest('details').open=false">×</button>
+        </div>
+        <div class="customer-simple-grid">
+          <label>Kode pelanggan<input name="customer_code" maxlength="30" required placeholder="FN-0001"></label>
+          <label>Nama lengkap<input name="full_name" maxlength="120" required placeholder="Nama pelanggan"></label>
+          <label>Nomor telepon<input name="phone" maxlength="30" required placeholder="08xxxxxxxxxx"></label>
+          <label class="customer-field-wide">Alamat lengkap<textarea name="address" maxlength="500" required placeholder="Jalan, RT/RW, desa, kecamatan"></textarea></label>
+        </div>
+        <details class="customer-extra-fields">
+          <summary>Informasi tambahan (opsional)</summary>
+          <div class="customer-extra-grid">
+            <label>Email<input type="email" name="email" maxlength="254" placeholder="nama@email.com"></label>
+            <label>No. identitas<input name="identity_number" maxlength="80" placeholder="NIK / nomor identitas"></label>
+            <label class="customer-field-wide">Catatan<textarea name="notes" maxlength="500" placeholder="Catatan tambahan"></textarea></label>
+            <label class="customer-consent customer-field-wide">
+              <input type="checkbox" name="whatsapp_opt_in" value="1">
+              <span><strong>Setuju menerima pengingat WhatsApp</strong><small>Aktifkan hanya atas persetujuan pelanggan.</small></span>
+            </label>
           </div>
-          <div class="customer-form-grid">
-            <label>Kode pelanggan<input name="customer_code" maxlength="30" required placeholder="FN-0001"></label>
-            <label>Nama lengkap<input name="full_name" maxlength="120" required placeholder="Nama pelanggan"></label>
-            <label>Nomor telepon<input name="phone" maxlength="30" required placeholder="08xxxxxxxxxx"></label>
-            <label>Email <span class="customer-optional">Opsional</span><input type="email" name="email" maxlength="254" placeholder="nama@email.com"></label>
-            <label>No. identitas <span class="customer-optional">Opsional</span><input name="identity_number" maxlength="80" placeholder="NIK / nomor identitas"></label>
-            <label class="customer-field-wide">Alamat lengkap<textarea name="address" maxlength="500" required placeholder="Jalan, RT/RW, desa, kecamatan"></textarea></label>
-          </div>
-        </section>
-
-        <section class="customer-form-section">
-          <div class="customer-form-section-heading">
-            <span class="customer-form-step">02</span>
-            <div><h4>Preferensi & catatan</h4><p>Atur komunikasi dan informasi tambahan</p></div>
-          </div>
-          <label class="customer-consent">
-            <input type="checkbox" name="whatsapp_opt_in" value="1">
-            <span><strong>Setuju menerima pengingat WhatsApp</strong><small>Pesan tagihan hanya dikirim setelah pelanggan menyetujui.</small></span>
-          </label>
-          <label class="customer-notes-label">Catatan <span class="customer-optional">Opsional</span><textarea name="notes" maxlength="500" placeholder="Catatan tambahan tentang pelanggan"></textarea></label>
-        </section>
-
+        </details>
         <div class="customer-form-actions">
-          <button class="small-button" type="button" onclick="this.closest('details').open=false">Batal</button>
-          <button class="primary-button" type="submit">Simpan pelanggan <span>＋</span></button>
+          <button class="small-button" type="button" onclick="this.closest('details.customer-create-disclosure').open=false">Batal</button>
+          <button class="primary-button" type="submit">Simpan Pelanggan</button>
         </div>
       </form>
     </details>
-  </article>
-  <article class="panel">
-    <div class="panel-heading"><div><span class="eyebrow">PAKET INTERNET</span><h3>Tambah paket</h3></div><span class="pill muted"><%= plans.length %> paket</span></div>
-    <% if (currentUser.role === "admin") { %>
-    <details class="billing-disclosure">
-      <summary>Buka formulir paket</summary>
-    <form class="billing-form" method="post" action="/billing/plans">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <label>Kode paket<input name="plan_code" maxlength="30" required placeholder="FIF10"></label>
-      <label>Nama paket<input name="name" maxlength="100" required placeholder="FIFA 10 Mbps"></label>
-      <label>Kecepatan (Mbps)<input type="number" name="speed_mbps" min="1" max="100000" required></label>
-      <label>Harga per bulan (IDR)<input type="number" name="monthly_price_idr" min="0" step="1" required></label>
-      <label class="wide">Deskripsi<input name="description" maxlength="500"></label>
-      <button class="primary-button" type="submit">Simpan paket</button>
-    </form>
-    </details>
-    <% } else { %><p class="muted-text">Hanya admin yang dapat mengubah paket internet.</p><% } %>
-  </article>
+  </div>
+
+  <div class="customer-filterbar">
+    <input id="customerSearch" type="search" placeholder="Cari nama, kode, atau nomor telepon..." aria-label="Cari pelanggan">
+    <select id="customerStatusFilter" aria-label="Filter status pelanggan">
+      <option value="all">Semua status</option>
+      <option value="active">Aktif</option>
+      <option value="inactive">Nonaktif</option>
+    </select>
+    <span id="customerVisibleCount"><%= customers.length %> pelanggan</span>
+  </div>
+
+  <p class="muted-text customer-delete-note">Pelanggan dengan riwayat langganan, invoice, pembayaran, atau WhatsApp tidak dapat dihapus permanen. Nonaktifkan agar riwayat tetap tersimpan.</p>
+  <div class="table-wrap billing-table-scroll customer-table-scroll">
+    <table class="users-table customer-table">
+      <thead><tr><th>#</th><th>Kode / Nama</th><th>Kontak</th><th>Alamat</th><th>Status</th><th>Ubah data</th><th>Aksi</th></tr></thead>
+      <tbody id="customerTableBody">
+      <% customers.forEach((c,index) => { %>
+        <tr data-customer-row data-status="<%= c.status %>" data-search="<%= [c.customer_code,c.full_name,c.phone,c.email||''].join(' ').toLowerCase() %>">
+          <td><%= index+1 %></td>
+          <td><strong><%= c.customer_code %></strong><small><%= c.full_name %></small></td>
+          <td><%= c.phone %><small><%= c.email || "-" %></small></td>
+          <td><%= c.address %></td>
+          <td><span class="pill <%= c.status === 'active' ? 'success' : 'muted' %>"><%= c.status === "active" ? "Aktif" : "Nonaktif" %></span></td>
+          <td><details><summary>Edit</summary><form class="mini-edit" method="post" action="/billing/customers/<%= c.id %>/update"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="customer_code" value="<%= c.customer_code %>" required><input name="full_name" value="<%= c.full_name %>" required><input name="phone" value="<%= c.phone %>" required><label><input type="checkbox" name="whatsapp_opt_in" value="1" <%= c.whatsapp_opt_in ? "checked" : "" %>> Setuju WhatsApp</label><input name="email" value="<%= c.email || '' %>"><input name="address" value="<%= c.address %>" required><input name="identity_number" value="<%= c.identity_number || '' %>"><input name="notes" value="<%= c.notes || '' %>"><button class="small-button">Simpan</button></form></details></td>
+          <td class="customer-actions">
+            <form method="post" action="/billing/customers/<%= c.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button"><%= c.status === "active" ? "Nonaktifkan" : "Aktifkan" %></button></form>
+            <% if (currentUser.role === "admin") { %>
+              <% if (c.can_delete) { %>
+                <form method="post" action="/billing/customers/<%= c.id %>/delete" onsubmit="return confirm('Hapus permanen pelanggan <%= c.customer_code %>? Akun portal terkait juga akan dihapus. Tindakan ini tidak dapat dibatalkan.')">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="danger-button" type="submit">Hapus</button>
+                </form>
+              <% } else { %><span class="delete-blocked" title="Pelanggan memiliki riwayat layanan atau transaksi.">Riwayat tersimpan</span><% } %>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!customers.length) { %><tr><td colspan="7" class="muted-text">Belum ada pelanggan.</td></tr><% } %>
+      <tr id="customerNoResults" hidden><td colspan="7" class="muted-text">Tidak ada pelanggan yang cocok dengan pencarian.</td></tr>
+      </tbody>
+    </table>
+  </div>
 </section>
 
-<section class="panel billing-panel">
-  <div class="panel-heading"><div><span class="eyebrow">CUSTOMER DATABASE</span><h3>Daftar pelanggan</h3></div></div>
-  <details class="billing-disclosure">
-    <summary>Lihat daftar pelanggan (<%= customers.length %>)</summary>
-  <p class="muted-text">Pelanggan tanpa riwayat dapat dihapus permanen. Pelanggan yang sudah memiliki langganan, invoice, konfirmasi pembayaran, atau log WhatsApp hanya dapat dinonaktifkan agar riwayat tetap utuh.</p>
-  <div class="table-wrap billing-table-scroll"><table class="users-table"><thead><tr><th>Kode / Nama</th><th>Kontak</th><th>Alamat</th><th>Status</th><th>Ubah data</th><th>Aksi</th></tr></thead><tbody>
-  <% customers.forEach(c => { %><tr><td><strong><%= c.customer_code %></strong><small><%= c.full_name %></small></td><td><%= c.phone %><small><%= c.email || "-" %></small></td><td><%= c.address %></td><td><span class="pill <%= c.status === 'active' ? 'success' : 'muted' %>"><%= c.status %></span></td><td><details><summary>Edit</summary><form class="mini-edit" method="post" action="/billing/customers/<%= c.id %>/update"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="customer_code" value="<%= c.customer_code %>" required><input name="full_name" value="<%= c.full_name %>" required><input name="phone" value="<%= c.phone %>" required><label><input type="checkbox" name="whatsapp_opt_in" value="1" <%= c.whatsapp_opt_in ? "checked" : "" %>> Setuju WhatsApp</label><input name="email" value="<%= c.email || '' %>"><input name="address" value="<%= c.address %>" required><input name="identity_number" value="<%= c.identity_number || '' %>"><input name="notes" value="<%= c.notes || '' %>"><button class="small-button">Simpan</button></form></details></td><td class="customer-actions">
-    <form method="post" action="/billing/customers/<%= c.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button"><%= c.status === "active" ? "Nonaktifkan" : "Aktifkan" %></button></form>
-    <% if (currentUser.role === "admin") { %>
-      <% if (c.can_delete) { %>
-        <form method="post" action="/billing/customers/<%= c.id %>/delete" onsubmit="return confirm('Hapus permanen pelanggan <%= c.customer_code %>? Akun portal terkait juga akan dihapus. Tindakan ini tidak dapat dibatalkan.')">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <button class="danger-button" type="submit">Hapus</button>
-        </form>
-      <% } else { %>
-        <span class="delete-blocked" title="Pelanggan memiliki riwayat layanan atau transaksi.">Riwayat tersimpan</span>
-      <% } %>
-    <% } %>
-  </td></tr><% }) %>
-  <% if (!customers.length) { %><tr><td colspan="6" class="muted-text">Belum ada pelanggan.</td></tr><% } %>
-  </tbody></table></div>
-  </details>
-</section>
+
 
 <% if (currentUser.role === "admin") { %>
 <section class="panel billing-panel">
@@ -133,6 +140,21 @@
 
 <section class="panel billing-panel">
   <div class="panel-heading"><div><span class="eyebrow">INTERNET CATALOG</span><h3>Paket internet</h3></div></div>
+  <details class="billing-disclosure">
+    <summary>Tambah / ubah paket</summary>
+    <% if (currentUser.role === "admin") { %>
+      <form class="billing-form" method="post" action="/billing/plans">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label>Kode paket<input name="plan_code" maxlength="30" required placeholder="FIF10"></label>
+        <label>Nama paket<input name="name" maxlength="100" required placeholder="FIFA 10 Mbps"></label>
+        <label>Kecepatan (Mbps)<input type="number" name="speed_mbps" min="1" max="100000" required></label>
+        <label>Harga per bulan (IDR)<input type="number" name="monthly_price_idr" min="0" step="1" required></label>
+        <label class="wide">Deskripsi<input name="description" maxlength="500"></label>
+        <button class="primary-button" type="submit">Simpan paket</button>
+      </form>
+    <% } else { %><p class="muted-text">Hanya admin yang dapat mengubah paket internet.</p><% } %>
+  </details>
+
   <details class="billing-disclosure">
     <summary>Lihat daftar paket (<%= plans.length %>)</summary>
   <div class="table-wrap billing-table-scroll"><table class="users-table"><thead><tr><th>Kode / Paket</th><th>Kecepatan</th><th>Harga / bulan</th><th>Status</th><th>Ubah</th><th>Aksi</th></tr></thead><tbody>
@@ -269,4 +291,34 @@
 </tbody></table></div>
 </details>
 </section>
+<script>
+(() => {
+  const search = document.getElementById("customerSearch");
+  const status = document.getElementById("customerStatusFilter");
+  const rows = Array.from(document.querySelectorAll("[data-customer-row]"));
+  const count = document.getElementById("customerVisibleCount");
+  const empty = document.getElementById("customerNoResults");
+  if (!search || !status) return;
+
+  function filterCustomers() {
+    const query = search.value.trim().toLowerCase();
+    const selectedStatus = status.value;
+    let visible = 0;
+
+    rows.forEach((row) => {
+      const matchesText = (row.dataset.search || "").includes(query);
+      const matchesStatus = selectedStatus === "all" || row.dataset.status === selectedStatus;
+      const show = matchesText && matchesStatus;
+      row.hidden = !show;
+      if (show) visible++;
+    });
+
+    if (empty) empty.hidden = visible !== 0;
+    if (count) count.textContent = visible + " pelanggan";
+  }
+
+  search.addEventListener("input", filterCustomers);
+  status.addEventListener("change", filterCustomers);
+})();
+</script>
 <%- include("../partials/footer") %>
