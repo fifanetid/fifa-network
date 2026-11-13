@@ -284,4 +284,10 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
     db.prepare("SELECT COUNT(*) AS n FROM customers WHERE customer_code='HTTP-COMBINED-ROLLBACK'").get().n,
     0
   );
+  const errorLocation = failedCombined.headers.get("location");
+  const errorPage = await get(errorLocation, admin);
+  assert.equal(errorPage.status, 200);
+  const errorHtml = await errorPage.text();
+  assert.match(errorHtml, /Password portal harus 12/);
+  assert.match(errorHtml, /customer-create-disclosure[^>]*open/);
 });
