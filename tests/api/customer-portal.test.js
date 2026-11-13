@@ -12,6 +12,7 @@ process.env.SESSION_SECRET = "customer-portal-test-secret-long-enough-123456";
 
 const { db } = require("../../database/db");
 const app = require("../../apps/web/app");
+const billing = require("../../modules/billing");
 
 const adminId = db.prepare("INSERT INTO users (name,email,password_hash,role) VALUES (?,?,?,'admin')")
   .run("Portal Admin", "portal-admin@example.test", bcrypt.hashSync("admin-test-password", 4)).lastInsertRowid;
@@ -162,4 +163,29 @@ test("admin menyetujui konfirmasi portal dan pembayaran baru dicatat setelah per
   assert.ok(saved.payment_id);
   assert.equal(db.prepare("SELECT status FROM invoices WHERE id=?").get(invoiceA).status,"paid");
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM payments WHERE invoice_id=?").get(invoiceA).n,1);
+
+  billing.recordPaymentReversal({
+    paymentId:saved.payment_id,
+    input:{amount_idr:"100000",reason:"Simulasi integrasi: koreksi pembayaran uji."},
+    userId:adminId
+  });
+
+  assert.equal(db.prepare("SELECT status FROM invoices WHERE id=?").get(invoiceA).status,"unpaid");
+  assert.equal(db.prepare(`
+    SELECT COALESCE(p.amount_idr,0)-COALESCE(SUM(r.amount_idr),0) AS net
+    FROM payments p LEFT JOIN payment_reversals r ON r.payment_id=p.id
+    WHERE p.id=?
+    GROUP BY p.id
+  `).get(saved.payment_id).net,0);
+
+  // The immutable approval record remains unchanged; both interfaces derive
+  // the customer-facing status from the linked payment's reversal history.
+  assert.equal(db.prepare("SELECT status FROM customer_payment_confirmations WHERE id=?").get(confirmation.id).status,"approved");
+  const adminHtml=await refreshToken("/billing",admin);
+  assert.match(adminHtml,/Dibalik/);
+
+  const customer=await login("/customer/login","FN-PORTAL-A","customer-a-password");
+  const customerHtml=await refreshToken("/customer",customer);
+  assert.match(customerHtml,/Dibalik/);
+  assert.match(customerHtml,/INV-PORTAL-A/);
 });
