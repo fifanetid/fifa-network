@@ -22,3 +22,28 @@
 .billing-panel .users-table td:nth-child(3),.billing-panel .users-table td:nth-child(4),.billing-panel .users-table td:nth-child(5) { white-space: nowrap; }
 @media(max-width:900px) { .billing-grid { grid-template-columns: 1fr; } }
 @media(max-width:600px) { .billing-panel { padding: 15px; } .billing-form { grid-template-columns: 1fr; } .billing-form .wide { grid-column: auto; } }
+
+
+/* Compact Billing & Pelanggan workspace */
+.billing-panel{padding:18px;margin-bottom:14px}
+.billing-panel>.panel-heading{padding-bottom:10px}
+.billing-grid{gap:14px;margin-bottom:14px}
+.billing-grid>.panel{padding:18px}
+.billing-disclosure{display:block;margin-top:10px}
+.billing-disclosure>summary{display:flex!important;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:10px 12px;border:1px solid #e7edf6;border-radius:9px;background:#f8faff;color:#465a78!important;font-size:11px!important;font-weight:750!important}
+.billing-disclosure>summary::after{content:"+";flex:0 0 auto;color:#2458c6;font-size:15px;font-weight:500}
+.billing-disclosure[open]>summary::after{content:"−"}
+.billing-grid .billing-disclosure[open],.billing-panel>.billing-disclosure[open]{min-width:0;width:100%;margin-top:10px;padding:12px;border:1px solid #e7edf6;border-radius:10px;background:#fbfcff}
+.billing-disclosure[open]>.billing-form{margin-top:8px}
+.billing-panel .billing-disclosure[open]>.table-wrap{margin-top:10px}
+.billing-table-scroll{max-height:340px;overflow:auto;overscroll-behavior:contain}
+.billing-table-scroll .users-table thead th{position:sticky;top:0;z-index:1;background:#f8fafd}
+.billing-panel>.muted-text{margin:8px 0;font-size:11px;line-height:1.6}
+.billing-grid .panel-heading h3,.billing-panel .panel-heading h3{font-size:15px}
+.billing-disclosure .table-wrap{margin-top:10px}
+@media(max-width:600px){
+  .billing-grid>.panel,.billing-panel{padding:14px}
+  .billing-grid{gap:10px}
+  .billing-disclosure[open]{padding:9px}
+  .billing-table-scroll{max-height:280px}
+}
