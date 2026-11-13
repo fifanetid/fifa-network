@@ -1,0 +1,62 @@
+<%- include("../partials/header", { title }) %>
+<% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
+<section class="wa-grid">
+  <article class="panel wa-card">
+    <div class="panel-heading"><div><span class="eyebrow">WHATSAPP WEB</span><h3>Koneksi perangkat</h3></div><span id="wa-status" class="pill <%= status.status === 'connected' ? 'success' : 'muted' %>"><%= status.status %></span></div>
+    <p class="muted-text">Hubungkan nomor WhatsApp operasional FF NETWORK dengan memindai QR dari aplikasi WhatsApp di ponsel.</p>
+    <div id="wa-qr-wrap" class="wa-qr-wrap" <%= status.qrDataUrl ? '' : 'hidden' %>><img id="wa-qr" alt="QR WhatsApp untuk ditautkan" src="<%= status.qrDataUrl || '' %>"><p>Buka WhatsApp → Perangkat tertaut → Tautkan perangkat.</p></div>
+    <p id="wa-phone" class="wa-phone"><%= status.phone ? 'Terhubung: +' + status.phone : 'Belum terhubung' %></p>
+    <p id="wa-error" class="muted-text"><%= status.lastError || '' %></p>
+    <div class="wa-actions">
+      <form method="post" action="/admin/whatsapp/connect"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="primary-button">Hubungkan / Tampilkan QR</button></form>
+      <form method="post" action="/admin/whatsapp/disconnect"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button">Putuskan</button></form>
+    </div>
+    <small class="muted-text">Sesi tersimpan lokal di data/whatsapp-auth dan tidak dikirim ke GitHub.</small>
+  </article>
+  <article class="panel wa-card">
+    <div class="panel-heading"><div><span class="eyebrow">UJI PENGIRIMAN</span><h3>Kirim pesan tes</h3></div></div>
+    <form class="billing-form" method="post" action="/admin/whatsapp/test">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label>Nomor tujuan<input name="phone" inputmode="numeric" placeholder="62812xxxxxxxx" pattern="62[0-9]{8,13}" required></label>
+      <label class="wide">Isi pesan<textarea name="message" maxlength="1500">Tes koneksi FF BILLING. Jika pesan ini diterima, WhatsApp Gateway berhasil terhubung.</textarea></label>
+      <button class="primary-button">Kirim pesan tes</button>
+    </form>
+    <div class="divider"></div>
+    <div class="panel-heading"><div><span class="eyebrow">PENGINGAT TAGIHAN</span><h3>Jalankan sekarang</h3></div></div>
+    <p class="muted-text">Memproses maksimal 20 pengingat untuk pelanggan yang sudah menyetujui WhatsApp. Sistem mencegah pengiriman ganda per invoice dan tahap pengingat.</p>
+    <form method="post" action="/admin/whatsapp/reminders/run"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="primary-button">Proses pengingat sekarang</button></form>
+    <p class="muted-text">Jadwal: H-3, hari jatuh tempo, H+3, lalu setiap 7 hari selama invoice belum lunas. Batas 20 pesan per proses.</p>
+  </article>
+</section>
+<section class="panel billing-panel">
+  <div class="panel-heading"><div><span class="eyebrow">MESSAGE HISTORY</span><h3>Riwayat pesan WhatsApp</h3></div><span class="pill muted"><%= logs.length %> terbaru</span></div>
+  <div class="table-wrap"><table class="users-table"><thead><tr><th>Waktu</th><th>Jenis</th><th>Pelanggan / Invoice</th><th>Nomor</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>
+  <% logs.forEach(log => { %><tr><td><%= log.created_at %></td><td><%= log.message_type %></td><td><%= log.full_name || '-' %><small><%= log.invoice_number || '-' %></small></td><td><%= log.phone %></td><td><span class="pill <%= log.status === 'sent' ? 'success' : log.status === 'failed' ? 'danger' : 'muted' %>"><%= log.status %></span></td><td><%= log.error_message || '-' %></td></tr><% }) %>
+  <% if (!logs.length) { %><tr><td colspan="6" class="muted-text">Belum ada riwayat pesan.</td></tr><% } %>
+  </tbody></table></div>
+</section>
+<script>
+(() => {
+  const status = document.getElementById("wa-status");
+  const qrWrap = document.getElementById("wa-qr-wrap");
+  const qr = document.getElementById("wa-qr");
+  const phone = document.getElementById("wa-phone");
+  const error = document.getElementById("wa-error");
+  async function refresh() {
+    try {
+      const response = await fetch("/admin/whatsapp/status", { headers: { "Accept": "application/json" } });
+      if (!response.ok) return;
+      const data = await response.json();
+      status.textContent = data.status;
+      status.className = "pill " + (data.status === "connected" ? "success" : "muted");
+      qrWrap.hidden = !data.qrDataUrl;
+      if (data.qrDataUrl) qr.src = data.qrDataUrl;
+      phone.textContent = data.phone ? "Terhubung: +" + data.phone : "Belum terhubung";
+      error.textContent = data.lastError || "";
+    } catch {}
+  }
+  refresh();
+  setInterval(refresh, 2500);
+})();
+</script>
+<%- include("../partials/footer") %>
