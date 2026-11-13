@@ -8,9 +8,10 @@
     "start": "node apps/web/server.js",
     "dev": "nodemon apps/web/server.js",
     "test": "node --test",
-    "check": "node --check apps/web/server.js && node --check apps/web/app.js && node --check apps/web/routes/dashboard.js && node --check apps/web/routes/auth.js && node --check apps/web/routes/users.js && node --check apps/web/routes/billing.js && node --check database/db.js && node --check modules/billing/domain.js && node --check modules/billing/index.js && node --check modules/audit/index.js && node --check apps/web/routes/audit.js && node --check modules/reports/index.js && node --check apps/web/routes/reports.js && node --check tests/reports.test.js && node --check tests/audit.test.js && node --check scripts/create-default-admin.js && node --check tests/auth.test.js && node --check tests/billing.test.js && node --check tests/authz.test.js",
+    "check": "node --check apps/web/server.js && node --check apps/web/app.js && node --check apps/web/routes/dashboard.js && node --check apps/web/routes/auth.js && node --check apps/web/routes/users.js && node --check apps/web/routes/billing.js && node --check database/db.js && node --check modules/billing/domain.js && node --check modules/billing/index.js && node --check modules/audit/index.js && node --check apps/web/routes/audit.js && node --check modules/reports/index.js && node --check apps/web/routes/reports.js && node --check tests/reports.test.js && node --check tests/audit.test.js && node --check scripts/create-default-admin.js && node --check scripts/run-monthly-billing.js && node --check tests/auth.test.js && node --check tests/billing.test.js && node --check tests/authz.test.js",
     "create-admin": "node scripts/create-admin.js",
-    "create-default-admin": "node scripts/create-default-admin.js"
+    "create-default-admin": "node scripts/create-default-admin.js",
+    "billing:monthly": "node scripts/run-monthly-billing.js"
   },
   "engines": {
     "node": ">=20"
