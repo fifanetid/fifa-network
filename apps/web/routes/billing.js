@@ -20,10 +20,25 @@ function pageData(extra = {}) {
       ORDER BY c.id DESC
     `).all(),
     paymentConfirmations: db.prepare(`
-      SELECT pc.*,c.customer_code,c.full_name,i.invoice_number
+      SELECT pc.*,c.customer_code,c.full_name,i.invoice_number,
+        COALESCE(p.amount_idr,0) AS recorded_payment_idr,
+        COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r
+          WHERE r.payment_id=pc.payment_id),0) AS reversed_amount_idr,
+        CASE
+          WHEN pc.status='approved' AND pc.payment_id IS NOT NULL
+            AND COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r
+              WHERE r.payment_id=pc.payment_id),0) >= COALESCE(p.amount_idr,0)
+            THEN 'reversed'
+          WHEN pc.status='approved' AND pc.payment_id IS NOT NULL
+            AND COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r
+              WHERE r.payment_id=pc.payment_id),0) > 0
+            THEN 'partially_reversed'
+          ELSE pc.status
+        END AS display_status
       FROM customer_payment_confirmations pc
       JOIN customers c ON c.id=pc.customer_id
       JOIN invoices i ON i.id=pc.invoice_id
+      LEFT JOIN payments p ON p.id=pc.payment_id
       ORDER BY CASE pc.status WHEN 'pending' THEN 0 ELSE 1 END, pc.id DESC
       LIMIT 100
     `).all(),

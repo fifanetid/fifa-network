@@ -167,8 +167,9 @@
                 <button class="small-button">Simpan penolakan</button>
               </form></details>
             <% } else { %>
-              <span class="pill <%= c.status==='approved'?'success':'danger' %>"><%= c.status %></span>
-              <small><%= c.review_note || "-" %></small>
+              <% const statusLabels = { approved: "Disetujui", rejected: "Ditolak", reversed: "Dibalik", partially_reversed: "Dibalik sebagian" }; %>
+              <span class="pill <%= c.display_status==='approved'?'success':c.display_status==='partially_reversed'?'warning':'danger' %>"><%= statusLabels[c.display_status] || c.display_status %></span>
+              <small><%= c.review_note || (c.display_status==='reversed' ? "Pembayaran terkait telah dibalik." : c.display_status==='partially_reversed' ? "Sebagian pembayaran terkait telah dibalik." : "-") %></small>
             <% } %>
           </td>
         </tr>

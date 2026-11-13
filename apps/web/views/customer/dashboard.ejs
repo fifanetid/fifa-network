@@ -98,7 +98,17 @@
         <table class="portal-table">
           <thead><tr><th>Tanggal kirim</th><th>Invoice</th><th>Referensi</th><th>Nominal</th><th>Status</th><th>Catatan admin</th></tr></thead>
           <tbody>
-            <% confirmations.forEach(c => { %><tr><td><%= c.created_at %></td><td><%= c.invoice_number %></td><td><%= c.payment_reference %></td><td><%= rupiah(c.amount_idr) %></td><td><span class="pill <%= c.status==="approved"?"success":c.status==="rejected"?"danger":"warning" %>"><%= c.status %></span></td><td><%= c.review_note || "-" %></td></tr><% }) %>
+            <% confirmations.forEach(c => { %>
+              <% const statusLabels = { pending: "Menunggu pemeriksaan", approved: "Disetujui", rejected: "Ditolak", reversed: "Dibalik", partially_reversed: "Dibalik sebagian" }; %>
+              <tr>
+                <td><%= c.created_at %></td>
+                <td><%= c.invoice_number %></td>
+                <td><%= c.payment_reference %></td>
+                <td><%= rupiah(c.amount_idr) %></td>
+                <td><span class="pill <%= c.display_status==="approved"?"success":c.display_status==="rejected"||c.display_status==="reversed"?"danger":c.display_status==="partially_reversed"?"warning":"muted" %>"><%= statusLabels[c.display_status] || c.display_status %></span></td>
+                <td><%= c.review_note || (c.display_status==="reversed" ? "Pembayaran telah dibalik melalui koreksi transaksi." : c.display_status==="partially_reversed" ? "Sebagian nilai pembayaran telah dibalik melalui koreksi transaksi." : "-") %></td>
+              </tr>
+            <% }) %>
             <% if (!confirmations.length) { %><tr><td colspan="6" class="portal-empty">Belum ada konfirmasi pembayaran.</td></tr><% } %>
           </tbody>
         </table>

@@ -92,9 +92,24 @@ router.get("/", (req, res) => {
   `).all(customerId);
 
   const confirmations = db.prepare(`
-    SELECT pc.*, i.invoice_number
+    SELECT pc.*, i.invoice_number,
+      COALESCE(p.amount_idr,0) AS recorded_payment_idr,
+      COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r
+        WHERE r.payment_id=pc.payment_id),0) AS reversed_amount_idr,
+      CASE
+        WHEN pc.status='approved' AND pc.payment_id IS NOT NULL
+          AND COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r
+            WHERE r.payment_id=pc.payment_id),0) >= COALESCE(p.amount_idr,0)
+          THEN 'reversed'
+        WHEN pc.status='approved' AND pc.payment_id IS NOT NULL
+          AND COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r
+            WHERE r.payment_id=pc.payment_id),0) > 0
+          THEN 'partially_reversed'
+        ELSE pc.status
+      END AS display_status
     FROM customer_payment_confirmations pc
     JOIN invoices i ON i.id=pc.invoice_id
+    LEFT JOIN payments p ON p.id=pc.payment_id
     WHERE pc.customer_id=?
     ORDER BY pc.id DESC LIMIT 50
   `).all(customerId);
