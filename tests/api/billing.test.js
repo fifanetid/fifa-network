@@ -63,13 +63,15 @@ async function get(pathname, session) {
   return response;
 }
 async function post(pathname, session, values, csrf = true) {
+  const headers = {
+    "content-type": "application/x-www-form-urlencoded",
+    cookie: session.cookie
+  };
+  if (csrf && session.token) headers["x-csrf-token"] = session.token;
   const response = await fetch(baseUrl + pathname, {
     method: "POST",
     redirect: "manual",
-    headers: {
-      "content-type": "application/x-www-form-urlencoded",
-      cookie: session.cookie
-    },
+    headers,
     body: new URLSearchParams(csrf ? { ...values, _csrf: session.token } : values)
   });
   session.cookie = cookieFrom(response, session.cookie);
