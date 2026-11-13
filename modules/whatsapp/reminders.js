@@ -7,6 +7,8 @@ const jakartaDate = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jak
 const dateDiff = (a, b) => Math.round((Date.parse(a + "T00:00:00Z") - Date.parse(b + "T00:00:00Z")) / 86400000);
 const rupiah = (n) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 
+let running = false;
+
 function reminderStage(daysUntilDue) {
   if (daysUntilDue === 3) return "h3";
   if (daysUntilDue === 0) return "due";
@@ -16,6 +18,9 @@ function reminderStage(daysUntilDue) {
 }
 
 async function processReminders({ today = jakartaDate(), limit = 20, delayMs = 5000 } = {}) {
+  if (running) return { checked: 0, sent: 0, failed: 0, skipped: 0, busy: true, date: today };
+  running = true;
+  try {
   const rows = db.prepare(`
     SELECT i.id AS invoice_id, i.invoice_number, i.due_date, i.billing_period,
       i.total_idr, c.id AS customer_id, c.customer_code, c.full_name, c.phone,
@@ -36,8 +41,8 @@ async function processReminders({ today = jakartaDate(), limit = 20, delayMs = 5
     const stage = reminderStage(days);
     if (!stage) continue;
     const key = row.invoice_id + ":" + stage;
-    const exists = db.prepare("SELECT id FROM whatsapp_message_logs WHERE dedupe_key=?").get(key);
-    if (exists) { skipped++; continue; }
+    const exists = db.prepare("SELECT id,status FROM whatsapp_message_logs WHERE dedupe_key=?").get(key);
+    if (exists?.status === "sent") { skipped++; continue; }
 
     const message = days > 0
       ? "Halo " + row.full_name + ", pengingat tagihan internet FF NETWORK. Invoice " + row.invoice_number + " periode " + row.billing_period + " sebesar " + rupiah(remaining) + " jatuh tempo " + row.due_date + " (H-" + days + "). Jika sudah membayar, abaikan pesan ini. Terima kasih."
@@ -47,17 +52,27 @@ async function processReminders({ today = jakartaDate(), limit = 20, delayMs = 5
 
     try {
       await sendText(row.phone, message);
-      db.prepare("INSERT INTO whatsapp_message_logs (customer_id,invoice_id,phone,message_type,dedupe_key,status) VALUES (?,?,?,'reminder',?,'sent')")
-        .run(row.customer_id, row.invoice_id, row.phone, key);
+      if (exists) {
+        db.prepare("UPDATE whatsapp_message_logs SET status='sent',error_message=NULL,created_at=CURRENT_TIMESTAMP WHERE id=?").run(exists.id);
+      } else {
+        db.prepare("INSERT INTO whatsapp_message_logs (customer_id,invoice_id,phone,message_type,dedupe_key,status) VALUES (?,?,?,'reminder',?,'sent')")
+          .run(row.customer_id, row.invoice_id, row.phone, key);
+      }
       sent++;
     } catch (error) {
-      db.prepare("INSERT INTO whatsapp_message_logs (customer_id,invoice_id,phone,message_type,dedupe_key,status,error_message) VALUES (?,?,?,'reminder',?,'failed',?)")
-        .run(row.customer_id, row.invoice_id, row.phone, key, String(error.message).slice(0, 500));
+      if (exists) {
+        db.prepare("UPDATE whatsapp_message_logs SET status='failed',error_message=?,created_at=CURRENT_TIMESTAMP WHERE id=?")
+          .run(String(error.message).slice(0, 500), exists.id);
+      } else {
+        db.prepare("INSERT INTO whatsapp_message_logs (customer_id,invoice_id,phone,message_type,dedupe_key,status,error_message) VALUES (?,?,?,'reminder',?,'failed',?)")
+          .run(row.customer_id, row.invoice_id, row.phone, key, String(error.message).slice(0, 500));
+      }
       failed++;
     }
     if (sent + failed < limit) await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
   return { checked: rows.length, sent, failed, skipped, date: today };
+  } finally { running = false; }
 }
 
 module.exports = { processReminders, reminderStage };
