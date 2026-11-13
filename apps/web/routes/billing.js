@@ -13,6 +13,8 @@ function pageData(extra = {}) {
     title: "Billing & Pelanggan",
     notice: null,
     error: null,
+    customerFormError: null,
+    openCustomerForm: false,
     customers: db.prepare(`
       SELECT c.*,
         (SELECT COUNT(*) FROM subscriptions s WHERE s.customer_id=c.id) AS subscription_count,
