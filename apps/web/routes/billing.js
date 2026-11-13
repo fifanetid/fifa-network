@@ -27,14 +27,14 @@ router.get("/", managers, (req,res) => res.render("billing/index", pageData({ no
 router.post("/customers", managers, (req,res) => {
   try {
     const v=billing.validateCustomer(req.body);
-    const result = db.prepare("INSERT INTO customers (customer_code,full_name,email,phone,address,identity_number,notes) VALUES (?,?,?,?,?,?,?)").run(v.customer_code,v.full_name,v.email,v.phone,v.address,v.identity_number,v.notes);
+    const result = db.prepare("INSERT INTO customers (customer_code,full_name,email,phone,address,identity_number,notes,whatsapp_opt_in,whatsapp_opt_in_at) VALUES (?,?,?,?,?,?,?,?,CASE WHEN ?=1 THEN CURRENT_TIMESTAMP ELSE NULL END)").run(v.customer_code,v.full_name,v.email,v.phone,v.address,v.identity_number,v.notes,req.body.whatsapp_opt_in === "1" ? 1 : 0,req.body.whatsapp_opt_in === "1" ? 1 : 0);
     recordAudit({ user: req.session.user, action: "customer.create", entityType: "customer", entityId: result.lastInsertRowid, summary: "Menambahkan pelanggan " + v.customer_code });
     res.redirect("/billing?notice=Pelanggan%20berhasil%20ditambahkan.");
   } catch(e) { if(e.code==="SQLITE_CONSTRAINT_UNIQUE") return fail(res,new Error("Kode pelanggan sudah digunakan.")); return fail(res,e); }
 });
 router.post("/customers/:id/update", managers, (req,res) => {
   const id=Number(req.params.id); if(!Number.isSafeInteger(id)||id<1) return res.status(400).send("ID tidak valid.");
-  try { const v=billing.validateCustomer(req.body); const r=db.prepare("UPDATE customers SET customer_code=?,full_name=?,email=?,phone=?,address=?,identity_number=?,notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(v.customer_code,v.full_name,v.email,v.phone,v.address,v.identity_number,v.notes,id); if(!r.changes)return res.status(404).send("Pelanggan tidak ditemukan."); recordAudit({ user: req.session.user, action: "customer.update", entityType: "customer", entityId: id, summary: "Memperbarui data pelanggan " + v.customer_code }); res.redirect("/billing?notice=Data%20pelanggan%20diperbarui."); }
+  try { const v=billing.validateCustomer(req.body); const r=db.prepare("UPDATE customers SET customer_code=?,full_name=?,email=?,phone=?,address=?,identity_number=?,notes=?,whatsapp_opt_in=?,whatsapp_opt_in_at=CASE WHEN ?=1 THEN COALESCE(whatsapp_opt_in_at,CURRENT_TIMESTAMP) ELSE NULL END,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(v.customer_code,v.full_name,v.email,v.phone,v.address,v.identity_number,v.notes,req.body.whatsapp_opt_in === "1" ? 1 : 0,req.body.whatsapp_opt_in === "1" ? 1 : 0,id); if(!r.changes)return res.status(404).send("Pelanggan tidak ditemukan."); recordAudit({ user: req.session.user, action: "customer.update", entityType: "customer", entityId: id, summary: "Memperbarui data pelanggan " + v.customer_code }); res.redirect("/billing?notice=Data%20pelanggan%20diperbarui."); }
   catch(e){ if(e.code==="SQLITE_CONSTRAINT_UNIQUE")return fail(res,new Error("Kode pelanggan sudah digunakan.")); return fail(res,e); }
 });
 router.post("/customers/:id/status", managers, (req,res) => {
