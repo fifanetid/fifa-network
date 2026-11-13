@@ -77,7 +77,7 @@ test.after(async () => {
 });
 
 function tokenFrom(html) {
-  const match = html.match(/name="_csrf"\\s+value="([^"]+)"/);
+  const match = html.match(/name="_csrf"\s+value="([^"]+)"/);
   assert.ok(match, "CSRF token harus tersedia pada halaman.");
   return match[1];
 }
