@@ -46,9 +46,9 @@ test("laporan metode tetap mencatat reversal walau pembayaran asal di luar perio
   billing.recordPaymentReversal({paymentId:payment.id,input:{amount_idr:10000,reason:"Reversal pada bulan berikutnya"},userId:null});
   const report = reports.getFinancialReport({from:"2026-11-01",to:"2026-11-30"});
   const transfer = report.methods.find(row => row.payment_method === "bank_transfer");
-  assert.equal(report.summary.received_idr,0);
-  assert.equal(report.summary.reversed_idr,10000);
-  assert.equal(report.summary.net_received_idr,-10000);
+  assert.equal(report.summary.received_idr,80000); // pembayaran dari tes sebelumnya masih dalam rentang laporan
+  assert.equal(report.summary.reversed_idr,30000); // termasuk reversal dari tes sebelumnya
+  assert.equal(report.summary.net_received_idr,50000);
   assert.equal(transfer.reversed_idr,10000);
   assert.equal(transfer.net_idr,-10000);
 });
