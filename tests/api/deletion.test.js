@@ -30,6 +30,7 @@ function addCustomer(code, name, phone) {
 const adminOne = addUser("Admin One", "admin-one@example.test", "admin");
 const adminTwo = addUser("Admin Two", "admin-two@example.test", "admin");
 const financeId = addUser("Finance", "finance-delete@example.test", "finance");
+const historyStaff = addUser("Staff With History", "history-staff@example.test", "teknisi");
 
 const cleanCustomer = addCustomer("DELETE-CLEAN", "Pelanggan Tanpa Riwayat", "081234567801");
 db.prepare("INSERT INTO customer_portal_accounts (customer_id,password_hash) VALUES (?,?)")
@@ -55,11 +56,11 @@ db.prepare(`
 `).run(historyCustomer, invoiceId, "081234567802");
 
 recordAudit({
-  user: { id: adminTwo, name: "Admin Two", role: "admin" },
+  user: { id: historyStaff, name: "Staff With History", role: "teknisi" },
   action: "test.user.history",
   entityType: "test",
-  entityId: "user-" + adminTwo,
-  summary: "Riwayat audit sebelum akun target dihapus"
+  entityId: "user-" + historyStaff,
+  summary: "Riwayat audit akun yang dilindungi dari penghapusan"
 });
 
 const server = http.createServer(app);
@@ -146,18 +147,27 @@ test("admin dapat menghapus pengguna lain, tetapi bukan dirinya; sesi akun terha
   assert.equal(deleteTarget.status, 302);
   assert.equal(db.prepare("SELECT id FROM users WHERE id=?").get(adminTwo), undefined);
 
-  const preservedAudit = db.prepare(`
-    SELECT actor_user_id,actor_name,summary
-    FROM audit_logs
-    WHERE action='test.user.history' AND entity_id=?
-  `).get("user-" + adminTwo);
-  assert.equal(preservedAudit.actor_user_id, null);
-  assert.equal(preservedAudit.actor_name, "Admin Two");
-  assert.equal(preservedAudit.summary, "Riwayat audit sebelum akun target dihapus");
-
   const staleSession = await get("/admin/users", targetSession, "manual");
   assert.equal(staleSession.status, 302);
   assert.equal(staleSession.headers.get("location"), "/login");
+});
+
+test("akun pengguna yang sudah memiliki riwayat audit harus dinonaktifkan, bukan dihapus", async () => {
+  const admin = await login("admin-one@example.test");
+  await refreshToken("/admin/users", admin);
+  const response = await post("/admin/users/" + historyStaff + "/delete", admin);
+  assert.equal(response.status, 302);
+  const location = new URL(response.headers.get("location"), baseUrl);
+  assert.match(location.searchParams.get("error"), /riwayat/i);
+  assert.ok(db.prepare("SELECT id FROM users WHERE id=?").get(historyStaff));
+
+  const log = db.prepare(`
+    SELECT actor_user_id,actor_name,summary
+    FROM audit_logs WHERE action='test.user.history' AND entity_id=?
+  `).get("user-" + historyStaff);
+  assert.equal(log.actor_user_id, historyStaff);
+  assert.equal(log.actor_name, "Staff With History");
+  assert.equal(log.summary, "Riwayat audit akun yang dilindungi dari penghapusan");
 });
 
 test("admin dapat menghapus pelanggan tanpa riwayat dan akun portal ikut dicabut", async () => {
