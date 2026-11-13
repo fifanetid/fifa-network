@@ -5,6 +5,8 @@
 <section class="billing-grid">
   <article class="panel">
     <div class="panel-heading"><div><span class="eyebrow">DATA PELANGGAN</span><h3>Tambah pelanggan</h3></div><span class="pill muted"><%= customers.length %> data</span></div>
+    <details class="billing-disclosure">
+      <summary>Buka formulir pelanggan</summary>
     <form class="billing-form" method="post" action="/billing/customers">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <label>Kode pelanggan<input name="customer_code" maxlength="30" required placeholder="FN-0001"></label>
@@ -17,10 +19,13 @@
       <label>Catatan<input name="notes" maxlength="500"></label>
       <button class="primary-button" type="submit">Simpan pelanggan</button>
     </form>
+    </details>
   </article>
   <article class="panel">
     <div class="panel-heading"><div><span class="eyebrow">PAKET INTERNET</span><h3>Tambah paket</h3></div><span class="pill muted"><%= plans.length %> paket</span></div>
     <% if (currentUser.role === "admin") { %>
+    <details class="billing-disclosure">
+      <summary>Buka formulir paket</summary>
     <form class="billing-form" method="post" action="/billing/plans">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <label>Kode paket<input name="plan_code" maxlength="30" required placeholder="FIF10"></label>
@@ -30,23 +35,29 @@
       <label class="wide">Deskripsi<input name="description" maxlength="500"></label>
       <button class="primary-button" type="submit">Simpan paket</button>
     </form>
+    </details>
     <% } else { %><p class="muted-text">Hanya admin yang dapat mengubah paket internet.</p><% } %>
   </article>
 </section>
 
 <section class="panel billing-panel">
   <div class="panel-heading"><div><span class="eyebrow">CUSTOMER DATABASE</span><h3>Daftar pelanggan</h3></div></div>
-  <div class="table-wrap"><table class="users-table"><thead><tr><th>Kode / Nama</th><th>Kontak</th><th>Alamat</th><th>Status</th><th>Ubah data</th><th>Aksi</th></tr></thead><tbody>
+  <details class="billing-disclosure">
+    <summary>Lihat daftar pelanggan (<%= customers.length %>)</summary>
+  <div class="table-wrap billing-table-scroll"><table class="users-table"><thead><tr><th>Kode / Nama</th><th>Kontak</th><th>Alamat</th><th>Status</th><th>Ubah data</th><th>Aksi</th></tr></thead><tbody>
   <% customers.forEach(c => { %><tr><td><strong><%= c.customer_code %></strong><small><%= c.full_name %></small></td><td><%= c.phone %><small><%= c.email || "-" %></small></td><td><%= c.address %></td><td><span class="pill <%= c.status === 'active' ? 'success' : 'muted' %>"><%= c.status %></span></td><td><details><summary>Edit</summary><form class="mini-edit" method="post" action="/billing/customers/<%= c.id %>/update"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="customer_code" value="<%= c.customer_code %>" required><input name="full_name" value="<%= c.full_name %>" required><input name="phone" value="<%= c.phone %>" required><label><input type="checkbox" name="whatsapp_opt_in" value="1" <%= c.whatsapp_opt_in ? "checked" : "" %>> Setuju WhatsApp</label><input name="email" value="<%= c.email || '' %>"><input name="address" value="<%= c.address %>" required><input name="identity_number" value="<%= c.identity_number || '' %>"><input name="notes" value="<%= c.notes || '' %>"><button class="small-button">Simpan</button></form></details></td><td><form method="post" action="/billing/customers/<%= c.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button"><%= c.status === "active" ? "Nonaktifkan" : "Aktifkan" %></button></form></td></tr><% }) %>
   <% if (!customers.length) { %><tr><td colspan="6" class="muted-text">Belum ada pelanggan.</td></tr><% } %>
   </tbody></table></div>
+  </details>
 </section>
 
 <% if (currentUser.role === "admin") { %>
 <section class="panel billing-panel">
   <div class="panel-heading"><div><span class="eyebrow">CUSTOMER PORTAL</span><h3>Akses portal pelanggan</h3></div><a class="small-button" href="/customer/login" target="_blank" rel="noopener">Buka portal</a></div>
   <p class="muted-text">Buat atau atur ulang password portal pelanggan. Password disimpan dalam bentuk hash. Sampaikan ID pelanggan dan password sementara melalui saluran pribadi yang aman.</p>
-  <div class="table-wrap"><table class="users-table">
+  <details class="billing-disclosure">
+    <summary>Kelola akses portal (<%= portalCustomers.length %> pelanggan)</summary>
+  <div class="table-wrap billing-table-scroll"><table class="users-table">
     <thead><tr><th>Pelanggan</th><th>Status akun portal</th><th>Login terakhir</th><th>Buat / atur ulang password</th><th>Aksi</th></tr></thead>
     <tbody>
       <% portalCustomers.forEach(c => { %>
@@ -77,19 +88,25 @@
       <% if (!portalCustomers.length) { %><tr><td colspan="5" class="muted-text">Belum ada pelanggan.</td></tr><% } %>
     </tbody>
   </table></div>
+  </details>
 </section>
 <% } %>
 
 <section class="panel billing-panel">
   <div class="panel-heading"><div><span class="eyebrow">INTERNET CATALOG</span><h3>Paket internet</h3></div></div>
-  <div class="table-wrap"><table class="users-table"><thead><tr><th>Kode / Paket</th><th>Kecepatan</th><th>Harga / bulan</th><th>Status</th><th>Ubah</th><th>Aksi</th></tr></thead><tbody>
+  <details class="billing-disclosure">
+    <summary>Lihat daftar paket (<%= plans.length %>)</summary>
+  <div class="table-wrap billing-table-scroll"><table class="users-table"><thead><tr><th>Kode / Paket</th><th>Kecepatan</th><th>Harga / bulan</th><th>Status</th><th>Ubah</th><th>Aksi</th></tr></thead><tbody>
   <% plans.forEach(p => { %><tr><td><strong><%= p.plan_code %></strong><small><%= p.name %></small></td><td><%= p.speed_mbps %> Mbps</td><td><%= rupiah(p.monthly_price_idr) %></td><td><span class="pill <%= p.is_active ? 'success' : 'muted' %>"><%= p.is_active ? "Aktif" : "Nonaktif" %></span></td><td><% if(currentUser.role === "admin"){ %><details><summary>Edit</summary><form class="mini-edit" method="post" action="/billing/plans/<%= p.id %>/update"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="plan_code" value="<%= p.plan_code %>" required><input name="name" value="<%= p.name %>" required><input type="number" name="speed_mbps" value="<%= p.speed_mbps %>" min="1" required><input type="number" name="monthly_price_idr" value="<%= p.monthly_price_idr %>" min="0" required><input name="description" value="<%= p.description || '' %>"><button class="small-button">Simpan</button></form></details><% } %></td><td><% if(currentUser.role === "admin"){ %><form method="post" action="/billing/plans/<%= p.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button"><%= p.is_active ? "Nonaktifkan" : "Aktifkan" %></button></form><% } %></td></tr><% }) %>
   <% if (!plans.length) { %><tr><td colspan="6" class="muted-text">Belum ada paket internet.</td></tr><% } %>
   </tbody></table></div>
+  </details>
 </section>
 
 <section class="panel billing-panel">
   <div class="panel-heading"><div><span class="eyebrow">SERVICE MANAGEMENT</span><h3>Buat langganan</h3></div></div>
+  <details class="billing-disclosure">
+    <summary>Buka formulir langganan</summary>
   <form class="billing-form" method="post" action="/billing/subscriptions">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <label>Pelanggan<select name="customer_id" required><option value="">Pilih pelanggan</option><% customers.filter(c=>c.status==="active").forEach(c=>{ %><option value="<%= c.id %>"><%= c.customer_code %> — <%= c.full_name %></option><% }) %></select></label>
@@ -100,15 +117,21 @@
     <label>Catatan<input name="notes" maxlength="500"></label>
     <button class="primary-button">Buat langganan</button>
   </form>
-  <div class="table-wrap"><table class="users-table"><thead><tr><th>Pelanggan</th><th>Paket</th><th>Mulai</th><th>Referensi perangkat</th><th>Status</th><th>Ubah status</th></tr></thead><tbody>
+  </details>
+  <details class="billing-disclosure">
+    <summary>Lihat daftar langganan (<%= subscriptions.length %>)</summary>
+  <div class="table-wrap billing-table-scroll"><table class="users-table"><thead><tr><th>Pelanggan</th><th>Paket</th><th>Mulai</th><th>Referensi perangkat</th><th>Status</th><th>Ubah status</th></tr></thead><tbody>
   <% subscriptions.forEach(s=>{ %><tr><td><strong><%= s.customer_code %></strong><small><%= s.full_name %></small></td><td><%= s.plan_name %><small><%= rupiah(s.monthly_price_idr) %></small></td><td><%= s.start_date %></td><td><%= s.external_device_ref || "-" %></td><td><%= s.status %></td><td><form method="post" action="/billing/subscriptions/<%= s.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><select name="status"><% ["active","suspended","terminated"].forEach(st=>{ %><option value="<%= st %>" <%= s.status===st?"selected":"" %>><%= st %></option><% }) %></select><button class="small-button">Simpan</button></form></td></tr><% }) %>
   <% if(!subscriptions.length){ %><tr><td colspan="6" class="muted-text">Belum ada langganan.</td></tr><% } %>
   </tbody></table></div>
+  </details>
 </section>
 
 <section class="panel billing-panel">
   <div class="panel-heading"><div><span class="eyebrow">ACCOUNTS RECEIVABLE</span><h3>Buat invoice</h3></div></div>
-  <p class="muted-text">Terbitkan invoice sekaligus untuk semua langganan aktif yang sudah berjalan pada awal periode. Periode yang sudah memiliki invoice akan dilewati otomatis.</p>
+  <details class="billing-disclosure">
+    <summary>Buat invoice baru (manual atau bulanan otomatis)</summary>
+  <p class="muted-text">Invoice bulanan otomatis hanya menerbitkan tagihan untuk langganan aktif. Periode yang sudah memiliki invoice akan dilewati.</p>
   <form class="billing-form" method="post" action="/billing/invoices/generate-monthly">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <label>Periode tagihan<input type="month" name="billing_period" required></label>
@@ -125,24 +148,33 @@
     <label class="wide">Catatan<input name="notes" maxlength="500"></label>
     <button class="primary-button">Terbitkan invoice</button>
   </form>
+  </details>
   <div class="reminder-summary">
     <strong>Pengingat jatuh tempo</strong>
     <span>Tagihan belum lunas yang jatuh tempo atau akan jatuh tempo dalam 7 hari ke depan.</span>
     <b><%= dueReminders.length %> tagihan perlu ditindaklanjuti</b>
   </div>
-  <div class="table-wrap"><table class="users-table"><thead><tr><th>Status</th><th>Pelanggan</th><th>Invoice</th><th>Jatuh tempo</th><th>Sisa tagihan</th><th>Kontak</th></tr></thead><tbody>
+  <details class="billing-disclosure">
+    <summary>Lihat daftar tagihan yang perlu diingatkan (<%= dueReminders.length %>)</summary>
+  <div class="table-wrap billing-table-scroll"><table class="users-table"><thead><tr><th>Status</th><th>Pelanggan</th><th>Invoice</th><th>Jatuh tempo</th><th>Sisa tagihan</th><th>Kontak</th></tr></thead><tbody>
   <% dueReminders.forEach(r=>{ %><tr><td><span class="pill <%= r.is_overdue ? 'danger' : 'warning' %>"><%= r.is_overdue ? 'Terlambat ' + r.days_overdue + ' hari' : (r.days_overdue === 0 ? 'Jatuh tempo hari ini' : 'Dalam ' + Math.abs(r.days_overdue) + ' hari') %></span></td><td><strong><%= r.customer_code %></strong><small><%= r.full_name %></small></td><td><%= r.invoice_number %><small><%= r.billing_period %></small></td><td><%= r.due_date %></td><td><strong><%= rupiah(r.remaining_idr) %></strong></td><td><%= r.phone %></td></tr><% }) %>
   <% if(!dueReminders.length){ %><tr><td colspan="6" class="muted-text">Tidak ada tagihan yang perlu diingatkan dalam 7 hari ke depan.</td></tr><% } %>
   </tbody></table></div>
-  <div class="table-wrap"><table class="users-table"><thead><tr><th>Invoice</th><th>Pelanggan / Periode</th><th>Total</th><th>Dibayar</th><th>Sisa</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
+  </details>
+  <details class="billing-disclosure">
+    <summary>Lihat semua invoice (<%= invoices.length %>)</summary>
+  <div class="table-wrap billing-table-scroll"><table class="users-table"><thead><tr><th>Invoice</th><th>Pelanggan / Periode</th><th>Total</th><th>Dibayar</th><th>Sisa</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
   <% invoices.forEach(i=>{ const remaining=i.total_idr-i.paid_idr; %><tr><td><strong><%= i.invoice_number %></strong><small>Jatuh tempo: <%= i.due_date %></small></td><td><%= i.full_name %><small><%= i.billing_period %></small></td><td><%= rupiah(i.total_idr) %></td><td><%= rupiah(i.paid_idr) %></td><td><%= rupiah(remaining) %></td><td><span class="pill <%= i.status==='paid'?'success':'muted' %>"><%= i.status %></span></td><td><% if(i.status!=="paid"&&i.status!=="void"){ %><details><summary>Catat pembayaran</summary><form class="mini-edit" method="post" action="/billing/invoices/<%= i.id %>/payments"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="number" name="amount_idr" min="1" max="<%= remaining %>" placeholder="Nominal IDR" required><select name="payment_method"><option value="cash">Tunai</option><option value="bank_transfer">Transfer bank</option><option value="qris">QRIS</option><option value="other">Lainnya</option></select><input type="date" name="paid_at" required><input name="notes" placeholder="Catatan"><button class="small-button">Simpan pembayaran</button></form></details><% } %><% if(currentUser.role==="admin"&&i.status!=="void"&&i.paid_idr===0){ %><form method="post" action="/billing/invoices/<%= i.id %>/void"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button">Batalkan</button></form><% } %></td></tr><% }) %>
   <% if(!invoices.length){ %><tr><td colspan="7" class="muted-text">Belum ada invoice.</td></tr><% } %>
   </tbody></table></div>
+  </details>
 </section>
 <section class="panel billing-panel">
   <div class="panel-heading"><div><span class="eyebrow">CUSTOMER PAYMENT REVIEW</span><h3>Konfirmasi pembayaran pelanggan</h3></div><span class="pill muted"><%= paymentConfirmations.filter(c=>c.status==='pending').length %> menunggu</span></div>
   <p class="muted-text">Pembayaran dari portal tidak langsung mengubah saldo invoice. Periksa referensi transaksi dan bukti pada rekening / kanal pembayaran sebelum menyetujui.</p>
-  <div class="table-wrap"><table class="users-table">
+  <details class="billing-disclosure" <%= paymentConfirmations.some(c=>c.status==="pending") ? "open" : "" %>>
+    <summary>Lihat riwayat konfirmasi (<%= paymentConfirmations.length %>) · <%= paymentConfirmations.filter(c=>c.status==="pending").length %> menunggu</summary>
+  <div class="table-wrap billing-table-scroll"><table class="users-table">
     <thead><tr><th>Dikirim</th><th>Pelanggan</th><th>Invoice</th><th>Nominal</th><th>Metode</th><th>Referensi</th><th>Tanggal bayar</th><th>Status / Aksi</th></tr></thead>
     <tbody>
       <% paymentConfirmations.forEach(c => { %>
@@ -177,16 +209,25 @@
       <% if (!paymentConfirmations.length) { %><tr><td colspan="8" class="muted-text">Belum ada konfirmasi pembayaran pelanggan.</td></tr><% } %>
     </tbody>
   </table></div>
+  </details>
 </section>
 
 <section class="panel billing-panel"><div class="panel-heading"><div><span class="eyebrow">PAYMENT HISTORY</span><h3>Riwayat pembayaran</h3></div></div>
-<div class="table-wrap"><table class="users-table"><thead><tr><th>Referensi</th><th>Invoice</th><th>Nominal</th><th>Metode</th><th>Tanggal</th><th>Catatan</th></tr></thead><tbody>
+<details class="billing-disclosure">
+  <summary>Lihat riwayat pembayaran (<%= payments.length %>)</summary>
+<div class="table-wrap billing-table-scroll"><table class="users-table"><thead><tr><th>Referensi</th><th>Invoice</th><th>Nominal</th><th>Metode</th><th>Tanggal</th><th>Catatan</th></tr></thead><tbody>
 <% payments.forEach(p=>{ const refundable=p.amount_idr-p.reversed_idr; %><tr><td><strong><%= p.payment_reference %></strong><small>Dikembalikan: <%= rupiah(p.reversed_idr) %></small></td><td><%= p.invoice_number %></td><td><%= rupiah(p.amount_idr) %><small>Net: <%= rupiah(refundable) %></small></td><td><%= p.payment_method %></td><td><%= p.paid_at %></td><td><%= p.notes || "-" %><% if(currentUser.role==="admin"&&refundable>0){ %><details><summary>Reversal</summary><form class="mini-edit" method="post" action="/billing/payments/<%= p.id %>/reversals"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="number" name="amount_idr" min="1" max="<%= refundable %>" placeholder="Nominal reversal" required><input name="reason" minlength="5" maxlength="500" placeholder="Alasan koreksi (wajib)" required><button class="small-button">Catat reversal</button></form></details><% } %></td></tr><% }) %>
 <% if(!payments.length){ %><tr><td colspan="6" class="muted-text">Belum ada pembayaran.</td></tr><% } %>
-</tbody></table></div></section>
+</tbody></table></div>
+</details>
+</section>
 <section class="panel billing-panel"><div class="panel-heading"><div><span class="eyebrow">REVERSAL AUDIT</span><h3>Riwayat pembalikan pembayaran</h3></div></div>
-<div class="table-wrap"><table class="users-table"><thead><tr><th>Referensi reversal</th><th>Referensi pembayaran</th><th>Invoice</th><th>Nominal</th><th>Alasan</th><th>Waktu</th></tr></thead><tbody>
+<details class="billing-disclosure">
+  <summary>Lihat riwayat reversal (<%= reversals.length %>)</summary>
+<div class="table-wrap billing-table-scroll"><table class="users-table"><thead><tr><th>Referensi reversal</th><th>Referensi pembayaran</th><th>Invoice</th><th>Nominal</th><th>Alasan</th><th>Waktu</th></tr></thead><tbody>
 <% reversals.forEach(r=>{ %><tr><td><%= r.reversal_reference %></td><td><%= r.payment_reference %></td><td><%= r.invoice_number %></td><td><%= rupiah(r.amount_idr) %></td><td><%= r.reason %></td><td><%= r.reversed_at %></td></tr><% }) %>
 <% if(!reversals.length){ %><tr><td colspan="6" class="muted-text">Belum ada reversal.</td></tr><% } %>
-</tbody></table></div></section>
+</tbody></table></div>
+</details>
+</section>
 <%- include("../partials/footer") %>
