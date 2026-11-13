@@ -12,7 +12,6 @@ const billingRoutes = require("./routes/billing");
 const auditRoutes = require("./routes/audit");
 const reportsRoutes = require("./routes/reports");
 const whatsappRoutes = require("./routes/whatsapp");
-const customerPortalRoutes = require("./routes/customer-portal");
 const { dbDir } = require("../../database/db");
 
 const app = express();
@@ -58,7 +57,6 @@ app.get("/healthz", (req, res) => {
 });
 
 app.use("/", authRoutes);
-app.use("/customer", customerPortalRoutes);
 app.use("/", dashboardRoutes);
 app.use("/admin/users", userRoutes);
 app.use("/admin/audit", auditRoutes);
