@@ -293,4 +293,12 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   const errorHtml = await errorPage.text();
   assert.match(errorHtml, /Password portal harus 12/);
   assert.match(errorHtml, /customer-create-disclosure[^>]*open/);
+
+  const modalCssResponse = await fetch(baseUrl + "/assets/css/billing.css");
+  assert.equal(modalCssResponse.status, 200);
+  const modalCss = await modalCssResponse.text();
+  assert.ok(modalCss.includes("height:min(780px"));
+  assert.ok(modalCss.includes(".customer-create-disclosure[open]>.customer-simple-form"));
+  assert.ok(modalCss.includes("overflow-y:auto!important"));
+  assert.ok(modalCss.includes("position:sticky!important"));
 });
