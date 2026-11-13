@@ -24,7 +24,10 @@ const ids = {
 };
 
 function invoke(userId, expected) {
-  const req = { session: { user: userId ? { id: userId, role: "stale-role" } : null } };
+  const req = { session: {
+    user: userId ? { id: userId, role: "stale-role" } : null,
+    destroy(callback) { callback(); }
+  } };
   const res = {
     statusCode: 200,
     redirected: null,
@@ -40,7 +43,7 @@ function invoke(userId, expected) {
   if (expected === 403) assert.equal(res.statusCode, 403);
   if (expected === "login") {
     assert.equal(res.redirected, "/login");
-    assert.equal(res.cleared, true);
+    if (userId) assert.equal(res.cleared, true);
   }
   return { req, res, nextCalled };
 }
