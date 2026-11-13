@@ -1,6 +1,6 @@
 "use strict";
 
-const { db } = require("../../database/db");
+const { db } = require("../../../database/db");
 
 function requireCustomerPortal(req, res, next) {
   const portalSession = req.session.portalCustomer;
