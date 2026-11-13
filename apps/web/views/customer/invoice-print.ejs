@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | FF BILLING</title>
+  <link rel="stylesheet" href="/assets/css/portal.css">
+</head>
+<body class="invoice-print-page">
+  <main class="invoice-sheet">
+    <header class="invoice-print-header">
+      <div><div class="invoice-print-brand">FF BILLING</div><p>FIFA NETWORK · ISP MANAGEMENT</p></div>
+      <div class="invoice-print-meta"><span>INVOICE</span><strong><%= invoice.invoice_number %></strong><small>Terbit: <%= invoice.issued_at %></small></div>
+    </header>
+    <div class="invoice-print-rule"></div>
+    <section class="invoice-print-parties">
+      <div><span>DITAGIHKAN KEPADA</span><strong><%= invoice.full_name %></strong><small>ID: <%= invoice.customer_code %></small><small><%= invoice.phone %></small><small><%= invoice.address %></small></div>
+      <div><span>DETAIL TAGIHAN</span><strong>Periode <%= invoice.billing_period %></strong><small>Jatuh tempo: <%= invoice.due_date %></small><small>Status: <%= invoice.status %></small></div>
+    </section>
+    <table class="invoice-print-table">
+      <thead><tr><th>Deskripsi</th><th>Kecepatan</th><th>Jumlah</th></tr></thead>
+      <tbody><tr><td><strong><%= invoice.plan_name %></strong><small>Paket <%= invoice.plan_code %></small></td><td><%= invoice.speed_mbps %> Mbps</td><td><%= rupiah(invoice.subtotal_idr) %></td></tr></tbody>
+    </table>
+    <section class="invoice-print-totals">
+      <div><span>Subtotal</span><strong><%= rupiah(invoice.subtotal_idr) %></strong></div>
+      <div><span>Diskon</span><strong><%= rupiah(invoice.discount_idr) %></strong></div>
+      <div><span>Total tagihan</span><strong><%= rupiah(invoice.total_idr) %></strong></div>
+      <div><span>Sudah dibayar</span><strong><%= rupiah(invoice.paid_idr) %></strong></div>
+      <div class="invoice-print-balance"><span>Sisa tagihan</span><strong><%= rupiah(Math.max(0,invoice.total_idr-invoice.paid_idr)) %></strong></div>
+    </section>
+    <% if (invoice.notes) { %><p class="invoice-print-notes"><strong>Catatan:</strong> <%= invoice.notes %></p><% } %>
+    <footer class="invoice-print-footer"><p>Terima kasih telah menggunakan layanan FIFA NETWORK.</p><small>Dokumen ini diterbitkan secara elektronik oleh FF BILLING.</small></footer>
+    <div class="invoice-print-actions"><button type="button" onclick="window.print()">Cetak / Simpan PDF</button><a href="/customer">Kembali ke portal</a></div>
+  </main>
+</body>
+</html>
