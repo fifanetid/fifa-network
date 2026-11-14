@@ -135,7 +135,26 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   await refreshToken(admin);
   const adminBillingPage = await get("/billing", admin);
   assert.equal(adminBillingPage.status, 200);
-  assert.match(await adminBillingPage.text(), /name="create_portal_account"/);
+  const adminBillingHtml = await adminBillingPage.text();
+  assert.match(adminBillingHtml, /customer-management-screen/);
+  assert.match(adminBillingHtml, /Manajemen Pelanggan/);
+  assert.match(adminBillingHtml, /customerPlanFilter/);
+  assert.match(adminBillingHtml, /exportCustomers/);
+  assert.match(adminBillingHtml, /printCustomers/);
+  assert.match(adminBillingHtml, /Informasi Pribadi Pelanggan/);
+  assert.match(adminBillingHtml, /Paket &amp; Akses Layanan|Paket & Akses Layanan/);
+  assert.match(adminBillingHtml, /Penagihan, Status &amp; Akses Portal|Penagihan, Status & Akses Portal/);
+  assert.match(adminBillingHtml, /customer-edit-disclosure/);
+  assert.match(adminBillingHtml, /name="create_portal_account"/);
+
+  const customerCssResponse = await fetch(baseUrl + "/assets/css/billing.css");
+  assert.equal(customerCssResponse.status, 200);
+  const customerCss = await customerCssResponse.text();
+  assert.ok(customerCss.includes("body:has(.customer-management-screen)"));
+  assert.ok(customerCss.includes("background:#171e27"));
+  assert.ok(customerCss.includes(".customer-modal-scroll{"));
+  assert.ok(customerCss.includes("overflow-y:auto!important"));
+  assert.ok(customerCss.includes(".customer-edit-disclosure[open]"));
   const createdPlan = await post("/billing/plans", admin, {
     plan_code: "HTTP-FIF10",
     name: "Paket Uji 10 Mbps",
@@ -176,6 +195,12 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   await refreshToken(finance);
   const invoice = db.prepare("SELECT * FROM invoices WHERE subscription_id=? AND billing_period='2026-11'").get(subscriptionId);
   assert.equal(invoice.total_idr, 90000);
+
+  const customerSummaryPage = await get("/billing", finance);
+  assert.equal(customerSummaryPage.status, 200);
+  const customerSummaryHtml = await customerSummaryPage.text();
+  assert.match(customerSummaryHtml, /Paket Uji 10 Mbps/);
+  assert.match(customerSummaryHtml, /1 tagihan/);
 
   const firstPayment = await post("/billing/invoices/" + invoice.id + "/payments", finance, {
     amount_idr: "40000",
