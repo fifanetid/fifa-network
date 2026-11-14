@@ -307,6 +307,16 @@
 </section>
 <script>
 (() => {
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const openDialog = document.querySelector(".customer-create-disclosure[open]");
+    if (openDialog) {
+      openDialog.open = false;
+      const trigger = openDialog.querySelector(":scope > summary");
+      if (trigger) trigger.focus();
+    }
+  });
+
   const portalEnable = document.querySelector("[data-portal-enable]");
   const portalPassword = document.querySelector("[data-portal-password]");
   if (portalEnable && portalPassword) {
