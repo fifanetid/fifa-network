@@ -2,3 +2,28 @@
 .wa-scheduler{padding:15px;border:1px solid #e8edf5;border-radius:12px;background:#f8faff}.wa-scheduler-time{margin:0 0 8px;color:#2458c6;font-size:17px;font-weight:800;letter-spacing:-.02em}.wa-scheduler .panel-heading{margin-bottom:10px}.wa-scheduler .muted-text{font-size:11px}.wa-scheduler form{margin:12px 0 8px}
 
 .wa-preview-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:15px 0}.wa-preview-stats>div{display:grid;gap:3px;padding:13px 15px;border:1px solid #e8edf5;border-radius:10px;background:#f8faff}.wa-preview-stats strong{color:#1c2b44;font-size:22px;line-height:1.2}.wa-preview-stats span{color:#7d8aa0;font-size:10px;font-weight:650}@media(max-width:520px){.wa-preview-stats{grid-template-columns:1fr}}
+
+
+/* WhatsApp operations */
+.wa-grid{gap:13px;margin-bottom:14px}
+.wa-card{border-radius:9px}
+.wa-qr-wrap{
+  gap:8px;padding:16px;border:1px dashed #d6dde6;border-radius:8px;
+  background:#f8f9fa
+}
+.wa-qr-wrap img{border:1px solid #e7ebef;border-radius:6px;box-shadow:none}
+.wa-actions{gap:7px;margin:12px 0}
+.wa-scheduler{padding:13px;border:1px solid #e3e8ee;border-radius:8px;background:#f8f9fa}
+.wa-scheduler-time{color:#315b90;font-size:15px;font-weight:700}
+.wa-preview-stats{gap:9px;margin:12px 0}
+.wa-preview-stats>div{
+  padding:11px 12px;border-color:#e3e8ee;border-radius:7px;background:#fff
+}
+.wa-preview-stats strong{color:#26364b;font-size:19px;font-weight:680}
+.wa-preview-stats span{color:#718095;font-size:9px;font-weight:600}
+@media(max-width:520px){
+  .wa-grid{gap:10px}
+  .wa-preview-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .wa-preview-stats>div{padding:9px}
+  .wa-preview-stats strong{font-size:16px}
+}

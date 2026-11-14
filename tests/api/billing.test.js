@@ -301,4 +301,11 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.ok(modalCss.includes(".customer-create-disclosure[open]>.customer-simple-form"));
   assert.ok(modalCss.includes("overflow-y:auto!important"));
   assert.ok(modalCss.includes("position:sticky!important"));
+
+  const appCssResponse = await fetch(baseUrl + "/assets/css/app.css");
+  assert.equal(appCssResponse.status, 200);
+  const appCss = await appCssResponse.text();
+  assert.ok(appCss.includes("--radius-card:10px"));
+  assert.ok(appCss.includes("background:#192536"));
+  assert.ok(appCss.includes(".welcome-orb{display:none}"));
 });
