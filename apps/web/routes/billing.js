@@ -10,7 +10,7 @@ const fail = (res, error) => res.status(400).render("billing/index", pageData({ 
 
 function pageData(extra = {}) {
   return {
-    title: "Billing & Pelanggan",
+    title: "Manajemen Pelanggan",
     notice: null,
     error: null,
     customerFormError: null,
@@ -21,6 +21,35 @@ function pageData(extra = {}) {
         (SELECT COUNT(*) FROM invoices i WHERE i.customer_id=c.id) AS invoice_count,
         (SELECT COUNT(*) FROM customer_payment_confirmations pc WHERE pc.customer_id=c.id) AS confirmation_count,
         (SELECT COUNT(*) FROM whatsapp_message_logs wl WHERE wl.customer_id=c.id) AS whatsapp_log_count,
+        (SELECT p.name
+          FROM subscriptions s JOIN internet_plans p ON p.id=s.plan_id
+          WHERE s.customer_id=c.id
+          ORDER BY CASE s.status WHEN 'active' THEN 0 WHEN 'suspended' THEN 1 ELSE 2 END,
+                   s.id DESC LIMIT 1) AS current_plan_name,
+        (SELECT p.speed_mbps
+          FROM subscriptions s JOIN internet_plans p ON p.id=s.plan_id
+          WHERE s.customer_id=c.id
+          ORDER BY CASE s.status WHEN 'active' THEN 0 WHEN 'suspended' THEN 1 ELSE 2 END,
+                   s.id DESC LIMIT 1) AS current_plan_speed,
+        (SELECT s.status
+          FROM subscriptions s
+          WHERE s.customer_id=c.id
+          ORDER BY CASE s.status WHEN 'active' THEN 0 WHEN 'suspended' THEN 1 ELSE 2 END,
+                   s.id DESC LIMIT 1) AS subscription_status,
+        (SELECT COUNT(*) FROM invoices i
+          WHERE i.customer_id=c.id AND i.status IN ('unpaid','partial')) AS unpaid_invoice_count,
+        COALESCE((SELECT SUM(
+          i.total_idr
+          - COALESCE((SELECT SUM(p.amount_idr) FROM payments p WHERE p.invoice_id=i.id),0)
+          + COALESCE((SELECT SUM(r.amount_idr)
+              FROM payment_reversals r JOIN payments p ON p.id=r.payment_id
+              WHERE p.invoice_id=i.id),0)
+        ) FROM invoices i
+          WHERE i.customer_id=c.id AND i.status IN ('unpaid','partial')),0) AS unpaid_balance_idr,
+        CASE WHEN EXISTS (
+          SELECT 1 FROM customer_portal_accounts a
+          WHERE a.customer_id=c.id AND a.is_active=1
+        ) THEN 1 ELSE 0 END AS portal_enabled,
         CASE WHEN
           (SELECT COUNT(*) FROM subscriptions s WHERE s.customer_id=c.id)=0
           AND (SELECT COUNT(*) FROM invoices i WHERE i.customer_id=c.id)=0
