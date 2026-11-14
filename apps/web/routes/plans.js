@@ -62,15 +62,23 @@ function validateVoucher(input) {
   };
 }
 
-router.get("/monthly", managers, (req, res) => {
+router.get("/", managers, (req, res) => {
+  const activeTab = req.query.type === "voucher" ? "voucher" : "monthly";
   const plans = db.prepare("SELECT * FROM internet_plans ORDER BY is_active DESC, name COLLATE NOCASE").all();
-  res.render("plans/monthly", {
-    title: "Paket Internet Bulanan",
+  const vouchers = db.prepare("SELECT * FROM voucher_packages ORDER BY is_active DESC, name COLLATE NOCASE").all();
+  res.render("plans/index", {
+    title: "Paket Internet",
+    activeTab,
     plans,
+    vouchers,
     notice: req.query.notice || null,
     error: req.query.error || null
   });
 });
+
+// Compatibility for bookmarks and old links.
+router.get("/monthly", managers, (req, res) => res.redirect("/plans?type=monthly"));
+
 
 router.post("/monthly", admins, (req, res) => {
   try {
@@ -86,12 +94,12 @@ router.post("/monthly", admins, (req, res) => {
       entityId: result.lastInsertRowid,
       summary: "Menambahkan paket bulanan " + v.plan_code
     });
-    res.redirect(redirectWith("/plans/monthly", "notice", "Paket bulanan berhasil ditambahkan."));
+    res.redirect(redirectWith("/plans?type=monthly", "notice", "Paket bulanan berhasil ditambahkan."));
   } catch (error) {
     const message = error.code === "SQLITE_CONSTRAINT_UNIQUE"
       ? "Kode paket bulanan sudah digunakan."
       : error.message;
-    res.redirect(redirectWith("/plans/monthly", "error", message));
+    res.redirect(redirectWith("/plans?type=monthly", "error", message));
   }
 });
 
@@ -113,12 +121,12 @@ router.post("/monthly/:id/update", admins, (req, res) => {
       entityId: id,
       summary: "Memperbarui paket bulanan " + v.plan_code
     });
-    res.redirect(redirectWith("/plans/monthly", "notice", "Paket bulanan berhasil diperbarui."));
+    res.redirect(redirectWith("/plans?type=monthly", "notice", "Paket bulanan berhasil diperbarui."));
   } catch (error) {
     const message = error.code === "SQLITE_CONSTRAINT_UNIQUE"
       ? "Kode paket bulanan sudah digunakan."
       : error.message;
-    res.redirect(redirectWith("/plans/monthly", "error", message));
+    res.redirect(redirectWith("/plans?type=monthly", "error", message));
   }
 });
 
@@ -134,18 +142,10 @@ router.post("/monthly/:id/status", admins, (req, res) => {
     entityId: id,
     summary: "Mengubah status paket bulanan ID " + id
   });
-  res.redirect(redirectWith("/plans/monthly", "notice", "Status paket bulanan diperbarui."));
+  res.redirect(redirectWith("/plans?type=monthly", "notice", "Status paket bulanan diperbarui."));
 });
 
-router.get("/voucher", managers, (req, res) => {
-  const vouchers = db.prepare("SELECT * FROM voucher_packages ORDER BY is_active DESC, name COLLATE NOCASE").all();
-  res.render("plans/voucher", {
-    title: "Paket Voucher",
-    vouchers,
-    notice: req.query.notice || null,
-    error: req.query.error || null
-  });
-});
+router.get("/voucher", managers, (req, res) => res.redirect("/plans?type=voucher"));
 
 router.post("/voucher", admins, (req, res) => {
   try {
@@ -165,12 +165,12 @@ router.post("/voucher", admins, (req, res) => {
       entityId: result.lastInsertRowid,
       summary: "Menambahkan paket voucher " + v.package_code
     });
-    res.redirect(redirectWith("/plans/voucher", "notice", "Paket voucher berhasil ditambahkan."));
+    res.redirect(redirectWith("/plans?type=voucher", "notice", "Paket voucher berhasil ditambahkan."));
   } catch (error) {
     const message = error.code === "SQLITE_CONSTRAINT_UNIQUE"
       ? "Kode paket voucher sudah digunakan."
       : error.message;
-    res.redirect(redirectWith("/plans/voucher", "error", message));
+    res.redirect(redirectWith("/plans?type=voucher", "error", message));
   }
 });
 
@@ -196,12 +196,12 @@ router.post("/voucher/:id/update", admins, (req, res) => {
       entityId: id,
       summary: "Memperbarui paket voucher " + v.package_code
     });
-    res.redirect(redirectWith("/plans/voucher", "notice", "Paket voucher berhasil diperbarui."));
+    res.redirect(redirectWith("/plans?type=voucher", "notice", "Paket voucher berhasil diperbarui."));
   } catch (error) {
     const message = error.code === "SQLITE_CONSTRAINT_UNIQUE"
       ? "Kode paket voucher sudah digunakan."
       : error.message;
-    res.redirect(redirectWith("/plans/voucher", "error", message));
+    res.redirect(redirectWith("/plans?type=voucher", "error", message));
   }
 });
 
@@ -217,7 +217,7 @@ router.post("/voucher/:id/status", admins, (req, res) => {
     entityId: id,
     summary: "Mengubah status paket voucher ID " + id
   });
-  res.redirect(redirectWith("/plans/voucher", "notice", "Status paket voucher diperbarui."));
+  res.redirect(redirectWith("/plans?type=voucher", "notice", "Status paket voucher diperbarui."));
 });
 
 module.exports = router;
