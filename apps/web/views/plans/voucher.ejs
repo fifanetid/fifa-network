@@ -1,0 +1,95 @@
+<%- include("../partials/header", { title }) %>
+<%
+  const idr = value => new Intl.NumberFormat("id-ID", {
+    style: "currency", currency: "IDR", maximumFractionDigits: 0
+  }).format(value);
+  const validity = voucher => voucher.validity_value + " " + (voucher.validity_unit === "days" ? "hari" : "jam");
+  const activeCount = vouchers.filter(item => item.is_active === 1).length;
+%>
+<section class="plan-page-intro">
+  <div>
+    <span class="eyebrow">KATALOG VOUCHER</span>
+    <h2>Paket voucher</h2>
+    <p>Kelola variasi voucher berdasarkan masa berlaku, kuota, kecepatan, dan harga.</p>
+  </div>
+  <span class="plan-page-count"><strong><%= vouchers.length %></strong> paket</span>
+</section>
+
+<% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
+<% if (error) { %><div class="notice error"><%= error %></div><% } %>
+
+<section class="plan-summary">
+  <article><span>Total paket</span><strong><%= vouchers.length %></strong></article>
+  <article><span>Paket aktif</span><strong><%= activeCount %></strong></article>
+  <article><span>Paket nonaktif</span><strong><%= vouchers.length - activeCount %></strong></article>
+</section>
+
+<section class="panel plan-management-panel">
+  <div class="panel-heading">
+    <div><span class="eyebrow">DAFTAR PRODUK</span><h3>Daftar paket voucher</h3></div>
+    <% if (currentUser.role === "admin") { %>
+      <details class="plan-add-details">
+        <summary class="primary-button">＋ Tambah voucher</summary>
+        <form class="plan-form" method="post" action="/plans/voucher">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label>Kode paket<input name="package_code" maxlength="30" required placeholder="VCR-1H"></label>
+          <label>Nama paket<input name="name" maxlength="100" required placeholder="Voucher 1 Jam"></label>
+          <label>Masa berlaku<input type="number" name="validity_value" min="1" max="8760" required placeholder="1"></label>
+          <label>Satuan
+            <select name="validity_unit" required><option value="hours">Jam</option><option value="days">Hari</option></select>
+          </label>
+          <label>Kuota (MB) <span class="plan-muted">(kosong = tanpa batas)</span><input type="number" name="quota_mb" min="1" max="1048576" placeholder="Contoh: 2048"></label>
+          <label>Kecepatan (Mbps) <span class="plan-muted">(kosong = mengikuti profil)</span><input type="number" name="speed_mbps" min="1" max="100000" placeholder="Contoh: 10"></label>
+          <label>Harga voucher<input type="number" name="price_idr" min="0" step="1" required placeholder="5000"></label>
+          <label class="plan-form-wide">Deskripsi <span class="plan-muted">(opsional)</span><input name="description" maxlength="500" placeholder="Keterangan paket"></label>
+          <button class="primary-button" type="submit">Simpan voucher</button>
+        </form>
+      </details>
+    <% } %>
+  </div>
+
+  <div class="table-wrap">
+    <table class="users-table plan-table">
+      <thead><tr><th>Kode</th><th>Nama paket</th><th>Masa berlaku</th><th>Kuota</th><th>Kecepatan</th><th>Harga</th><th>Status</th><% if (currentUser.role === "admin") { %><th>Aksi</th><% } %></tr></thead>
+      <tbody>
+        <% vouchers.forEach(item => { %>
+          <tr>
+            <td><strong><%= item.package_code %></strong></td>
+            <td><%= item.name %><% if (item.description) { %><small><%= item.description %></small><% } %></td>
+            <td><%= validity(item) %></td>
+            <td><%= item.quota_mb === null ? "Tanpa batas" : item.quota_mb.toLocaleString("id-ID") + " MB" %></td>
+            <td><%= item.speed_mbps === null ? "Ikuti profil" : item.speed_mbps + " Mbps" %></td>
+            <td><strong><%= idr(item.price_idr) %></strong></td>
+            <td><span class="pill <%= item.is_active ? "success" : "muted" %>"><%= item.is_active ? "Aktif" : "Nonaktif" %></span></td>
+            <% if (currentUser.role === "admin") { %>
+              <td class="plan-actions">
+                <details>
+                  <summary>Edit</summary>
+                  <form class="plan-inline-form" method="post" action="/plans/voucher/<%= item.id %>/update">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <label>Kode<input name="package_code" value="<%= item.package_code %>" maxlength="30" required></label>
+                    <label>Nama<input name="name" value="<%= item.name %>" maxlength="100" required></label>
+                    <label>Masa berlaku<input type="number" name="validity_value" value="<%= item.validity_value %>" min="1" max="8760" required></label>
+                    <label>Satuan<select name="validity_unit"><option value="hours" <%= item.validity_unit === "hours" ? "selected" : "" %>>Jam</option><option value="days" <%= item.validity_unit === "days" ? "selected" : "" %>>Hari</option></select></label>
+                    <label>Kuota MB<input type="number" name="quota_mb" value="<%= item.quota_mb ?? "" %>" min="1" max="1048576"></label>
+                    <label>Kecepatan Mbps<input type="number" name="speed_mbps" value="<%= item.speed_mbps ?? "" %>" min="1" max="100000"></label>
+                    <label>Harga<input type="number" name="price_idr" value="<%= item.price_idr %>" min="0" required></label>
+                    <label>Deskripsi<input name="description" value="<%= item.description || "" %>" maxlength="500"></label>
+                    <button class="small-button" type="submit">Simpan perubahan</button>
+                  </form>
+                </details>
+                <form method="post" action="/plans/voucher/<%= item.id %>/status">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="small-button" type="submit"><%= item.is_active ? "Nonaktifkan" : "Aktifkan" %></button>
+                </form>
+              </td>
+            <% } %>
+          </tr>
+        <% }) %>
+        <% if (!vouchers.length) { %><tr><td colspan="<%= currentUser.role === "admin" ? 8 : 7 %>" class="plan-empty">Belum ada paket voucher. Tambahkan variasi masa aktif dan kuota sesuai produk jaringanmu.</td></tr><% } %>
+      </tbody>
+    </table>
+  </div>
+  <p class="plan-footnote">Halaman ini mengelola katalog paket voucher. Pembuatan kode voucher dan integrasi MikroTik/Hotspot belum diaktifkan pada tahap ini.</p>
+</section>
+<%- include("../partials/footer") %>

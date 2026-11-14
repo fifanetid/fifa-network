@@ -9,6 +9,7 @@ const dashboardRoutes = require("./routes/dashboard");
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const billingRoutes = require("./routes/billing");
+const plansRoutes = require("./routes/plans");
 const auditRoutes = require("./routes/audit");
 const reportsRoutes = require("./routes/reports");
 const whatsappRoutes = require("./routes/whatsapp");
@@ -62,6 +63,7 @@ app.use("/admin/users", userRoutes);
 app.use("/admin/audit", auditRoutes);
 app.use("/reports", reportsRoutes);
 app.use("/admin/whatsapp", whatsappRoutes);
+app.use("/plans", plansRoutes);
 app.use("/billing", billingRoutes);
 
 app.use((req, res) => {

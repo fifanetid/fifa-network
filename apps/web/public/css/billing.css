@@ -429,3 +429,77 @@
   .customer-simple-form{gap:9px}
   .customer-simple-form>.customer-form-actions{padding-top:10px!important}
 }
+
+
+/* Dedicated monthly and voucher package pages */
+.plan-page-intro{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:18px;
+  margin:0 0 14px;padding:17px 19px;border:1px solid #e3e8ee;
+  border-left:3px solid #315f9d;border-radius:8px;background:#fff
+}
+.plan-page-intro h2{margin:4px 0;color:#253449;font-size:19px;font-weight:680;letter-spacing:-.025em}
+.plan-page-intro p{max-width:650px;margin:0;color:#738094;font-size:11px;line-height:1.55}
+.plan-page-count{display:inline-flex;align-items:center;gap:5px;color:#778397;font-size:10px;white-space:nowrap}
+.plan-page-count strong{color:#29384e;font-size:17px;font-weight:700}
+.plan-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:13px}
+.plan-summary article{display:grid;gap:4px;padding:12px 14px;border:1px solid #e3e8ee;border-radius:8px;background:#fff}
+.plan-summary span{color:#728095;font-size:10px}
+.plan-summary strong{color:#253449;font-size:20px;font-weight:680}
+.plan-management-panel{padding:16px}
+.plan-management-panel .panel-heading{align-items:center}
+.plan-management-panel .panel-heading h3{font-size:14px}
+.plan-add-details{position:relative;flex:0 0 auto}
+.plan-add-details>summary{display:inline-flex!important;align-items:center;min-height:34px;cursor:pointer;list-style:none}
+.plan-add-details>summary::-webkit-details-marker{display:none}
+.plan-add-details>summary::after{content:none!important}
+.plan-form{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;
+  min-width:min(520px,calc(100vw - 50px));margin-top:12px;padding:13px;
+  border:1px solid #e3e8ee;border-radius:8px;background:#fafbfc
+}
+.plan-form label,.plan-inline-form label{
+  display:grid;gap:5px;color:#58667a;font-size:10px;font-weight:650
+}
+.plan-form input,.plan-inline-form input,.plan-form select{
+  width:100%;min-width:0;min-height:35px;padding:7px 9px;
+  border:1px solid #d9e0e8;border-radius:6px;background:#fff;
+  color:#273548;font:inherit;font-size:11px
+}
+.plan-form input:focus,.plan-inline-form input:focus,.plan-form select:focus{
+  outline:2px solid #7895b822;border-color:#7895b8
+}
+.plan-form-wide{grid-column:1/-1}
+.plan-muted{color:#8994a2;font-size:9px;font-weight:450}
+.plan-form .primary-button{justify-self:start}
+.plan-table{min-width:760px!important}
+.plan-table td{vertical-align:middle}
+.plan-table td small{max-width:260px;white-space:normal;line-height:1.45}
+.plan-actions{min-width:135px}
+.plan-actions>details{margin-bottom:6px}
+.plan-actions>details>summary{display:inline-flex;align-items:center;gap:5px;color:#315b90;font-size:10px;font-weight:650;cursor:pointer}
+.plan-inline-form{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+  min-width:245px;margin-top:8px;padding:10px;border:1px solid #e4e8ed;
+  border-radius:7px;background:#fafbfc
+}
+.plan-inline-form .small-button{grid-column:1/-1;justify-self:start}
+.plan-actions>form{margin:4px 0}
+.plan-empty{padding:23px!important;color:#8792a0!important;text-align:center}
+.plan-footnote{margin:11px 2px 0;color:#7c8897;font-size:9px;line-height:1.6}
+@media(max-width:760px){
+  .plan-page-intro{padding:14px;align-items:flex-start}
+  .plan-page-intro h2{font-size:17px}
+  .plan-management-panel{padding:12px}
+  .plan-summary{gap:7px}
+  .plan-summary article{padding:10px}
+  .plan-summary strong{font-size:17px}
+}
+@media(max-width:520px){
+  .plan-page-intro{gap:8px}
+  .plan-page-count{font-size:9px}
+  .plan-form{grid-template-columns:1fr;min-width:0;width:calc(100vw - 48px)}
+  .plan-form-wide{grid-column:auto}
+  .plan-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .plan-summary span{font-size:9px}
+  .plan-summary strong{font-size:16px}
+}

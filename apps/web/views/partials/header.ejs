@@ -23,7 +23,10 @@
         <a href="/customer/login" target="_blank" rel="noopener"><span>♧</span><span>Portal Pelanggan</span></a>
       <% } %>
       <% if (currentUser && ["admin","finance"].includes(currentUser.role)) { %>
-        <a class="<%= title === 'Billing & Pelanggan' ? 'active' : '' %>" href="/billing"><span>▤</span><span>Pelanggan & Billing</span></a>
+        <div class="sidebar-section-label">KATALOG PAKET</div>
+        <a class="<%= title === 'Paket Internet Bulanan' ? 'active' : '' %>" href="/plans/monthly"><span>▤</span><span>Paket Internet Bulanan</span></a>
+        <a class="<%= title === 'Paket Voucher' ? 'active' : '' %>" href="/plans/voucher"><span>▧</span><span>Paket Voucher</span></a>
+        <a class="<%= title === 'Billing & Pelanggan' ? 'active' : '' %>" href="/billing"><span>♙</span><span>Pelanggan & Billing</span></a>
         <a class="<%= title === 'Laporan Keuangan' ? 'active' : '' %>" href="/reports"><span>▥</span><span>Laporan Keuangan</span></a>
       <% } %>
       <a href="#"><span>⌁</span><span>MikroTik (segera)</span></a>

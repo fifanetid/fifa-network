@@ -301,3 +301,16 @@ a{transition:color .15s ease}
   .stat-card{padding:11px}
   .stat-card>strong{font-size:18px}
 }
+
+
+/* Sidebar catalogue navigation */
+.sidebar-section-label{
+  margin:13px 9px 2px;padding-top:12px;border-top:1px solid #314056;
+  color:#7f8da1;font-size:8px;font-weight:750;letter-spacing:.12em
+}
+@media(max-width:760px){
+  .sidebar-section-label{
+    display:flex;align-items:center;flex:0 0 auto;margin:0 2px;padding:0 8px;
+    border:0;color:#8b98a9;font-size:8px;white-space:nowrap
+  }
+}
