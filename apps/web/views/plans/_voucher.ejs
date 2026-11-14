@@ -1,3 +1,10 @@
+<%
+  const idr = value => new Intl.NumberFormat("id-ID", {
+    style: "currency", currency: "IDR", maximumFractionDigits: 0
+  }).format(value);
+  const validity = item => item.validity_value + " " + (item.validity_unit === "days" ? "hari" : "jam");
+%>
+
 <section class="panel plan-management-panel">
   <div class="panel-heading">
     <div><span class="eyebrow">DAFTAR PRODUK</span><h3>Daftar paket voucher</h3></div>
