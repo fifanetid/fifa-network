@@ -130,10 +130,10 @@
             data-status="<%= c.status %>"
             data-plan="<%= c.current_plan_name || '' %>"
             data-search="<%= [c.customer_code,c.full_name,c.phone,c.email||'',c.address,c.current_plan_name||''].join(' ').toLowerCase() %>"
-            data-export="<%= JSON.stringify([c.customer_code,c.full_name,c.phone,c.email||'',c.current_plan_name||'',c.address,c.status,c.unpaid_invoice_count,c.unpaid_balance_idr]) %>">
+            data-export="<%= JSON.stringify([c.customer_code,c.full_name,c.phone,c.email||'',c.current_device_ref||'',c.current_plan_name||'',c.address,c.status,c.unpaid_invoice_count,c.unpaid_balance_idr]) %>">
           <td class="customer-row-number"><%= index+1 %></td>
           <td class="customer-name-cell"><strong><%= c.full_name %></strong><small>ID: <%= c.customer_code %></small></td>
-          <td class="customer-contact-cell"><strong><%= c.phone %></strong><small><%= c.whatsapp_opt_in ? "WhatsApp disetujui" : "WhatsApp belum disetujui" %></small></td>
+          <td class="customer-contact-cell"><strong><%= c.phone %></strong><small><%= c.current_device_ref ? "ID perangkat: " + c.current_device_ref : "ID perangkat belum diatur" %></small><small><%= c.whatsapp_opt_in ? "WhatsApp disetujui" : "WhatsApp belum disetujui" %></small></td>
           <td class="customer-plan-cell">
             <% if (c.current_plan_name) { %>
               <strong><%= c.current_plan_name %></strong>
@@ -445,7 +445,7 @@
   if (exportButton) {
     exportButton.addEventListener("click", () => {
       const headers = [
-        "ID Pelanggan", "Nama", "Telepon", "Email", "Paket",
+        "ID Pelanggan", "Nama", "Telepon", "Email", "Referensi Perangkat", "Paket",
         "Alamat", "Status", "Jumlah Tagihan Belum Lunas", "Sisa Tagihan (IDR)"
       ];
       const visibleRows = rows.filter(row => !row.hidden);
