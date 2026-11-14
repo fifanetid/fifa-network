@@ -168,6 +168,44 @@ test("paket bulanan dapat dibuat, diubah, dan dinonaktifkan oleh admin", async (
   const disabled = await post("/plans/monthly/" + plan.id + "/status", admin);
   assert.equal(disabled.status, 302);
   assert.equal(db.prepare("SELECT is_active FROM internet_plans WHERE id=?").get(plan.id).is_active, 0);
+
+  const monthlyPage = await refreshToken("/plans?type=monthly", admin);
+  assert.match(monthlyPage, new RegExp("/plans/monthly/" + plan.id + "/delete"));
+  const deleted = await post("/plans/monthly/" + plan.id + "/delete", admin);
+  assert.equal(deleted.status, 302);
+  assert.equal(db.prepare("SELECT id FROM internet_plans WHERE id=?").get(plan.id), undefined);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) AS total FROM audit_logs WHERE action='plan.delete' AND entity_id=?")
+      .get(String(plan.id)).total,
+    1
+  );
+});
+
+test("paket bulanan yang sudah dipakai langganan tidak dapat dihapus", async () => {
+  const admin = await login("admin-plans@example.test");
+  const planId = db.prepare(`
+    INSERT INTO internet_plans (plan_code,name,speed_mbps,monthly_price_idr)
+    VALUES ('MONTH-USED','Paket Terpakai',10,100000)
+  `).run().lastInsertRowid;
+  const customerId = db.prepare(`
+    INSERT INTO customers (customer_code,full_name,phone,address)
+    VALUES ('CUST-PLAN-USED','Pelanggan Paket Terpakai','081234567899','Alamat pengujian paket terpakai')
+  `).run().lastInsertRowid;
+  const subscriptionId = db.prepare(`
+    INSERT INTO subscriptions (customer_id,plan_id,start_date)
+    VALUES (?,?,?)
+  `).run(customerId, planId, "2026-11-01").lastInsertRowid;
+
+  const html = await refreshToken("/plans?type=monthly", admin);
+  assert.match(html, new RegExp("Paket masih digunakan oleh 1 langganan"));
+  assert.match(html, new RegExp("/plans/monthly/" + planId + "/delete"));
+
+  const response = await post("/plans/monthly/" + planId + "/delete", admin);
+  assert.equal(response.status, 302);
+  const location = new URL(response.headers.get("location"), baseUrl);
+  assert.match(location.searchParams.get("error"), /1 langganan/i);
+  assert.ok(db.prepare("SELECT id FROM internet_plans WHERE id=?").get(planId));
+  assert.ok(db.prepare("SELECT id FROM subscriptions WHERE id=?").get(subscriptionId));
 });
 
 test("paket voucher menyimpan masa berlaku, kuota, kecepatan dan harga secara terpisah", async () => {
@@ -217,6 +255,17 @@ test("paket voucher menyimpan masa berlaku, kuota, kecepatan dan harga secara te
   const disabled = await post("/plans/voucher/" + voucher.id + "/status", admin);
   assert.equal(disabled.status, 302);
   assert.equal(db.prepare("SELECT is_active FROM voucher_packages WHERE id=?").get(voucher.id).is_active, 0);
+
+  const voucherPage = await refreshToken("/plans?type=voucher", admin);
+  assert.match(voucherPage, new RegExp("/plans/voucher/" + voucher.id + "/delete"));
+  const deleted = await post("/plans/voucher/" + voucher.id + "/delete", admin);
+  assert.equal(deleted.status, 302);
+  assert.equal(db.prepare("SELECT id FROM voucher_packages WHERE id=?").get(voucher.id), undefined);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) AS total FROM audit_logs WHERE action='voucher_plan.delete' AND entity_id=?")
+      .get(String(voucher.id)).total,
+    1
+  );
 });
 
 test("validasi voucher menolak masa berlaku dan nilai harga yang tidak valid", async () => {
@@ -248,6 +297,15 @@ test("finance dapat melihat katalog tetapi tidak dapat mengubah paket; teknisi t
   });
   assert.equal(denied.status, 403);
   assert.equal(db.prepare("SELECT COUNT(*) AS total FROM voucher_packages WHERE package_code='VCR-FINANCE'").get().total, 0);
+
+  const voucherId = db.prepare(`
+    INSERT INTO voucher_packages
+      (package_code,name,validity_value,validity_unit,price_idr)
+    VALUES ('VCR-FIN-DELETE','Voucher Finance Delete',1,'days',5000)
+  `).run().lastInsertRowid;
+  const deniedDelete = await post("/plans/voucher/" + voucherId + "/delete", finance);
+  assert.equal(deniedDelete.status, 403);
+  assert.ok(db.prepare("SELECT id FROM voucher_packages WHERE id=?").get(voucherId));
 
   const technician = await login("teknisi-plans@example.test");
   const deniedPage = await get("/plans?type=monthly", technician);
