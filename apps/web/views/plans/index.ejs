@@ -19,11 +19,11 @@
 </section>
 
 <nav class="plan-type-tabs" aria-label="Jenis paket internet">
-  <a class="<%= monthlyActive ? 'active' : '' %>" href="/plans?type=monthly" <%= monthlyActive ? 'aria-current="page"' : '' %>>
+  <a class="<%= monthlyActive ? 'active' : '' %>" href="/plans?type=monthly" aria-current="<%= monthlyActive ? 'page' : 'false' %>">
     <span class="plan-tab-title">Paket Bulanan</span>
     <small>Langganan rutin</small>
   </a>
-  <a class="<%= !monthlyActive ? 'active' : '' %>" href="/plans?type=voucher" <%= !monthlyActive ? 'aria-current="page"' : '' %>>
+  <a class="<%= !monthlyActive ? 'active' : '' %>" href="/plans?type=voucher" aria-current="<%= !monthlyActive ? 'page' : 'false' %>">
     <span class="plan-tab-title">Paket Voucher</span>
     <small>Masa aktif dan kuota</small>
   </a>
