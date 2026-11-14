@@ -64,7 +64,14 @@ function validateVoucher(input) {
 
 router.get("/", managers, (req, res) => {
   const activeTab = req.query.type === "voucher" ? "voucher" : "monthly";
-  const plans = db.prepare("SELECT * FROM internet_plans ORDER BY is_active DESC, name COLLATE NOCASE").all();
+  const plans = db.prepare(`
+    SELECT p.*,
+      (SELECT COUNT(*) FROM subscriptions s WHERE s.plan_id=p.id) AS subscription_count,
+      CASE WHEN (SELECT COUNT(*) FROM subscriptions s WHERE s.plan_id=p.id)=0
+        THEN 1 ELSE 0 END AS can_delete
+    FROM internet_plans p
+    ORDER BY p.is_active DESC, p.name COLLATE NOCASE
+  `).all();
   const vouchers = db.prepare("SELECT * FROM voucher_packages ORDER BY is_active DESC, name COLLATE NOCASE").all();
   res.render("plans/index", {
     title: "Paket Internet",
@@ -145,6 +152,52 @@ router.post("/monthly/:id/status", admins, (req, res) => {
   res.redirect(redirectWith("/plans?type=monthly", "notice", "Status paket bulanan diperbarui."));
 });
 
+router.post("/monthly/:id/delete", admins, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) {
+    return res.redirect(redirectWith("/plans?type=monthly", "error", "ID paket tidak valid."));
+  }
+
+  try {
+    const deleted = db.transaction(() => {
+      const plan = db.prepare(
+        "SELECT id,plan_code,name FROM internet_plans WHERE id=?"
+      ).get(id);
+      if (!plan) throw new Error("Paket bulanan tidak ditemukan.");
+
+      const used = db.prepare(
+        "SELECT COUNT(*) AS total FROM subscriptions WHERE plan_id=?"
+      ).get(id).total;
+      if (used > 0) {
+        throw new Error(
+          "Paket " + plan.plan_code + " tidak dapat dihapus karena masih digunakan oleh " +
+          used + " langganan. Nonaktifkan paket agar riwayat tetap tersimpan."
+        );
+      }
+
+      db.prepare("DELETE FROM internet_plans WHERE id=?").run(id);
+      recordAudit({
+        user: req.session.user,
+        action: "plan.delete",
+        entityType: "internet_plan",
+        entityId: id,
+        summary: "Menghapus paket bulanan " + plan.plan_code + " tanpa riwayat langganan"
+      });
+      return plan;
+    })();
+
+    return res.redirect(redirectWith(
+      "/plans?type=monthly", "notice",
+      "Paket " + deleted.plan_code + " berhasil dihapus."
+    ));
+  } catch (error) {
+    const message = error.code === "SQLITE_CONSTRAINT_FOREIGNKEY"
+      ? "Paket masih terhubung dengan data langganan dan tidak dapat dihapus."
+      : error.message;
+    return res.redirect(redirectWith("/plans?type=monthly", "error", message));
+  }
+});
+
 router.get("/voucher", managers, (req, res) => res.redirect("/plans?type=voucher"));
 
 router.post("/voucher", admins, (req, res) => {
@@ -202,6 +255,44 @@ router.post("/voucher/:id/update", admins, (req, res) => {
       ? "Kode paket voucher sudah digunakan."
       : error.message;
     res.redirect(redirectWith("/plans?type=voucher", "error", message));
+  }
+});
+
+router.post("/voucher/:id/delete", admins, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) {
+    return res.redirect(redirectWith("/plans?type=voucher", "error", "ID paket tidak valid."));
+  }
+
+  try {
+    const deleted = db.transaction(() => {
+      const voucher = db.prepare(
+        "SELECT id,package_code,name FROM voucher_packages WHERE id=?"
+      ).get(id);
+      if (!voucher) throw new Error("Paket voucher tidak ditemukan.");
+
+      // If voucher sales/redemptions are added later with foreign keys, SQLite
+      // will reject this delete and preserve the referenced history.
+      db.prepare("DELETE FROM voucher_packages WHERE id=?").run(id);
+      recordAudit({
+        user: req.session.user,
+        action: "voucher_plan.delete",
+        entityType: "voucher_package",
+        entityId: id,
+        summary: "Menghapus paket voucher " + voucher.package_code
+      });
+      return voucher;
+    })();
+
+    return res.redirect(redirectWith(
+      "/plans?type=voucher", "notice",
+      "Paket voucher " + deleted.package_code + " berhasil dihapus."
+    ));
+  } catch (error) {
+    const message = error.code === "SQLITE_CONSTRAINT_FOREIGNKEY"
+      ? "Paket voucher sudah memiliki riwayat penggunaan dan tidak dapat dihapus."
+      : error.message;
+    return res.redirect(redirectWith("/plans?type=voucher", "error", message));
   }
 });
 
