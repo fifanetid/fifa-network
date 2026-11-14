@@ -145,6 +145,9 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.match(adminBillingHtml, /Paket &amp; Akses Layanan|Paket & Akses Layanan/);
   assert.match(adminBillingHtml, /Penagihan, Status &amp; Akses Portal|Penagihan, Status & Akses Portal/);
   assert.match(adminBillingHtml, /customer-edit-disclosure/);
+  assert.match(adminBillingHtml, /customer-edit-form/);
+  assert.match(adminBillingHtml, /customer-table/);
+  assert.match(adminBillingHtml, /Tagihan belum bayar/);
   assert.match(adminBillingHtml, /name="create_portal_account"/);
 
   const customerCssResponse = await fetch(baseUrl + "/assets/css/billing.css");
@@ -200,7 +203,9 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.equal(customerSummaryPage.status, 200);
   const customerSummaryHtml = await customerSummaryPage.text();
   assert.match(customerSummaryHtml, /Paket Uji 10 Mbps/);
+  assert.match(customerSummaryHtml, /ID perangkat: EXT-DEVICE-HTTP-001/);
   assert.match(customerSummaryHtml, /1 tagihan/);
+  assert.match(customerSummaryHtml, /daftar-pelanggan-/);
 
   const firstPayment = await post("/billing/invoices/" + invoice.id + "/payments", finance, {
     amount_idr: "40000",
