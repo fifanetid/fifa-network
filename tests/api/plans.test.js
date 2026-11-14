@@ -92,23 +92,34 @@ async function refreshToken(pathname, session) {
   return html;
 }
 
-test("menu paket bulanan dan voucher tampil di sidebar admin dan finance", async () => {
+test("satu menu Paket Internet menyediakan tab bulanan dan voucher untuk admin dan finance", async () => {
   const admin = await login("admin-plans@example.test");
-  const html = await refreshToken("/plans/monthly", admin);
-  assert.match(html, /Paket Internet Bulanan/);
-  assert.match(html, /Paket Voucher/);
-  assert.match(html, /href="\/plans\/monthly"/);
-  assert.match(html, /href="\/plans\/voucher"/);
-  assert.match(html, /class="plan-add-details plan-modal"/);
-  assert.match(html, /class="plan-modal-backdrop"/);
-  assert.match(html, /class="plan-modal-heading"/);
-  assert.match(html, /class="plan-modal-actions"/);
-  assert.match(html, /Tambah paket internet bulanan/);
+  const monthlyHtml = await refreshToken("/plans", admin);
+  assert.match(monthlyHtml, /Paket Internet/);
+  assert.match(monthlyHtml, /href="\/plans"/);
+  assert.match(monthlyHtml, /href="\/plans\?type=monthly"/);
+  assert.match(monthlyHtml, /href="\/plans\?type=voucher"/);
+  assert.match(monthlyHtml, /Paket Bulanan/);
+  assert.match(monthlyHtml, /Paket Voucher/);
+  assert.match(monthlyHtml, /class="plan-add-details plan-modal"/);
+  assert.match(monthlyHtml, /Tambah paket internet bulanan/);
+  assert.match(monthlyHtml, /Daftar paket bulanan/);
+  assert.doesNotMatch(monthlyHtml, /Daftar paket voucher/);
 
-  const voucherHtml = await refreshToken("/plans/voucher", admin);
-  assert.match(voucherHtml, /class="plan-add-details plan-modal"/);
-  assert.match(voucherHtml, /class="plan-modal-backdrop"/);
+  const voucherHtml = await refreshToken("/plans?type=voucher", admin);
+  assert.match(voucherHtml, /class="plan-type-tabs"/);
+  assert.match(voucherHtml, /aria-current="page"/);
+  assert.match(voucherHtml, /Daftar paket voucher/);
+  assert.doesNotMatch(voucherHtml, /Daftar paket bulanan/);
   assert.match(voucherHtml, /Tambah paket voucher/);
+
+  // Legacy bookmarks keep working but lead to the matching tab on the same page.
+  const legacyMonthly = await get("/plans/monthly", admin, "manual");
+  assert.equal(legacyMonthly.status, 302);
+  assert.equal(legacyMonthly.headers.get("location"), "/plans?type=monthly");
+  const legacyVoucher = await get("/plans/voucher", admin, "manual");
+  assert.equal(legacyVoucher.status, 302);
+  assert.equal(legacyVoucher.headers.get("location"), "/plans?type=voucher");
 
   const modalCssResponse = await fetch(baseUrl + "/assets/css/billing.css");
   assert.equal(modalCssResponse.status, 200);
@@ -118,14 +129,13 @@ test("menu paket bulanan dan voucher tampil di sidebar admin dan finance", async
   assert.ok(modalCss.includes(".plan-modal-actions"));
 
   const finance = await login("finance-plans@example.test");
-  const financeHtml = await refreshToken("/plans/monthly", finance);
-  assert.match(financeHtml, /Paket Internet Bulanan/);
+  const financeHtml = await refreshToken("/plans", finance);
+  assert.match(financeHtml, /Paket Internet/);
   assert.doesNotMatch(financeHtml, /Tambah paket/);
 });
-
 test("paket bulanan dapat dibuat, diubah, dan dinonaktifkan oleh admin", async () => {
   const admin = await login("admin-plans@example.test");
-  await refreshToken("/plans/monthly", admin);
+  await refreshToken("/plans?type=monthly", admin);
 
   const created = await post("/plans/monthly", admin, {
     plan_code: "MONTH-15",
@@ -141,7 +151,7 @@ test("paket bulanan dapat dibuat, diubah, dan dinonaktifkan oleh admin", async (
   assert.equal(plan.monthly_price_idr, 125000);
   assert.equal(plan.is_active, 1);
 
-  await refreshToken("/plans/monthly", admin);
+  await refreshToken("/plans?type=monthly", admin);
   const updated = await post("/plans/monthly/" + plan.id + "/update", admin, {
     plan_code: "MONTH-15",
     name: "Internet 15 Mbps Plus",
@@ -154,7 +164,7 @@ test("paket bulanan dapat dibuat, diubah, dan dinonaktifkan oleh admin", async (
   assert.equal(saved.name, "Internet 15 Mbps Plus");
   assert.equal(saved.monthly_price_idr, 130000);
 
-  await refreshToken("/plans/monthly", admin);
+  await refreshToken("/plans?type=monthly", admin);
   const disabled = await post("/plans/monthly/" + plan.id + "/status", admin);
   assert.equal(disabled.status, 302);
   assert.equal(db.prepare("SELECT is_active FROM internet_plans WHERE id=?").get(plan.id).is_active, 0);
@@ -162,7 +172,7 @@ test("paket bulanan dapat dibuat, diubah, dan dinonaktifkan oleh admin", async (
 
 test("paket voucher menyimpan masa berlaku, kuota, kecepatan dan harga secara terpisah", async () => {
   const admin = await login("admin-plans@example.test");
-  await refreshToken("/plans/voucher", admin);
+  await refreshToken("/plans?type=voucher", admin);
 
   const created = await post("/plans/voucher", admin, {
     package_code: "VCR-2GB-1D",
@@ -184,7 +194,7 @@ test("paket voucher menyimpan masa berlaku, kuota, kecepatan dan harga secara te
   assert.equal(voucher.price_idr, 7000);
   assert.equal(voucher.is_active, 1);
 
-  await refreshToken("/plans/voucher", admin);
+  await refreshToken("/plans?type=voucher", admin);
   const updated = await post("/plans/voucher/" + voucher.id + "/update", admin, {
     package_code: "VCR-2GB-1D",
     name: "Voucher Harian 2 GB",
@@ -203,7 +213,7 @@ test("paket voucher menyimpan masa berlaku, kuota, kecepatan dan harga secara te
   assert.equal(saved.speed_mbps, null);
   assert.equal(saved.price_idr, 8000);
 
-  await refreshToken("/plans/voucher", admin);
+  await refreshToken("/plans?type=voucher", admin);
   const disabled = await post("/plans/voucher/" + voucher.id + "/status", admin);
   assert.equal(disabled.status, 302);
   assert.equal(db.prepare("SELECT is_active FROM voucher_packages WHERE id=?").get(voucher.id).is_active, 0);
@@ -211,7 +221,7 @@ test("paket voucher menyimpan masa berlaku, kuota, kecepatan dan harga secara te
 
 test("validasi voucher menolak masa berlaku dan nilai harga yang tidak valid", async () => {
   const admin = await login("admin-plans@example.test");
-  await refreshToken("/plans/voucher", admin);
+  await refreshToken("/plans?type=voucher", admin);
   const invalid = await post("/plans/voucher", admin, {
     package_code: "VCR-BAD",
     name: "Voucher tidak valid",
@@ -228,7 +238,7 @@ test("validasi voucher menolak masa berlaku dan nilai harga yang tidak valid", a
 
 test("finance dapat melihat katalog tetapi tidak dapat mengubah paket; teknisi tidak dapat membuka katalog", async () => {
   const finance = await login("finance-plans@example.test");
-  await refreshToken("/plans/voucher", finance);
+  await refreshToken("/plans?type=voucher", finance);
   const denied = await post("/plans/voucher", finance, {
     package_code: "VCR-FINANCE",
     name: "Voucher Finance",
@@ -240,6 +250,6 @@ test("finance dapat melihat katalog tetapi tidak dapat mengubah paket; teknisi t
   assert.equal(db.prepare("SELECT COUNT(*) AS total FROM voucher_packages WHERE package_code='VCR-FINANCE'").get().total, 0);
 
   const technician = await login("teknisi-plans@example.test");
-  const deniedPage = await get("/plans/monthly", technician);
+  const deniedPage = await get("/plans?type=monthly", technician);
   assert.equal(deniedPage.status, 403);
 });

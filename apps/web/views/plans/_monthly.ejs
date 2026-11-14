@@ -1,0 +1,74 @@
+<%
+  const idr = value => new Intl.NumberFormat("id-ID", {
+    style: "currency", currency: "IDR", maximumFractionDigits: 0
+  }).format(value);
+%>
+
+<section class="panel plan-management-panel">
+  <div class="panel-heading">
+    <div><span class="eyebrow">DAFTAR HARGA</span><h3>Daftar paket bulanan</h3></div>
+    <% if (currentUser.role === "admin") { %>
+      <details class="plan-add-details plan-modal">
+        <summary class="primary-button">＋ Tambah paket</summary>
+        <button class="plan-modal-backdrop" type="button" aria-label="Tutup formulir" onclick="this.closest('details').open=false"></button>
+        <form class="plan-form plan-modal-form" method="post" action="/plans/monthly">
+          <div class="plan-modal-heading">
+            <div><span class="eyebrow">KATALOG PAKET</span><h3>Tambah paket internet bulanan</h3><p>Lengkapi informasi paket, lalu simpan.</p></div>
+            <button class="plan-modal-close" type="button" aria-label="Tutup" onclick="this.closest('details').open=false">×</button>
+          </div>
+          <div class="plan-modal-fields">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label>Kode paket<input name="plan_code" maxlength="30" required placeholder="FIF10"></label>
+          <label>Nama paket<input name="name" maxlength="100" required placeholder="FIFA 10 Mbps"></label>
+          <label>Kecepatan (Mbps)<input type="number" name="speed_mbps" min="1" max="100000" required></label>
+          <label>Harga per bulan<input type="number" name="monthly_price_idr" min="0" step="1" required placeholder="100000"></label>
+          <label class="plan-form-wide">Deskripsi <span class="plan-muted">(opsional)</span><input name="description" maxlength="500" placeholder="Keterangan paket"></label>
+          <div class="plan-modal-actions">
+            <button class="small-button" type="button" onclick="this.closest('details').open=false">Batal</button>
+            <button class="primary-button" type="submit">Simpan paket</button>
+          </div>
+        </div>
+        </form>
+      </details>
+    <% } %>
+  </div>
+
+  <div class="table-wrap">
+    <table class="users-table plan-table">
+      <thead><tr><th>Kode</th><th>Nama paket</th><th>Kecepatan</th><th>Harga / bulan</th><th>Status</th><% if (currentUser.role === "admin") { %><th>Aksi</th><% } %></tr></thead>
+      <tbody>
+        <% plans.forEach(plan => { %>
+          <tr>
+            <td><strong><%= plan.plan_code %></strong></td>
+            <td><%= plan.name %><% if (plan.description) { %><small><%= plan.description %></small><% } %></td>
+            <td><%= plan.speed_mbps %> Mbps</td>
+            <td><strong><%= idr(plan.monthly_price_idr) %></strong></td>
+            <td><span class="pill <%= plan.is_active ? "success" : "muted" %>"><%= plan.is_active ? "Aktif" : "Nonaktif" %></span></td>
+            <% if (currentUser.role === "admin") { %>
+              <td class="plan-actions">
+                <details>
+                  <summary>Edit</summary>
+                  <form class="plan-inline-form" method="post" action="/plans/monthly/<%= plan.id %>/update">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <label>Kode<input name="plan_code" value="<%= plan.plan_code %>" maxlength="30" required></label>
+                    <label>Nama<input name="name" value="<%= plan.name %>" maxlength="100" required></label>
+                    <label>Kecepatan<input type="number" name="speed_mbps" value="<%= plan.speed_mbps %>" min="1" max="100000" required></label>
+                    <label>Harga / bulan<input type="number" name="monthly_price_idr" value="<%= plan.monthly_price_idr %>" min="0" required></label>
+                    <label>Deskripsi<input name="description" value="<%= plan.description || "" %>" maxlength="500"></label>
+                    <button class="small-button" type="submit">Simpan perubahan</button>
+                  </form>
+                </details>
+                <form method="post" action="/plans/monthly/<%= plan.id %>/status">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="small-button" type="submit"><%= plan.is_active ? "Nonaktifkan" : "Aktifkan" %></button>
+                </form>
+              </td>
+            <% } %>
+          </tr>
+        <% }) %>
+        <% if (!plans.length) { %><tr><td colspan="<%= currentUser.role === "admin" ? 6 : 5 %>" class="plan-empty">Belum ada paket bulanan. Tambahkan paket pertama untuk mulai membuat langganan.</td></tr><% } %>
+      </tbody>
+    </table>
+  </div>
+  <p class="plan-footnote">Paket yang sudah dipakai langganan tetap disimpan sebagai referensi. Menonaktifkan paket hanya mencegah paket dipilih untuk langganan baru.</p>
+</section>
