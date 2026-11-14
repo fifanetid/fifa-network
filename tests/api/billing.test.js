@@ -253,7 +253,7 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.match(billingHtml, /name="full_name"/);
   assert.match(billingHtml, /name="phone"/);
   assert.match(billingHtml, /name="address"/);
-  assert.match(billingHtml, /Informasi tambahan \(opsional\)/);
+  assert.match(billingHtml, /Catatan Tambahan/);
   assert.match(billingHtml, /name="whatsapp_opt_in"/);
   assert.match(billingHtml, /name="plan_id"/);
   assert.match(billingHtml, /name="start_date"/);
