@@ -36,6 +36,11 @@ function pageData(extra = {}) {
           WHERE s.customer_id=c.id
           ORDER BY CASE s.status WHEN 'active' THEN 0 WHEN 'suspended' THEN 1 ELSE 2 END,
                    s.id DESC LIMIT 1) AS subscription_status,
+        (SELECT s.external_device_ref
+          FROM subscriptions s
+          WHERE s.customer_id=c.id
+          ORDER BY CASE s.status WHEN 'active' THEN 0 WHEN 'suspended' THEN 1 ELSE 2 END,
+                   s.id DESC LIMIT 1) AS current_device_ref,
         (SELECT COUNT(*) FROM invoices i
           WHERE i.customer_id=c.id AND i.status IN ('unpaid','partial')) AS unpaid_invoice_count,
         COALESCE((SELECT SUM(
