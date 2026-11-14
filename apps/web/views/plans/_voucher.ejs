@@ -73,6 +73,10 @@
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="small-button" type="submit"><%= item.is_active ? "Nonaktifkan" : "Aktifkan" %></button>
                 </form>
+                <form method="post" action="/plans/voucher/<%= item.id %>/delete" onsubmit="return confirm('Hapus paket voucher <%= item.package_code %> secara permanen?')">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="danger-button" type="submit">Hapus</button>
+                </form>
               </td>
             <% } %>
           </tr>

@@ -154,7 +154,8 @@ test("admin dapat menghapus pengguna lain, tetapi bukan dirinya; sesi akun terha
 
 test("akun pengguna yang sudah memiliki riwayat audit harus dinonaktifkan, bukan dihapus", async () => {
   const admin = await login("admin-one@example.test");
-  await refreshToken("/admin/users", admin);
+  const html = await refreshToken("/admin/users", admin);
+  assert.match(html, /class="danger-button is-disabled" type="button" disabled/);
   const response = await post("/admin/users/" + historyStaff + "/delete", admin);
   assert.equal(response.status, 302);
   const location = new URL(response.headers.get("location"), baseUrl);
@@ -172,7 +173,9 @@ test("akun pengguna yang sudah memiliki riwayat audit harus dinonaktifkan, bukan
 
 test("admin dapat menghapus pelanggan tanpa riwayat dan akun portal ikut dicabut", async () => {
   const admin = await login("admin-one@example.test");
-  await refreshToken("/billing", admin);
+  const html = await refreshToken("/billing", admin);
+  assert.ok(html.includes('/billing/customers/' + cleanCustomer + '/delete'));
+  assert.match(html, /class="danger-button" type="submit">Hapus/);
   const response = await post("/billing/customers/" + cleanCustomer + "/delete", admin);
   assert.equal(response.status, 302);
   assert.equal(db.prepare("SELECT id FROM customers WHERE id=?").get(cleanCustomer), undefined);
@@ -186,7 +189,9 @@ test("admin dapat menghapus pelanggan tanpa riwayat dan akun portal ikut dicabut
 
 test("pelanggan dengan riwayat layanan atau WhatsApp tidak dapat dihapus permanen", async () => {
   const admin = await login("admin-one@example.test");
-  await refreshToken("/billing", admin);
+  const html = await refreshToken("/billing", admin);
+  assert.match(html, /class="danger-button is-disabled" type="button" disabled/);
+  assert.match(html, /memiliki riwayat langganan, invoice, pembayaran, atau WhatsApp/);
   const response = await post("/billing/customers/" + historyCustomer + "/delete", admin);
   assert.equal(response.status, 302);
   const location = new URL(response.headers.get("location"), baseUrl);
