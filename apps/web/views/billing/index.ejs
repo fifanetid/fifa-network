@@ -19,13 +19,14 @@
     <div><span class="eyebrow">DATABASE PELANGGAN</span><h3>Daftar pelanggan <span class="customer-count">(<%= customers.length %>)</span></h3></div>
     <details class="customer-create-disclosure" <%= openCustomerForm ? "open" : "" %>>
       <summary class="customer-add-button"><span>＋</span> Tambah Pelanggan</summary>
-      <div class="customer-modal-backdrop" aria-hidden="true"></div>
+      <button class="customer-modal-backdrop" type="button" aria-label="Tutup formulir tambah pelanggan" onclick="this.closest('details.customer-create-disclosure').open=false"></button>
       <form class="customer-create-form customer-simple-form" method="post" action="/billing/customers">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="customer-modal-heading">
           <div><span class="eyebrow">DATA PELANGGAN</span><h3>Tambah pelanggan baru</h3><p>Isi data utama pelanggan untuk memulai.</p></div>
           <button class="customer-modal-close" type="button" aria-label="Tutup" onclick="this.closest('details').open=false">×</button>
         </div>
+        <div class="customer-modal-scroll">
         <% if (customerFormError) { %><div class="customer-form-error" role="alert"><%= customerFormError %></div><% } %>
         <div class="customer-simple-grid">
           <label>Kode pelanggan<input name="customer_code" maxlength="30" required placeholder="FN-0001"></label>
@@ -76,6 +77,7 @@
             </label>
           </div>
         </details>
+        </div>
         <div class="customer-form-actions">
           <button class="small-button" type="button" onclick="this.closest('details.customer-create-disclosure').open=false">Batal</button>
           <button class="primary-button" type="submit">Simpan Pelanggan</button>
