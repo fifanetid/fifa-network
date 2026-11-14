@@ -115,7 +115,11 @@
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="danger-button" type="submit">Hapus</button>
                 </form>
-              <% } else { %><span class="delete-blocked" title="Pelanggan memiliki riwayat layanan atau transaksi.">Riwayat tersimpan</span><% } %>
+              <% } else { %>
+                <button class="danger-button is-disabled" type="button" disabled
+                  title="Tidak dapat dihapus karena pelanggan memiliki riwayat langganan, invoice, pembayaran, atau WhatsApp. Nonaktifkan pelanggan agar riwayat tetap tersimpan."
+                  aria-label="Pelanggan <%= c.customer_code %> tidak dapat dihapus karena memiliki riwayat">Hapus</button>
+              <% } %>
             <% } %>
           </td>
         </tr>
