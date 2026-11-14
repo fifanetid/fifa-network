@@ -314,3 +314,31 @@ a{transition:color .15s ease}
     border:0;color:#8b98a9;font-size:8px;white-space:nowrap
   }
 }
+
+
+/* Consistent delete controls for records with protected history */
+.danger-button{
+  min-height:28px;
+  border:1px solid #ead4d4;
+  border-radius:6px;
+  padding:5px 9px;
+  color:#a33d3d;
+  background:#fff;
+  font-size:9px;
+  font-weight:650;
+  cursor:pointer;
+}
+.danger-button:hover{border-color:#d7b2b2;background:#fbf4f4}
+.danger-button.is-disabled:disabled{
+  border-color:#e5e8ed;
+  color:#98a1ad;
+  background:#f4f5f7;
+  opacity:1;
+  cursor:not-allowed;
+  box-shadow:none;
+}
+.customer-actions .danger-button,.plan-actions .danger-button{
+  width:100%;
+  min-height:27px;
+  white-space:nowrap;
+}
