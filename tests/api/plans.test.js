@@ -198,7 +198,7 @@ test("paket bulanan yang sudah dipakai langganan tidak dapat dihapus", async () 
 
   const html = await refreshToken("/plans?type=monthly", admin);
   assert.match(html, new RegExp("Paket masih digunakan oleh 1 langganan"));
-  assert.match(html, new RegExp("/plans/monthly/" + planId + "/delete"));
+  assert.match(html, /class="danger-button is-disabled" type="button" disabled/);
 
   const response = await post("/plans/monthly/" + planId + "/delete", admin);
   assert.equal(response.status, 302);
