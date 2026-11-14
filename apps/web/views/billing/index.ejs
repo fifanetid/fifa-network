@@ -1,14 +1,5 @@
 <%- include("../partials/header", { title }) %>
-<div class="customer-management-screen">
-<% const rupiah = (n) => new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n); %>
-<% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
-<% if (error) { %><div class="notice error"><%= error %></div><% } %>
-<%
-  const activeCustomerCount = customers.filter(c => c.status === "active").length;
-  const inactiveCustomerCount = customers.length - activeCustomerCount;
-  const whatsappOptInCount = customers.filter(c => c.whatsapp_opt_in === 1).length;
-%>
-<%- include("../partials/header", { title }) %>
+
 <div class="customer-management-screen">
 <% const rupiah = (n) => new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n); %>
 <% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
