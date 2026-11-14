@@ -629,3 +629,48 @@
   .plan-modal-fields .plan-form-wide{grid-column:auto}
   .plan-modal-actions{padding:10px 14px max(11px,env(safe-area-inset-bottom))}
 }
+
+
+/* Unified package catalogue tabs */
+.plan-unified-intro{margin-bottom:13px}
+.plan-type-tabs{
+  display:flex;
+  align-items:stretch;
+  gap:5px;
+  width:fit-content;
+  max-width:100%;
+  margin:0 0 13px;
+  padding:4px;
+  border:1px solid #e1e6ed;
+  border-radius:8px;
+  background:#eef1f5;
+}
+.plan-type-tabs>a{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:2px;
+  min-width:165px;
+  padding:8px 13px;
+  border:1px solid transparent;
+  border-radius:6px;
+  color:#647287;
+  text-decoration:none;
+  transition:background .15s ease,border-color .15s ease,color .15s ease;
+}
+.plan-type-tabs>a:hover{color:#2d4f7a;background:#f7f9fb}
+.plan-type-tabs>a.active{
+  border-color:#dce2e9;
+  color:#294e7d;
+  background:#fff;
+  box-shadow:0 1px 2px rgba(24,40,62,.06);
+}
+.plan-tab-title{font-size:11px;font-weight:700}
+.plan-type-tabs small{color:#8792a0;font-size:9px;font-weight:450}
+@media(max-width:520px){
+  .plan-type-tabs{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:4px}
+  .plan-type-tabs>a{min-width:0;padding:9px 10px}
+  .plan-tab-title{font-size:10px}
+  .plan-type-tabs small{font-size:8px}
+}
