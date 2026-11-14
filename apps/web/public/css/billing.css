@@ -674,3 +674,273 @@
   .plan-tab-title{font-size:10px}
   .plan-type-tabs small{font-size:8px}
 }
+
+
+/* Customer create dialog — fixed header, dedicated scroll viewport and fixed actions */
+html:has(.customer-create-disclosure[open]),
+body:has(.customer-create-disclosure[open]){
+  overflow:hidden!important;
+}
+.customer-create-disclosure[open]{
+  position:fixed!important;
+  z-index:1400!important;
+  top:50%!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:auto!important;
+  display:block!important;
+  width:min(620px,calc(100vw - 32px))!important;
+  height:min(760px,calc(100dvh - 32px))!important;
+  max-height:calc(100dvh - 32px)!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:visible!important;
+  transform:translate(-50%,-50%)!important;
+  border:0!important;
+  border-radius:11px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.customer-create-disclosure[open]>summary.customer-add-button{
+  display:none!important;
+}
+.customer-create-disclosure[open]>.customer-modal-backdrop{
+  position:fixed!important;
+  inset:0!important;
+  z-index:-1!important;
+  display:block!important;
+  width:100vw!important;
+  height:100vh!important;
+  height:100dvh!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:rgba(16,28,44,.58)!important;
+  cursor:default!important;
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+}
+.customer-create-disclosure[open]>.customer-create-form.customer-simple-form{
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr) auto!important;
+  align-content:stretch!important;
+  gap:0!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-height:100%!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:1px solid #dfe5ec!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  box-shadow:0 18px 55px rgba(12,26,45,.24)!important;
+}
+.customer-create-form>.customer-modal-heading{
+  grid-row:1;
+  position:relative!important;
+  top:auto!important;
+  z-index:2;
+  display:flex;
+  flex:initial!important;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  min-width:0;
+  margin:0!important;
+  padding:17px 20px 14px!important;
+  border:0!important;
+  border-bottom:1px solid #e9edf2!important;
+  border-radius:0!important;
+  background:#fff!important;
+}
+.customer-modal-heading .eyebrow{font-size:8px;letter-spacing:.1em}
+.customer-modal-heading h3{margin:4px 0 3px!important;font-size:16px!important;line-height:1.35}
+.customer-modal-heading p{margin:0!important;color:#7c8797;font-size:10px;line-height:1.45}
+.customer-modal-close{
+  flex:0 0 30px!important;
+  width:30px!important;
+  height:30px!important;
+  border:1px solid #e0e5eb!important;
+  border-radius:6px!important;
+  color:#65748a!important;
+  background:#fff!important;
+  font-size:18px!important;
+}
+.customer-modal-close:hover{background:#f5f7f9!important}
+.customer-modal-scroll{
+  grid-row:2;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:12px;
+  min-width:0;
+  min-height:0;
+  margin:0!important;
+  padding:16px 20px 18px!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-gutter:stable;
+}
+.customer-modal-scroll::-webkit-scrollbar{width:9px}
+.customer-modal-scroll::-webkit-scrollbar-thumb{
+  border:2px solid #fff;border-radius:8px;background:#cbd3dd
+}
+.customer-modal-scroll::-webkit-scrollbar-track{background:transparent}
+.customer-modal-scroll>.customer-form-error{flex:0 0 auto}
+.customer-modal-scroll>.customer-simple-grid{flex:0 0 auto}
+.customer-modal-scroll>.customer-extra-fields{
+  flex:0 0 auto;
+  width:100%;
+  margin:0!important;
+}
+.customer-modal-scroll .customer-extra-fields[open]{
+  padding:11px 12px!important;
+  border:1px solid #e3e8ee!important;
+  border-radius:7px!important;
+  background:#fff!important;
+}
+.customer-modal-scroll .customer-extra-fields>summary{
+  min-height:20px;
+  font-size:10px!important;
+}
+.customer-modal-scroll .customer-extra-help{
+  margin:8px 0 10px;
+  color:#7b8797;
+  font-size:10px;
+  line-height:1.5;
+}
+.customer-modal-scroll .customer-extra-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px 12px;
+  margin-top:10px;
+}
+.customer-modal-scroll .customer-simple-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:11px 13px;
+  margin:0!important;
+}
+.customer-modal-scroll .customer-simple-grid label,
+.customer-modal-scroll .customer-extra-grid label,
+.customer-modal-scroll .customer-portal-password{
+  display:grid;
+  align-content:start;
+  gap:5px;
+  min-width:0;
+  color:#536278;
+  font-size:10px;
+  font-weight:650;
+}
+.customer-modal-scroll .customer-field-wide{grid-column:1/-1}
+.customer-modal-scroll input,
+.customer-modal-scroll select,
+.customer-modal-scroll textarea{
+  width:100%;
+  min-width:0;
+  min-height:38px;
+  border:1px solid #dce2e9;
+  border-radius:6px;
+  padding:8px 10px;
+  color:#26364b;
+  background:#fff;
+  font:inherit;
+  font-size:11px;
+  font-weight:450;
+}
+.customer-modal-scroll textarea{min-height:68px;resize:vertical}
+.customer-modal-scroll input:focus,
+.customer-modal-scroll select:focus,
+.customer-modal-scroll textarea:focus{
+  outline:2px solid rgba(49,95,157,.14);
+  border-color:#7895b8;
+}
+.customer-modal-scroll .customer-consent{
+  display:flex!important;
+  align-items:flex-start;
+  gap:8px;
+  margin:0!important;
+  padding:10px;
+  border:1px solid #e6ebf0;
+  border-radius:6px;
+  background:#fafbfc;
+}
+.customer-modal-scroll .customer-consent input[type=checkbox]{
+  flex:0 0 15px;width:15px;min-height:15px;margin:2px 0 0;padding:0
+}
+.customer-modal-scroll .customer-consent span{display:grid;gap:2px}
+.customer-modal-scroll .customer-consent strong{font-size:10px}
+.customer-modal-scroll .customer-consent small{font-size:9px;line-height:1.4}
+.customer-form-actions{
+  grid-row:3;
+  position:relative!important;
+  bottom:auto!important;
+  z-index:2;
+  display:flex!important;
+  flex:initial!important;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  min-height:66px;
+  margin:0!important;
+  padding:11px 20px max(11px,env(safe-area-inset-bottom))!important;
+  border:0!important;
+  border-top:1px solid #e9edf2!important;
+  border-radius:0 0 11px 11px!important;
+  background:#fff!important;
+  box-shadow:0 -4px 12px rgba(20,36,57,.035)!important;
+}
+.customer-form-actions .small-button,
+.customer-form-actions .primary-button{min-height:38px!important}
+.customer-form-actions .primary-button{min-width:130px}
+@media(max-width:600px){
+  .customer-create-disclosure[open]{
+    top:8px!important;
+    left:8px!important;
+    right:8px!important;
+    bottom:8px!important;
+    width:auto!important;
+    height:auto!important;
+    max-height:none!important;
+    transform:none!important;
+    border-radius:9px!important;
+  }
+  .customer-create-disclosure[open]>.customer-create-form.customer-simple-form{
+    border-radius:9px!important;
+  }
+  .customer-create-form>.customer-modal-heading{
+    padding:13px 14px 11px!important;
+  }
+  .customer-modal-heading h3{font-size:15px!important}
+  .customer-modal-scroll{
+    gap:10px;
+    padding:12px 14px 15px!important;
+    scrollbar-width:thin;
+  }
+  .customer-modal-scroll .customer-simple-grid,
+  .customer-modal-scroll .customer-extra-grid{
+    grid-template-columns:1fr;
+    gap:9px;
+  }
+  .customer-modal-scroll .customer-field-wide{grid-column:auto}
+  .customer-modal-scroll .customer-extra-fields[open]{padding:10px!important}
+  .customer-form-actions{
+    min-height:60px;
+    padding:9px 14px max(10px,env(safe-area-inset-bottom))!important;
+  }
+}
+@media(max-height:600px) and (min-width:601px){
+  .customer-create-disclosure[open]{
+    height:calc(100dvh - 20px)!important;
+    max-height:calc(100dvh - 20px)!important;
+  }
+  .customer-create-form>.customer-modal-heading{padding:10px 16px!important}
+  .customer-modal-scroll{gap:8px;padding:10px 16px!important}
+  .customer-form-actions{min-height:54px;padding:7px 16px!important}
+}
