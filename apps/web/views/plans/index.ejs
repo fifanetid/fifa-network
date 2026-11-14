@@ -3,6 +3,10 @@
   const monthlyActive = activeTab === "monthly";
   const selectedPackages = monthlyActive ? plans : vouchers;
   const activeCount = selectedPackages.filter(item => item.is_active === 1).length;
+  const idr = value => new Intl.NumberFormat("id-ID", {
+    style: "currency", currency: "IDR", maximumFractionDigits: 0
+  }).format(value);
+  const validity = item => item.validity_value + " " + (item.validity_unit === "days" ? "hari" : "jam");
 %>
 
 <section class="plan-page-intro plan-unified-intro">
