@@ -175,7 +175,7 @@ test("admin dapat menghapus pelanggan tanpa riwayat dan akun portal ikut dicabut
   const admin = await login("admin-one@example.test");
   const html = await refreshToken("/billing", admin);
   assert.ok(html.includes('/billing/customers/' + cleanCustomer + '/delete'));
-  assert.match(html, /class="danger-button" type="submit">Hapus/);
+  assert.match(html, /class="customer-icon-button customer-delete-icon" type="submit"[^>]*>▣/);
   const response = await post("/billing/customers/" + cleanCustomer + "/delete", admin);
   assert.equal(response.status, 302);
   assert.equal(db.prepare("SELECT id FROM customers WHERE id=?").get(cleanCustomer), undefined);
@@ -190,8 +190,8 @@ test("admin dapat menghapus pelanggan tanpa riwayat dan akun portal ikut dicabut
 test("pelanggan dengan riwayat layanan atau WhatsApp tidak dapat dihapus permanen", async () => {
   const admin = await login("admin-one@example.test");
   const html = await refreshToken("/billing", admin);
-  assert.match(html, /class="danger-button is-disabled" type="button" disabled/);
-  assert.match(html, /memiliki riwayat langganan, invoice, pembayaran, atau WhatsApp/);
+  assert.match(html, /class="customer-icon-button customer-delete-icon is-disabled" type="button" disabled/);
+  assert.match(html, /memiliki riwayat layanan, invoice, pembayaran, atau WhatsApp/);
   const response = await post("/billing/customers/" + historyCustomer + "/delete", admin);
   assert.equal(response.status, 302);
   const location = new URL(response.headers.get("location"), baseUrl);
