@@ -8,7 +8,7 @@ const managers = requireRole("admin", "finance");
 const admins = requireRole("admin");
 
 function redirectWith(path, key, message) {
-  return path + "?" + key + "=" + encodeURIComponent(message);
+  return path + (path.includes("?") ? "&" : "?") + key + "=" + encodeURIComponent(message);
 }
 
 function positiveInteger(value, field, { optional = false, max = Number.MAX_SAFE_INTEGER } = {}) {
