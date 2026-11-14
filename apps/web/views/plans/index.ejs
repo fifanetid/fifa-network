@@ -1,0 +1,43 @@
+<%- include("../partials/header", { title }) %>
+<%
+  const monthlyActive = activeTab === "monthly";
+  const selectedPackages = monthlyActive ? plans : vouchers;
+  const activeCount = selectedPackages.filter(item => item.is_active === 1).length;
+%>
+
+<section class="plan-page-intro plan-unified-intro">
+  <div>
+    <span class="eyebrow">KATALOG LAYANAN</span>
+    <h2>Paket Internet</h2>
+    <p>Kelola paket berlangganan bulanan dan paket voucher dari satu tempat.</p>
+  </div>
+  <span class="plan-page-count"><strong><%= selectedPackages.length %></strong> paket</span>
+</section>
+
+<nav class="plan-type-tabs" aria-label="Jenis paket internet">
+  <a class="<%= monthlyActive ? 'active' : '' %>" href="/plans?type=monthly" <%= monthlyActive ? 'aria-current="page"' : '' %>>
+    <span class="plan-tab-title">Paket Bulanan</span>
+    <small>Langganan rutin</small>
+  </a>
+  <a class="<%= !monthlyActive ? 'active' : '' %>" href="/plans?type=voucher" <%= !monthlyActive ? 'aria-current="page"' : '' %>>
+    <span class="plan-tab-title">Paket Voucher</span>
+    <small>Masa aktif dan kuota</small>
+  </a>
+</nav>
+
+<% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
+<% if (error) { %><div class="notice error"><%= error %></div><% } %>
+
+<section class="plan-summary">
+  <article><span>Total paket</span><strong><%= selectedPackages.length %></strong></article>
+  <article><span>Paket aktif</span><strong><%= activeCount %></strong></article>
+  <article><span>Paket nonaktif</span><strong><%= selectedPackages.length - activeCount %></strong></article>
+</section>
+
+<% if (monthlyActive) { %>
+  <%- include("./_monthly", { plans }) %>
+<% } else { %>
+  <%- include("./_voucher", { vouchers }) %>
+<% } %>
+
+<%- include("../partials/footer") %>
