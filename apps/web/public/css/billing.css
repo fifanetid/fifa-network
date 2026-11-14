@@ -299,3 +299,133 @@
     padding-left:12px!important;
   }
 }
+
+
+/* Billing screen — compact, practical and consistent */
+.billing-grid{gap:13px;margin-bottom:14px}
+.billing-grid>.panel,.billing-panel{padding:17px;border-radius:9px}
+.billing-panel{margin-bottom:13px}
+.billing-panel>.panel-heading{padding-bottom:10px;border-bottom:1px solid #edf0f3}
+.billing-grid .panel-heading h3,.billing-panel .panel-heading h3{font-size:14px;font-weight:680}
+.billing-form{gap:11px 13px;margin-top:13px}
+.billing-form label,.customer-simple-form label{color:#566478;font-size:10px;font-weight:650}
+.billing-form input,.billing-form select,.billing-form textarea,
+.mini-edit input,.mini-edit select,
+.customer-simple-form input,.customer-simple-form select,.customer-simple-form textarea{
+  min-height:36px;border:1px solid #d9e0e8;border-radius:6px;
+  padding:8px 10px;color:#273548;background:#fff;font-size:11px
+}
+.billing-form input:focus,.billing-form select:focus,.billing-form textarea:focus,
+.mini-edit input:focus,.mini-edit select:focus,
+.customer-simple-form input:focus,.customer-simple-form select:focus,.customer-simple-form textarea:focus{
+  border-color:#7895b8;outline:2px solid #7895b822;box-shadow:none
+}
+.billing-panel .users-table{min-width:700px}
+.billing-panel .users-table th{padding:10px 11px}
+.billing-panel .users-table td{padding:10px 11px}
+.billing-disclosure>summary{
+  border-color:#e4e8ed;border-radius:6px;background:#f7f8fa;
+  color:#526176!important;font-size:10px!important;font-weight:650!important
+}
+.billing-disclosure[open]>summary{border-color:#dce3ec;background:#f3f6f9}
+.billing-grid .billing-disclosure[open],.billing-panel>.billing-disclosure[open]{
+  border-color:#e3e8ee;border-radius:7px;background:#fff
+}
+.customer-overview{gap:10px;margin-bottom:13px}
+.customer-overview article{
+  gap:3px;padding:12px 14px;border:1px solid #e3e8ee;border-radius:8px;
+  background:#fff
+}
+.customer-overview article span{color:#6e7b8d;font-size:10px;font-weight:550}
+.customer-overview article strong{color:#253247;font-size:20px;font-weight:680}
+.customer-list-panel{padding:16px}
+.customer-list-heading{padding-bottom:11px;border-color:#e9edf1}
+.customer-list-heading h3{font-size:15px;font-weight:680}
+.customer-count{font-weight:500}
+.customer-add-button{
+  min-height:34px!important;padding:7px 11px!important;border-radius:6px!important;
+  color:#fff!important;background:#285a9c!important;font-size:10px!important;font-weight:650!important
+}
+.customer-add-button:hover{background:#204a82!important}
+.customer-add-button>span{font-size:14px}
+.customer-filterbar{gap:8px;padding:11px 0}
+.customer-filterbar input,.customer-filterbar select{
+  min-height:35px;border-color:#dfe4ea;border-radius:6px;padding:7px 9px;
+  color:#425168;background:#fff;font-size:10px
+}
+.customer-filterbar input:focus,.customer-filterbar select:focus{
+  border-color:#7895b8;outline:2px solid #7895b822;box-shadow:none
+}
+.customer-filterbar>span{color:#7d8998;font-size:9px}
+.customer-delete-note{color:#7f8998;font-size:9px}
+.customer-table-scroll{max-height:480px}
+.customer-table{min-width:760px!important}
+.customer-table th{background:#f7f8fa}
+.customer-table tr:hover td{background:#fafbfd}
+.customer-actions{gap:5px}
+.customer-actions .small-button,.customer-actions .danger-button{min-height:27px;padding:5px 8px;font-size:9px}
+.delete-blocked{border-radius:5px;background:#f1f3f5;font-size:8px}
+.danger-button{border-color:#ead6d6;border-radius:6px;color:#a54444;background:#fff}
+.danger-button:hover{border-color:#d9b7b7;background:#fbf5f5}
+.customer-create-disclosure[open]{
+  width:min(580px,calc(100vw - 32px))!important;
+  border:1px solid #dfe4e9!important;border-radius:10px!important;
+  background:#fff!important;box-shadow:0 18px 48px #17283c2b!important
+}
+.customer-create-disclosure[open]>.customer-modal-backdrop{
+  background:rgba(20,31,47,.48)!important;backdrop-filter:blur(1px)
+}
+.customer-create-disclosure[open]>summary.customer-add-button{display:none!important}
+.customer-simple-form{gap:11px}
+.customer-simple-form>.customer-modal-heading{
+  padding:2px 0 11px;border-color:#e9edf1
+}
+.customer-modal-heading h3{color:#243247;font-size:16px;font-weight:680;letter-spacing:-.02em}
+.customer-modal-heading p{color:#7e8998;font-size:10px}
+.customer-modal-close{
+  width:28px;height:28px;flex-basis:28px;border-color:#e3e7ec;border-radius:6px;
+  color:#637187;font-size:18px
+}
+.customer-modal-close:hover{background:#f4f6f8}
+.customer-extra-fields{
+  border-color:#e4e8ed;border-radius:7px;background:#f8f9fa
+}
+.customer-extra-fields>summary{
+  color:#526176!important;font-size:10px!important;font-weight:650!important
+}
+.customer-extra-fields>summary::after{color:#657f9f}
+.customer-extra-fields[open]{
+  border-color:#dfe5ec!important;background:#fff!important
+}
+.customer-extra-help{color:#798596;font-size:9px}
+.customer-consent{border-color:#e5e9ee;border-radius:6px;background:#fff}
+.customer-consent strong{color:#445269}
+.customer-consent small{color:#7f8998}
+.customer-portal-password{color:#566478;font-size:10px}
+.customer-form-error{border-radius:6px;font-size:10px}
+.customer-simple-form>.customer-form-actions{
+  border-color:#e8ecf0!important;background:#fff!important;box-shadow:0 -5px 12px #1c2c400a
+}
+.customer-form-actions .small-button{border-color:#dfe4e9;border-radius:6px;color:#5d6b7f}
+.customer-form-actions .primary-button{border-radius:6px}
+.customer-table td small{color:#8792a0}
+.reminder-summary{gap:10px;margin:12px 0;padding:11px 13px;border-color:#e4e8ed;border-radius:7px;background:#f8f9fa}
+.reminder-summary strong{font-size:11px;font-weight:650}
+.reminder-summary span{font-size:10px}
+.reminder-summary b{font-size:11px}
+.wa-scheduler{border-color:#e4e8ed;border-radius:8px;background:#f8f9fa}
+@media(max-width:760px){
+  .customer-overview{gap:7px}
+  .customer-overview article{padding:10px 11px}
+  .customer-list-panel{padding:12px}
+  .customer-list-heading h3{font-size:13px}
+  .customer-filterbar{gap:7px}
+  .customer-table-scroll{max-height:420px}
+}
+@media(max-width:520px){
+  .customer-create-disclosure[open]{
+    border-radius:9px!important;box-shadow:0 8px 30px #17283c2e!important
+  }
+  .customer-simple-form{gap:9px}
+  .customer-simple-form>.customer-form-actions{padding-top:10px!important}
+}
