@@ -62,6 +62,14 @@
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="small-button" type="submit"><%= plan.is_active ? "Nonaktifkan" : "Aktifkan" %></button>
                 </form>
+                <% if (plan.can_delete) { %>
+                  <form method="post" action="/plans/monthly/<%= plan.id %>/delete" onsubmit="return confirm('Hapus paket <%= plan.plan_code %> secara permanen?')">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="danger-button" type="submit">Hapus</button>
+                  </form>
+                <% } else { %>
+                  <button class="danger-button is-disabled" type="button" disabled title="Paket masih digunakan oleh <%= plan.subscription_count %> langganan. Nonaktifkan paket agar riwayat tetap tersimpan.">Hapus</button>
+                <% } %>
               </td>
             <% } %>
           </tr>
