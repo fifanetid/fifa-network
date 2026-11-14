@@ -398,7 +398,9 @@
 (() => {
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    const openDialog = document.querySelector(".customer-create-disclosure[open]");
+    const openDialog = document.querySelector(
+      ".customer-create-disclosure[open], .customer-edit-disclosure[open]"
+    );
     if (openDialog) {
       openDialog.open = false;
       const trigger = openDialog.querySelector(":scope > summary");
@@ -420,20 +422,22 @@
 
   const search = document.getElementById("customerSearch");
   const status = document.getElementById("customerStatusFilter");
+  const plan = document.getElementById("customerPlanFilter");
   const rows = Array.from(document.querySelectorAll("[data-customer-row]"));
   const count = document.getElementById("customerVisibleCount");
   const empty = document.getElementById("customerNoResults");
-  if (!search || !status) return;
 
   function filterCustomers() {
-    const query = search.value.trim().toLowerCase();
-    const selectedStatus = status.value;
+    const query = search ? search.value.trim().toLowerCase() : "";
+    const selectedStatus = status ? status.value : "all";
+    const selectedPlan = plan ? plan.value : "all";
     let visible = 0;
 
     rows.forEach((row) => {
       const matchesText = (row.dataset.search || "").includes(query);
       const matchesStatus = selectedStatus === "all" || row.dataset.status === selectedStatus;
-      const show = matchesText && matchesStatus;
+      const matchesPlan = selectedPlan === "all" || row.dataset.plan === selectedPlan;
+      const show = matchesText && matchesStatus && matchesPlan;
       row.hidden = !show;
       if (show) visible++;
     });
@@ -442,8 +446,41 @@
     if (count) count.textContent = visible + " pelanggan";
   }
 
-  search.addEventListener("input", filterCustomers);
-  status.addEventListener("change", filterCustomers);
+  if (search) search.addEventListener("input", filterCustomers);
+  if (status) status.addEventListener("change", filterCustomers);
+  if (plan) plan.addEventListener("change", filterCustomers);
+
+  const exportButton = document.getElementById("exportCustomers");
+  if (exportButton) {
+    exportButton.addEventListener("click", () => {
+      const headers = [
+        "ID Pelanggan", "Nama", "Telepon", "Email", "Paket",
+        "Alamat", "Status", "Jumlah Tagihan Belum Lunas", "Sisa Tagihan (IDR)"
+      ];
+      const visibleRows = rows.filter(row => !row.hidden);
+      const csvValue = value => {
+        const text = String(value ?? "");
+        return '"' + text.replace(/"/g, '""') + '"';
+      };
+      const csv = [headers, ...visibleRows.map(row => {
+        try { return JSON.parse(row.dataset.export || "[]"); }
+        catch (_) { return []; }
+      })].map(record => record.map(csvValue).join(",")).join("\r\n");
+      const blob = new Blob(["\\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "daftar-pelanggan-" + new Date().toISOString().slice(0,10) + ".csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  const printButton = document.getElementById("printCustomers");
+  if (printButton) printButton.addEventListener("click", () => window.print());
+  filterCustomers();
 })();
 </script>
 </div>
