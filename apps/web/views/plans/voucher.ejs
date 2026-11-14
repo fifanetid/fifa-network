@@ -28,9 +28,15 @@
   <div class="panel-heading">
     <div><span class="eyebrow">DAFTAR PRODUK</span><h3>Daftar paket voucher</h3></div>
     <% if (currentUser.role === "admin") { %>
-      <details class="plan-add-details">
+      <details class="plan-add-details plan-modal">
         <summary class="primary-button">＋ Tambah voucher</summary>
-        <form class="plan-form" method="post" action="/plans/voucher">
+        <button class="plan-modal-backdrop" type="button" aria-label="Tutup formulir" onclick="this.closest('details').open=false"></button>
+        <form class="plan-form plan-modal-form" method="post" action="/plans/voucher">
+          <div class="plan-modal-heading">
+            <div><span class="eyebrow">KATALOG PAKET</span><h3>Tambah paket voucher</h3><p>Lengkapi informasi paket, lalu simpan.</p></div>
+            <button class="plan-modal-close" type="button" aria-label="Tutup" onclick="this.closest('details').open=false">×</button>
+          </div>
+          <div class="plan-modal-fields">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <label>Kode paket<input name="package_code" maxlength="30" required placeholder="VCR-1H"></label>
           <label>Nama paket<input name="name" maxlength="100" required placeholder="Voucher 1 Jam"></label>
@@ -42,7 +48,11 @@
           <label>Kecepatan (Mbps) <span class="plan-muted">(kosong = mengikuti profil)</span><input type="number" name="speed_mbps" min="1" max="100000" placeholder="Contoh: 10"></label>
           <label>Harga voucher<input type="number" name="price_idr" min="0" step="1" required placeholder="5000"></label>
           <label class="plan-form-wide">Deskripsi <span class="plan-muted">(opsional)</span><input name="description" maxlength="500" placeholder="Keterangan paket"></label>
-          <button class="primary-button" type="submit">Simpan voucher</button>
+          <div class="plan-modal-actions">
+            <button class="small-button" type="button" onclick="this.closest('details').open=false">Batal</button>
+            <button class="primary-button" type="submit">Simpan voucher</button>
+          </div>
+        </div>
         </form>
       </details>
     <% } %>

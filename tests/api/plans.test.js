@@ -99,6 +99,23 @@ test("menu paket bulanan dan voucher tampil di sidebar admin dan finance", async
   assert.match(html, /Paket Voucher/);
   assert.match(html, /href="\/plans\/monthly"/);
   assert.match(html, /href="\/plans\/voucher"/);
+  assert.match(html, /class="plan-add-details plan-modal"/);
+  assert.match(html, /class="plan-modal-backdrop"/);
+  assert.match(html, /class="plan-modal-heading"/);
+  assert.match(html, /class="plan-modal-actions"/);
+  assert.match(html, /Tambah paket internet bulanan/);
+
+  const voucherHtml = await refreshToken("/plans/voucher", admin);
+  assert.match(voucherHtml, /class="plan-add-details plan-modal"/);
+  assert.match(voucherHtml, /class="plan-modal-backdrop"/);
+  assert.match(voucherHtml, /Tambah paket voucher/);
+
+  const modalCssResponse = await fetch(baseUrl + "/assets/css/billing.css");
+  assert.equal(modalCssResponse.status, 200);
+  const modalCss = await modalCssResponse.text();
+  assert.ok(modalCss.includes(".plan-modal[open]"));
+  assert.ok(modalCss.includes("overflow-y:auto"));
+  assert.ok(modalCss.includes(".plan-modal-actions"));
 
   const finance = await login("finance-plans@example.test");
   const financeHtml = await refreshToken("/plans/monthly", finance);
