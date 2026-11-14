@@ -15,14 +15,14 @@
         <form method="post" action="/admin/users/<%= user.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button" type="submit"><%= user.is_active ? "Nonaktifkan" : "Aktifkan" %></button></form>
         <details class="reset-details"><summary>Reset password</summary><form method="post" action="/admin/users/<%= user.id %>/password"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="password" type="password" minlength="12" maxlength="200" placeholder="Password baru (min. 12)" required><button class="small-button" type="submit">Simpan</button></form></details>
         <% if (user.role === "admin" && user.is_active && activeAdminCount <= 1) { %>
-          <span class="pill warning">Admin aktif terakhir</span>
+          <button class="danger-button is-disabled" type="button" disabled title="Admin aktif terakhir tidak boleh dihapus.">Hapus pengguna</button>
         <% } else if (user.can_delete) { %>
           <form method="post" action="/admin/users/<%= user.id %>/delete" onsubmit="return confirm('Hapus akun pengguna ini secara permanen? Akun tidak dapat dipulihkan.')">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <button class="danger-button" type="submit">Hapus pengguna</button>
           </form>
         <% } else { %>
-          <span class="delete-blocked" title="Akun memiliki riwayat audit atau transaksi.">Riwayat terkunci</span>
+          <button class="danger-button is-disabled" type="button" disabled title="Akun memiliki riwayat audit atau transaksi. Nonaktifkan akun agar riwayat tetap utuh.">Hapus pengguna</button>
         <% } %>
       <% } else { %><span class="muted-text">Akun kamu</span><% } %></td>
     </tr><% }) %></tbody>
