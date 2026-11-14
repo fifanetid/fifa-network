@@ -293,6 +293,9 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   const errorHtml = await errorPage.text();
   assert.match(errorHtml, /Password portal harus 12/);
   assert.match(errorHtml, /customer-create-disclosure[^>]*open/);
+  assert.match(errorHtml, /class="customer-modal-scroll"/);
+  assert.match(errorHtml, /class="customer-modal-backdrop" type="button"/);
+  assert.match(errorHtml, /event.key !== "Escape"/);
 
   const modalCssResponse = await fetch(baseUrl + "/assets/css/billing.css");
   assert.equal(modalCssResponse.status, 200);
@@ -301,6 +304,9 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.ok(modalCss.includes(".customer-create-disclosure[open]>.customer-simple-form"));
   assert.ok(modalCss.includes("overflow-y:auto!important"));
   assert.ok(modalCss.includes("position:sticky!important"));
+  assert.ok(modalCss.includes("grid-template-rows:auto minmax(0,1fr) auto!important"));
+  assert.ok(modalCss.includes(".customer-modal-scroll{"));
+  assert.ok(modalCss.includes("overflow-y:auto!important"));
 
   const appCssResponse = await fetch(baseUrl + "/assets/css/app.css");
   assert.equal(appCssResponse.status, 200);
