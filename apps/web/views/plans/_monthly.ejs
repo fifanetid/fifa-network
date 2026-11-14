@@ -1,3 +1,9 @@
+<%
+  const idr = value => new Intl.NumberFormat("id-ID", {
+    style: "currency", currency: "IDR", maximumFractionDigits: 0
+  }).format(value);
+%>
+
 <section class="panel plan-management-panel">
   <div class="panel-heading">
     <div><span class="eyebrow">DAFTAR HARGA</span><h3>Daftar paket bulanan</h3></div>
