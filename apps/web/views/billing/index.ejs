@@ -389,6 +389,55 @@
 </section>
 <script>
 (() => {
+  const createModal = document.getElementById("customerCreateModal");
+  const createModalOpener = document.getElementById("openCustomerCreateModal");
+  let lastCreateModalFocus = null;
+
+  function openCustomerCreateModal() {
+    if (!createModal) return;
+    lastCreateModalFocus = document.activeElement;
+    createModal.hidden = false;
+    createModal.classList.add("show");
+    createModal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("customer-modal-open");
+    const firstField = createModal.querySelector(
+      "input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])"
+    );
+    if (firstField) firstField.focus();
+  }
+
+  function closeCustomerCreateModal() {
+    if (!createModal || !createModal.classList.contains("show")) return;
+    createModal.classList.remove("show");
+    createModal.setAttribute("aria-hidden", "true");
+    createModal.hidden = true;
+    document.body.classList.remove("customer-modal-open");
+    if (lastCreateModalFocus && typeof lastCreateModalFocus.focus === "function") {
+      lastCreateModalFocus.focus();
+    }
+  }
+
+  if (createModalOpener) {
+    createModalOpener.addEventListener("click", openCustomerCreateModal);
+  }
+  if (createModal) {
+    createModal.querySelectorAll("[data-close-customer-modal]").forEach((button) => {
+      button.addEventListener("click", closeCustomerCreateModal);
+    });
+    createModal.addEventListener("click", (event) => {
+      if (event.target === createModal) closeCustomerCreateModal();
+    });
+    if (createModal.dataset.openOnLoad === "1") openCustomerCreateModal();
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && createModal && createModal.classList.contains("show")) {
+      event.preventDefault();
+      closeCustomerCreateModal();
+      return;
+    }
+  });
+
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     const openDialog = document.querySelector(
