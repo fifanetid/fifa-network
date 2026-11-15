@@ -17,6 +17,9 @@
     <div class="brand"><span class="brand-mark">FF</span><div><strong>FF BILLING</strong><small>ISP MANAGEMENT</small></div></div>
     <nav>
       <a href="/">▦ <span>Dashboard</span></a>
+      <% if (currentUser) { %>
+        <a class="<%= title === 'Keluhan Pelanggan' || title.startsWith('TKT-') ? 'active' : '' %>" href="/admin/tickets"><span>☷</span><span>Keluhan Pelanggan</span></a>
+      <% } %>
       <% if (currentUser && currentUser.role === "admin") { %>
         <a href="/admin/users"><span>♙</span><span>Manajemen Pengguna</span></a>
         <a href="/admin/audit"><span>◷</span><span>Audit Log</span></a>
