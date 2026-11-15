@@ -22,6 +22,16 @@ Migrasi 004_billing_integrity.sql memastikan pelanggan invoice sama dengan pelan
 
 Nominal uang disimpan sebagai integer rupiah. Status invoice: unpaid, partial, paid, atau void. Status jatuh tempo (overdue) dapat diturunkan dari due date dan saldo, bukan status pembayaran baru yang disimpan.
 
+## Dukungan pelanggan
+
+Migrasi 012 menambahkan:
+- `support_tickets`: nomor tiket, pemilik pelanggan, kategori, subject, prioritas, status, petugas, dan waktu aktivitas.
+- `support_ticket_messages`: percakapan pelanggan, petugas, dan catatan sistem yang append-only.
+
+Portal pelanggan hanya dapat membaca dan membalas tiket milik akun yang sedang login. Inbox petugas tersedia untuk role admin, finance, dan teknisi. Petugas dapat mengubah status/prioritas, menugaskan tiket ke pengguna aktif, dan membalas pelanggan. Perubahan penting dicatat ke audit log. Tiket yang ditutup tidak menerima balasan baru dari pelanggan; pelanggan perlu membuat laporan baru. Riwayat tiket/pesan melindungi data pelanggan dan akun petugas dari penghapusan permanen.
+
+Status tiket: `open`, `in_progress`, `waiting_customer`, `resolved`, `closed`. Prioritas: `low`, `normal`, `high`, `urgent`.
+
 ## Autentikasi
 
 Login menerima username (nama pengguna) atau email. Akun awal admin/admin hanya dapat dibuat secara eksplisit melalui perintah npm run create-default-admin di lingkungan non-production dan hanya ketika tabel pengguna kosong. Akun default tidak dibuat otomatis saat server mulai; untuk production gunakan password acak yang kuat.
