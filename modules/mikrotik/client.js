@@ -37,7 +37,15 @@ async function inspectRouter(router, options = {}) {
     user: router.api_username,
     password: decryptSecret(router.api_password_encrypted),
     timeout: options.timeoutSeconds || 8,
-    tls: Number(router.api_tls) === 1,
+    tls: Number(router.api_tls) === 1
+      ? (router.api_tls_ca_encrypted
+          ? {
+              ca: Buffer.from(decryptSecret(router.api_tls_ca_encrypted), "utf8"),
+              servername: router.host,
+              rejectUnauthorized: true
+            }
+          : true)
+      : false,
     keepalive: false,
     debug: false
   });
