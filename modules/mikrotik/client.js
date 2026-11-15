@@ -41,7 +41,6 @@ async function inspectRouter(router, options = {}) {
       ? (router.api_tls_ca_encrypted
           ? {
               ca: Buffer.from(decryptSecret(router.api_tls_ca_encrypted), "utf8"),
-              servername: router.host,
               rejectUnauthorized: true
             }
           : true)
