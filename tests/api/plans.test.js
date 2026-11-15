@@ -257,6 +257,8 @@ test("paket voucher menyimpan masa berlaku, kuota, kecepatan dan harga secara te
   assert.equal(db.prepare("SELECT is_active FROM voucher_packages WHERE id=?").get(voucher.id).is_active, 0);
 
   const voucherPage = await refreshToken("/plans?type=voucher", admin);
+  assert.match(voucherPage, /class="plan-edit-trigger">Edit/);
+  assert.match(voucherPage, /class="plan-actions"/);
   assert.match(voucherPage, new RegExp("/plans/voucher/" + voucher.id + "/delete"));
   const deleted = await post("/plans/voucher/" + voucher.id + "/delete", admin);
   assert.equal(deleted.status, 302);

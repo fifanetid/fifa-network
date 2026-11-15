@@ -11,10 +11,10 @@ router.get("/", requireAuth, (req, res) => {
   res.render("dashboard", {
     title: "Dashboard",
     stats: [
-      { label: "Total Pelanggan", value: customerCount.toLocaleString("id-ID") },
-      { label: "Langganan Aktif", value: activeSubscriptions.toLocaleString("id-ID") },
-      { label: "Sisa Tagihan", value: new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(outstanding) },
-      { label: "Referensi Perangkat", value: deviceRefs.toLocaleString("id-ID") }
+      { label: "Total Pelanggan", value: customerCount.toLocaleString("id-ID"), description: "Seluruh pelanggan yang terdaftar" },
+      { label: "Langganan Aktif", value: activeSubscriptions.toLocaleString("id-ID"), description: "Layanan yang sedang berjalan" },
+      { label: "Sisa Tagihan", value: new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(outstanding), description: "Akumulasi invoice yang belum lunas" },
+      { label: "Referensi Perangkat", value: deviceRefs.toLocaleString("id-ID"), description: "Langganan dengan ID perangkat" }
     ]
   });
 });

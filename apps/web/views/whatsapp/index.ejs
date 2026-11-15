@@ -1,7 +1,7 @@
 <%- include("../partials/header", { title }) %>
 <% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
-<section class="wa-grid">
-  <article class="panel wa-card">
+<section class="wa-grid wa-admin-layout">
+  <article class="panel wa-card wa-connection-card">
     <div class="panel-heading"><div><span class="eyebrow">WHATSAPP WEB</span><h3>Koneksi perangkat</h3></div><span id="wa-status" class="pill <%= status.status === 'connected' ? 'success' : 'muted' %>"><%= status.status %></span></div>
     <p class="muted-text">Hubungkan nomor WhatsApp operasional FF NETWORK dengan memindai QR dari aplikasi WhatsApp di ponsel.</p>
     <div id="wa-qr-wrap" class="wa-qr-wrap" <%= status.qrDataUrl ? '' : 'hidden' %>><img id="wa-qr" alt="QR WhatsApp untuk ditautkan" src="<%= status.qrDataUrl || '' %>"><p>Buka WhatsApp → Perangkat tertaut → Tautkan perangkat.</p></div>
@@ -12,21 +12,6 @@
       <form method="post" action="/admin/whatsapp/disconnect"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="small-button">Putuskan</button></form>
     </div>
     <small class="muted-text">Sesi tersimpan lokal di data/whatsapp-auth dan tidak dikirim ke GitHub.</small>
-  </article>
-  <article class="panel wa-card">
-    <div class="panel-heading"><div><span class="eyebrow">UJI PENGIRIMAN</span><h3>Kirim pesan tes</h3></div></div>
-    <form class="billing-form" method="post" action="/admin/whatsapp/test">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <label>Nomor tujuan<input name="phone" inputmode="numeric" placeholder="62812xxxxxxxx" pattern="62[0-9]{8,13}" required></label>
-      <label class="wide">Isi pesan<textarea name="message" maxlength="1500">Tes koneksi FF BILLING. Jika pesan ini diterima, WhatsApp Gateway berhasil terhubung.</textarea></label>
-      <button class="primary-button">Kirim pesan tes</button>
-    </form>
-    <div class="divider"></div>
-    <div class="panel-heading"><div><span class="eyebrow">PENGINGAT TAGIHAN</span><h3>Jalankan sekarang</h3></div></div>
-    <p class="muted-text">Memproses maksimal 20 pengingat untuk pelanggan yang sudah menyetujui WhatsApp. Sistem mencegah pengiriman ganda per invoice dan tahap pengingat.</p>
-    <form method="post" action="/admin/whatsapp/reminders/run"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="primary-button">Proses pengingat sekarang</button></form>
-    <p class="muted-text">Jadwal tahap: H-3, hari jatuh tempo, H+3, lalu setiap 7 hari selama invoice belum lunas. Batas 20 pesan per proses.</p>
-
     <div class="divider"></div>
     <div class="wa-scheduler">
       <div class="panel-heading">
@@ -42,6 +27,22 @@
       </form>
       <small class="muted-text">Pengaturan tersimpan di database. Default nonaktif dan dapat diubah kapan saja oleh admin.</small>
     </div>
+  </article>
+  <article class="panel wa-card wa-send-card">
+    <div class="panel-heading"><div><span class="eyebrow">UJI PENGIRIMAN</span><h3>Kirim pesan tes</h3></div></div>
+    <form class="billing-form" method="post" action="/admin/whatsapp/test">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label>Nomor tujuan<input name="phone" inputmode="numeric" placeholder="62812xxxxxxxx" pattern="62[0-9]{8,13}" required></label>
+      <label class="wide">Isi pesan<textarea name="message" maxlength="1500">Tes koneksi FF BILLING. Jika pesan ini diterima, WhatsApp Gateway berhasil terhubung.</textarea></label>
+      <button class="primary-button">Kirim pesan tes</button>
+    </form>
+    <div class="divider"></div>
+    <div class="panel-heading"><div><span class="eyebrow">PENGINGAT TAGIHAN</span><h3>Jalankan sekarang</h3></div></div>
+    <p class="muted-text">Memproses maksimal 20 pengingat untuk pelanggan yang sudah menyetujui WhatsApp. Sistem mencegah pengiriman ganda per invoice dan tahap pengingat.</p>
+    <form method="post" action="/admin/whatsapp/reminders/run"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="primary-button">Proses pengingat sekarang</button></form>
+    <p class="muted-text">Jadwal tahap: H-3, hari jatuh tempo, H+3, lalu setiap 7 hari selama invoice belum lunas. Batas 20 pesan per proses.</p>
+
+
   </article>
 </section>
 <section class="panel billing-panel">

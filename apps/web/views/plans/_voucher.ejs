@@ -55,7 +55,7 @@
             <% if (currentUser.role === "admin") { %>
               <td class="plan-actions">
                 <details>
-                  <summary>Edit</summary>
+                  <summary class="plan-edit-trigger">Edit</summary>
                   <form class="plan-inline-form" method="post" action="/plans/voucher/<%= item.id %>/update">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <label>Kode<input name="package_code" value="<%= item.package_code %>" maxlength="30" required></label>
