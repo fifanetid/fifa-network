@@ -1,0 +1,71 @@
+<%- include("partials/header", { title }) %>
+<%
+  const total = Object.values(statusCounts).reduce((sum,value) => sum + value,0);
+  const active = statusCounts.open + statusCounts.in_progress + statusCounts.waiting_customer;
+%>
+<section class="ticket-page-intro">
+  <div>
+    <span class="eyebrow">CUSTOMER SUPPORT</span>
+    <h2>Keluhan Pelanggan</h2>
+    <p>Terima laporan gangguan, tindak lanjuti, dan simpan seluruh percakapan dalam satu riwayat.</p>
+  </div>
+  <span class="ticket-total"><strong><%= total %></strong> laporan</span>
+</section>
+
+<section class="ticket-summary-grid">
+  <article><span>Perlu ditangani</span><strong><%= active %></strong><small>Laporan baru, diproses, atau menunggu pelanggan</small></article>
+  <article><span>Laporan baru</span><strong><%= statusCounts.open %></strong><small>Belum mulai ditangani</small></article>
+  <article><span>Menunggu pelanggan</span><strong><%= statusCounts.waiting_customer %></strong><small>Petugas sudah memberi balasan</small></article>
+  <article><span>Selesai / ditutup</span><strong><%= statusCounts.resolved + statusCounts.closed %></strong><small>Penanganan sudah diakhiri</small></article>
+</section>
+
+<section class="panel ticket-list-panel">
+  <div class="panel-heading">
+    <div><span class="eyebrow">DAFTAR LAPORAN</span><h3>Inbox keluhan</h3></div>
+    <span class="pill muted"><%= tickets.length %> ditampilkan</span>
+  </div>
+  <form class="ticket-filter-form" method="get" action="/admin/tickets">
+    <label class="ticket-search">Cari laporan
+      <input name="q" value="<%= filters.q %>" placeholder="Nomor tiket, pelanggan, telepon, atau judul">
+    </label>
+    <label>Status
+      <select name="status">
+        <option value="">Semua status</option>
+        <% Object.entries(statusLabels).forEach(([key,label]) => { %>
+          <option value="<%= key %>" <%= filters.status===key?"selected":"" %>><%= label %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Kategori
+      <select name="category">
+        <option value="">Semua kategori</option>
+        <% Object.entries(categoryLabels).forEach(([key,label]) => { %>
+          <option value="<%= key %>" <%= filters.category===key?"selected":"" %>><%= label %></option>
+        <% }) %>
+      </select>
+    </label>
+    <button class="primary-button" type="submit">Terapkan</button>
+    <a class="small-button" href="/admin/tickets">Reset</a>
+  </form>
+  <div class="table-wrap ticket-table-wrap">
+    <table class="users-table ticket-table">
+      <thead><tr><th>Nomor / Pelanggan</th><th>Keluhan</th><th>Prioritas</th><th>Status</th><th>Petugas</th><th>Aktivitas</th><th>Aksi</th></tr></thead>
+      <tbody>
+        <% tickets.forEach(ticket => { %>
+          <tr>
+            <td><strong><%= ticket.ticket_number %></strong><small><%= ticket.customer_code %> · <%= ticket.full_name %></small><small><%= ticket.phone %></small></td>
+            <td><strong><%= ticket.subject %></strong><small><%= categoryLabels[ticket.category] %> · <%= ticket.message_count %> pesan</small><small class="ticket-latest-message"><%= ticket.latest_message || "" %></small></td>
+            <td><span class="ticket-priority priority-<%= ticket.priority %>"><%= priorityLabels[ticket.priority] %></span></td>
+            <td><span class="ticket-status status-<%= ticket.status %>"><%= statusLabels[ticket.status] %></span></td>
+            <td><%= ticket.assigned_name || "Belum ditugaskan" %></td>
+            <td><%= ticket.last_activity_at %></td>
+            <td><a class="small-button" href="/admin/tickets/<%= ticket.id %>">Buka laporan</a></td>
+          </tr>
+        <% }) %>
+        <% if (!tickets.length) { %><tr><td colspan="7" class="ticket-empty">Belum ada keluhan yang cocok dengan filter ini.</td></tr><% } %>
+      </tbody>
+    </table>
+  </div>
+  <p class="ticket-footnote">Menampilkan maksimal 200 laporan terbaru. Riwayat pesan tersimpan dan tidak dapat diubah atau dihapus.</p>
+</section>
+<%- include("partials/footer") %>
