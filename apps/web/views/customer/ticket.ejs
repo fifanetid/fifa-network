@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= ticket.ticket_number %> | FF BILLING</title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="/assets/css/portal.css">
+  <link rel="stylesheet" href="/assets/css/support-tickets.css">
+</head>
+<body class="portal-page">
+  <header class="portal-topbar">
+    <a class="portal-brand" href="/customer"><span class="brand-mark">FF</span><span><strong>FF BILLING</strong><small>PORTAL PELANGGAN</small></span></a>
+    <div class="portal-user"><span><%= customer.fullName %></span><a class="small-button" href="/customer">Kembali</a></div>
+  </header>
+  <main class="portal-main">
+    <a class="ticket-back-link" href="/customer/tickets">← Kembali ke keluhan saya</a>
+    <% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
+    <% if (error) { %><div class="notice error"><%= error %></div><% } %>
+    <section class="portal-panel ticket-portal-detail">
+      <div class="ticket-portal-detail-heading">
+        <div><span class="eyebrow"><%= ticket.ticket_number %></span><h1><%= ticket.subject %></h1><p>Dibuat <%= ticket.created_at %> · Kategori <%= {internet:"Gangguan internet",billing:"Tagihan / pembayaran",account:"Akun pelanggan",other:"Lainnya"}[ticket.category] %></p></div>
+        <span class="ticket-status status-<%= ticket.status %>"><%= {open:"Baru",in_progress:"Sedang ditangani",waiting_customer:"Menunggu pelanggan",resolved:"Selesai",closed:"Ditutup"}[ticket.status] %></span>
+      </div>
+      <div class="ticket-thread ticket-portal-thread">
+        <% messages.forEach(message => { %>
+          <article class="ticket-message <%= message.sender_type==="customer"?"message-customer":message.sender_type==="staff"?"message-staff":"message-system" %>">
+            <div class="ticket-message-meta"><strong><%= message.sender_name %></strong><time><%= message.created_at %></time></div>
+            <p><%= message.message %></p>
+          </article>
+        <% }) %>
+      </div>
+      <% if (ticket.status === "closed") { %>
+        <p class="ticket-closed-note">Laporan ini sudah ditutup. Buat laporan baru bila gangguan masih terjadi.</p>
+      <% } else { %>
+        <form class="ticket-reply-form ticket-customer-reply" method="post" action="/customer/tickets/<%= ticket.id %>/reply">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label>Balas laporan<textarea name="message" rows="4" maxlength="5000" required placeholder="Tambahkan informasi atau balas pertanyaan petugas..."></textarea></label>
+          <button class="primary-button" type="submit">Kirim balasan</button>
+        </form>
+      <% } %>
+    </section>
+    <footer class="portal-footer">FF BILLING · Simpan nomor laporan <%= ticket.ticket_number %> untuk referensi.</footer>
+  </main>
+</body>
+</html>
