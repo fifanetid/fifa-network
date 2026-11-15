@@ -47,10 +47,13 @@ app.use(session({
 
 const { generateToken, csrfSynchronisedProtection } = csrfSync({
   getTokenFromRequest: (req) => {
-    const bodyToken = req.body && typeof req.body === "object"
-      ? req.body._csrf
-      : undefined;
-    return bodyToken || req.headers["x-csrf-token"];
+    if (req.is("application/x-www-form-urlencoded")) {
+      const bodyToken = typeof req.body?._csrf === "string"
+        ? req.body._csrf
+        : undefined;
+      if (bodyToken) return bodyToken;
+    }
+    return req.headers["x-csrf-token"];
   }
 });
 app.use(csrfSynchronisedProtection);
