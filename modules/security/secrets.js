@@ -12,7 +12,7 @@ function loadEncryptionKey(value = process.env.APP_ENCRYPTION_KEY) {
 
 function encryptSecret(plainText, keyValue) {
   const value = String(plainText ?? "");
-  if (!value || value.length > 500) throw new Error("Rahasia kosong atau terlalu panjang.");
+  if (!value || value.length > 20000) throw new Error("Rahasia kosong atau terlalu panjang.");
   const key = loadEncryptionKey(keyValue);
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
