@@ -29,13 +29,25 @@
 - Langganan terminated tidak dapat diaktifkan kembali; invoice paket gratis bernilai nol langsung berstatus paid
 - Seluruh nilai uang disimpan sebagai integer Rupiah (IDR)
 
+### Portal pelanggan dan dukungan
+- Portal pelanggan dengan autentikasi terpisah, ringkasan langganan, invoice, cetak invoice, dan ubah password
+- Konfirmasi pembayaran dari portal; saldo invoice hanya berubah setelah admin memeriksa dan menyetujui
+- Pelanggan dapat membuat tiket gangguan internet, tagihan, akun, atau kategori lain
+- Percakapan tiket dua arah antara pelanggan dan petugas dengan riwayat append-only
+- Inbox keluhan untuk admin, finance, dan teknisi; dukungan filter, penugasan petugas, prioritas, status, balasan, serta jejak audit perubahan
+- Data tiket hanya dapat dilihat oleh pemilik pelanggan atau petugas yang berwenang
+
+### Laporan, audit, dan notifikasi
+- Audit log aktivitas penting yang append-only
+- Laporan keuangan dengan perhitungan pembayaran bersih setelah reversal
+- WhatsApp Web melalui Baileys, persetujuan pelanggan, QR perangkat, riwayat pesan, dan pengingat otomatis (H-3, hari jatuh tempo, H+3, lalu setiap 7 hari)
+
 ### Belum tersedia
 - Payment gateway/otomatisasi pembayaran
-- Pengiriman pengingat WhatsApp Web melalui Baileys, persetujuan pelanggan, QR perangkat, riwayat pesan, dan pengingat otomatis (H-3, hari jatuh tempo, H+3, lalu setiap 7 hari); SMS/email, prorata, denda, dan pajak belum tersedia
-- Penghapusan data dengan workflow retensi/audit
-- Integrasi MikroTik RouterOS API
+- SMS/email, prorata, denda, dan pajak
+- Integrasi MikroTik RouterOS API dan provisioning layanan otomatis
 - Integrasi GenieACS NBI, provisioning TR-069, dan monitoring ONT
-- Portal pelanggan, laporan lanjutan, audit log, backup terkelola
+- Backup/restore terkelola dan pemantauan production
 
 ## Teknologi dan pemisahan database
 
@@ -122,7 +134,7 @@ Aplikasi mendengarkan di 127.0.0.1:3000. Untuk akses internet, pasang reverse pr
 |---|---|
 | admin | Dashboard, pengguna, seluruh modul billing, kelola paket, batalkan invoice |
 | finance | Dashboard, pelanggan, langganan, invoice, pembayaran |
-| teknisi | Login dan dashboard; akses modul jaringan akan ditambahkan pada tahap integrasi |
+| teknisi | Dashboard dan inbox keluhan; dapat menanggapi serta memperbarui tiket, tanpa akses manajemen billing |
 
 ## Struktur proyek
 
