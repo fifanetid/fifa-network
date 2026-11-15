@@ -12,15 +12,9 @@ Tidak ada perintah tambah, ubah, hapus, disable, enable, reboot, atau remove ses
 
 ## Kunci enkripsi aplikasi
 
-Buat kunci 32-byte:
+Kunci `APP_ENCRYPTION_KEY` dibuat otomatis pada startup pertama bila belum diatur. Aplikasi menghasilkan 32 byte acak (64 karakter hex), menulisnya ke `.env`, dan membatasi izin file menjadi `0600` pada sistem POSIX. Jika nilai kunci yang valid sudah ada, kunci tersebut dipertahankan.
 
-~~~bash
-openssl rand -hex 32
-~~~
-
-Masukkan hasilnya ke `APP_ENCRYPTION_KEY` di `.env`. Kunci harus 64 karakter heksadesimal. Password router dan CA sertifikat TLS dienkripsi AES-256-GCM sebelum masuk SQLite.
-
-Simpan kunci di tempat rahasia dan backup terpisah dari database. Jangan mengubah atau kehilangan kunci selama masih ada data router terenkripsi.
+Password router dan CA sertifikat TLS dienkripsi AES-256-GCM sebelum masuk SQLite. Simpan backup `.env`/kunci di tempat rahasia yang terpisah dari database. Jangan mengubah atau kehilangan kunci selama masih ada data router terenkripsi.
 
 ## Membuat pengguna API khusus di RouterOS
 
