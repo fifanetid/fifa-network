@@ -196,7 +196,7 @@ test("pelanggan dengan riwayat layanan atau WhatsApp tidak dapat dihapus permane
   const admin = await login("admin-one@example.test");
   const html = await refreshToken("/billing", admin);
   assert.match(html, /class="customer-icon-button customer-delete-icon is-disabled" type="button" disabled/);
-  assert.match(html, /memiliki riwayat layanan, invoice, pembayaran, atau WhatsApp/);
+  assert.match(html, /memiliki riwayat layanan, invoice, pembayaran, WhatsApp, atau keluhan pelanggan/);
   const response = await post("/billing/customers/" + historyCustomer + "/delete", admin);
   assert.equal(response.status, 302);
   const location = new URL(response.headers.get("location"), baseUrl);
