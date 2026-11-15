@@ -13,12 +13,14 @@ router.get("/", (req, res) => {
       (SELECT COUNT(*) FROM payment_reversals r WHERE r.created_by=u.id) AS reversal_count,
       (SELECT COUNT(*) FROM customer_payment_confirmations pc WHERE pc.reviewed_by=u.id) AS reviewed_confirmation_count,
       (SELECT COUNT(*) FROM app_settings s WHERE s.updated_by=u.id) AS settings_count,
+      (SELECT COUNT(*) FROM support_ticket_messages stm WHERE stm.sender_user_id=u.id) AS support_message_count,
       CASE WHEN
         (SELECT COUNT(*) FROM audit_logs a WHERE a.actor_user_id=u.id)=0
         AND (SELECT COUNT(*) FROM payments p WHERE p.received_by=u.id)=0
         AND (SELECT COUNT(*) FROM payment_reversals r WHERE r.created_by=u.id)=0
         AND (SELECT COUNT(*) FROM customer_payment_confirmations pc WHERE pc.reviewed_by=u.id)=0
         AND (SELECT COUNT(*) FROM app_settings s WHERE s.updated_by=u.id)=0
+        AND (SELECT COUNT(*) FROM support_ticket_messages stm WHERE stm.sender_user_id=u.id)=0
       THEN 1 ELSE 0 END AS can_delete
     FROM users u ORDER BY u.id DESC
   `).all();
@@ -80,7 +82,8 @@ router.post("/:id/delete", (req, res) => {
         payments: db.prepare("SELECT COUNT(*) AS total FROM payments WHERE received_by=?").get(id).total,
         reversals: db.prepare("SELECT COUNT(*) AS total FROM payment_reversals WHERE created_by=?").get(id).total,
         confirmations: db.prepare("SELECT COUNT(*) AS total FROM customer_payment_confirmations WHERE reviewed_by=?").get(id).total,
-        settings: db.prepare("SELECT COUNT(*) AS total FROM app_settings WHERE updated_by=?").get(id).total
+        settings: db.prepare("SELECT COUNT(*) AS total FROM app_settings WHERE updated_by=?").get(id).total,
+        supportMessages: db.prepare("SELECT COUNT(*) AS total FROM support_ticket_messages WHERE sender_user_id=?").get(id).total
       };
       const history = [];
       if (references.audit) history.push(references.audit + " log audit");
@@ -88,6 +91,7 @@ router.post("/:id/delete", (req, res) => {
       if (references.reversals) history.push(references.reversals + " reversal");
       if (references.confirmations) history.push(references.confirmations + " pemeriksaan konfirmasi");
       if (references.settings) history.push(references.settings + " perubahan pengaturan");
+      if (references.supportMessages) history.push(references.supportMessages + " balasan keluhan pelanggan");
       if (history.length) {
         throw new Error(
           "Akun tidak dapat dihapus karena sudah tercatat pada " + history.join(", ") +
