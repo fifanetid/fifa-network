@@ -203,6 +203,32 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.ok(adminUiCss.includes(".app-shell .customer-management-screen .primary-button"));
   assert.ok(adminUiCss.includes("min-height:var(--ui-control-height)!important"));
   assert.ok(adminUiCss.includes("input:focus"));
+  assert.ok(adminUiCss.includes(".app-shell .user-management .actions-cell"));
+  assert.ok(adminUiCss.includes(".app-shell .create-user-form .primary-button"));
+  assert.ok(adminUiCss.includes(".app-shell .wa-grid.wa-admin-layout"));
+  assert.ok(adminUiCss.includes(".app-shell .wa-send-card .billing-form"));
+  assert.ok(adminUiCss.includes(".app-shell .plan-actions>details>summary"));
+  assert.ok(adminUiCss.includes(".app-shell .dashboard-stat-grid"));
+
+  const adminUsersPage = await get("/admin/users", admin);
+  assert.equal(adminUsersPage.status, 200);
+  const adminUsersHtml = await adminUsersPage.text();
+  assert.match(adminUsersHtml, /class="create-user-form"/);
+  assert.match(adminUsersHtml, /class="actions-cell"/);
+
+  const whatsappPage = await get("/admin/whatsapp", admin);
+  assert.equal(whatsappPage.status, 200);
+  const whatsappHtml = await whatsappPage.text();
+  assert.match(whatsappHtml, /class="wa-grid wa-admin-layout"/);
+  assert.match(whatsappHtml, /class="wa-connection-card"/);
+  assert.match(whatsappHtml, /class="wa-send-card"/);
+  assert.ok(whatsappHtml.indexOf("wa-scheduler") < whatsappHtml.indexOf("wa-send-card"));
+
+  const dashboardPage = await get("/", admin);
+  assert.equal(dashboardPage.status, 200);
+  const dashboardHtml = await dashboardPage.text();
+  assert.match(dashboardHtml, /Seluruh pelanggan yang terdaftar/);
+  assert.match(dashboardHtml, /Akumulasi invoice yang belum lunas/);
 
   const createdPlan = await post("/billing/plans", admin, {
     plan_code: "HTTP-FIF10",
