@@ -54,6 +54,7 @@
   justify-content:center!important;
   gap:7px!important;
   min-height:var(--ui-control-height)!important;
+  margin:0!important;
   padding:8px 13px!important;
   border:1px solid var(--ui-primary)!important;
   border-radius:var(--ui-radius)!important;
@@ -236,6 +237,7 @@
 .app-shell:not(:has(.customer-management-screen)) select,
 .app-shell:not(:has(.customer-management-screen)) textarea{
   min-height:var(--ui-control-height);
+  margin:0!important;
   padding:8px 10px;
   border:1px solid var(--ui-border);
   border-radius:6px;
