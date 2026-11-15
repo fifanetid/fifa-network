@@ -21,6 +21,7 @@ function pageData(extra = {}) {
         (SELECT COUNT(*) FROM invoices i WHERE i.customer_id=c.id) AS invoice_count,
         (SELECT COUNT(*) FROM customer_payment_confirmations pc WHERE pc.customer_id=c.id) AS confirmation_count,
         (SELECT COUNT(*) FROM whatsapp_message_logs wl WHERE wl.customer_id=c.id) AS whatsapp_log_count,
+        (SELECT COUNT(*) FROM support_tickets st WHERE st.customer_id=c.id) AS support_ticket_count,
         (SELECT p.name
           FROM subscriptions s JOIN internet_plans p ON p.id=s.plan_id
           WHERE s.customer_id=c.id
@@ -60,6 +61,7 @@ function pageData(extra = {}) {
           AND (SELECT COUNT(*) FROM invoices i WHERE i.customer_id=c.id)=0
           AND (SELECT COUNT(*) FROM customer_payment_confirmations pc WHERE pc.customer_id=c.id)=0
           AND (SELECT COUNT(*) FROM whatsapp_message_logs wl WHERE wl.customer_id=c.id)=0
+          AND (SELECT COUNT(*) FROM support_tickets st WHERE st.customer_id=c.id)=0
         THEN 1 ELSE 0 END AS can_delete
       FROM customers c ORDER BY c.id DESC
     `).all(),
@@ -247,13 +249,15 @@ router.post("/customers/:id/delete", admins, (req,res) => {
         subscriptions: db.prepare("SELECT COUNT(*) AS total FROM subscriptions WHERE customer_id=?").get(id).total,
         invoices: db.prepare("SELECT COUNT(*) AS total FROM invoices WHERE customer_id=?").get(id).total,
         confirmations: db.prepare("SELECT COUNT(*) AS total FROM customer_payment_confirmations WHERE customer_id=?").get(id).total,
-        whatsappLogs: db.prepare("SELECT COUNT(*) AS total FROM whatsapp_message_logs WHERE customer_id=?").get(id).total
+        whatsappLogs: db.prepare("SELECT COUNT(*) AS total FROM whatsapp_message_logs WHERE customer_id=?").get(id).total,
+        supportTickets: db.prepare("SELECT COUNT(*) AS total FROM support_tickets WHERE customer_id=?").get(id).total
       };
       const blockers = [];
       if (counts.subscriptions) blockers.push(counts.subscriptions + " langganan");
       if (counts.invoices) blockers.push(counts.invoices + " invoice");
       if (counts.confirmations) blockers.push(counts.confirmations + " konfirmasi pembayaran");
       if (counts.whatsappLogs) blockers.push(counts.whatsappLogs + " riwayat WhatsApp");
+      if (counts.supportTickets) blockers.push(counts.supportTickets + " laporan keluhan");
 
       if (blockers.length) {
         throw new Error(
