@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS mikrotik_routers (
     CHECK (length(trim(host)) BETWEEN 7 AND 45),
   api_port INTEGER NOT NULL CHECK (api_port IN (8728,8729)),
   api_tls INTEGER NOT NULL DEFAULT 0 CHECK (api_tls IN (0,1)),
+  api_tls_ca_encrypted TEXT,
   api_username TEXT NOT NULL
     CHECK (length(trim(api_username)) BETWEEN 1 AND 64),
   api_password_encrypted TEXT NOT NULL
