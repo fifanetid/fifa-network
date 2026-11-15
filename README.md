@@ -37,6 +37,13 @@
 - Inbox keluhan untuk admin, finance, dan teknisi; dukungan filter, penugasan petugas, prioritas, status, balasan, serta jejak audit perubahan
 - Data tiket hanya dapat dilihat oleh pemilik pelanggan atau petugas yang berwenang
 
+### Jaringan dan monitoring
+- Koneksi RouterOS API v6/v7 untuk membaca identitas router, resource CPU/memori, dan sesi PPP aktif
+- Password router dan CA sertifikat API-SSL disimpan terenkripsi AES-256-GCM
+- Akses RouterOS menggunakan akun terpisah yang disarankan hanya memiliki kebijakan read dan api
+- Tahap ini bersifat baca-saja; belum membuat/mengubah/menghapus akun PPP, memutus sesi, atau mengubah konfigurasi router
+- GenieACS tetap terpisah dari database internal MongoDB-nya
+
 ### Laporan, audit, dan notifikasi
 - Audit log aktivitas penting yang append-only
 - Laporan keuangan dengan perhitungan pembayaran bersih setelah reversal
@@ -45,13 +52,14 @@
 ### Belum tersedia
 - Payment gateway/otomatisasi pembayaran
 - SMS/email, prorata, denda, dan pajak
-- Integrasi MikroTik RouterOS API dan provisioning layanan otomatis
+- Provisioning PPP otomatis (membuat, mengubah, menonaktifkan/menghapus akun PPP, atau memutus sesi); monitoring RouterOS baca-saja sudah tersedia
 - Integrasi GenieACS NBI, provisioning TR-069, dan monitoring ONT
 - Backup/restore terkelola dan pemantauan production
 
 ## Teknologi dan pemisahan database
 
 - Node.js 20+, Express.js, EJS
+- @fibercom/routeros-api untuk komunikasi RouterOS API v6/v7
 - SQLite untuk akun dan data aplikasi/billing
 - GenieACS tetap menggunakan MongoDB internalnya sendiri
 - FF BILLING hanya menyimpan referensi perangkat eksternal; tidak membaca/menulis koleksi MongoDB GenieACS secara langsung
@@ -78,6 +86,14 @@ nano .env
 ~~~
 
 Ganti nilai SESSION_SECRET dengan hasil acak tersebut. Jangan commit .env.
+
+Buat kunci enkripsi aplikasi dan simpan pada `APP_ENCRYPTION_KEY` di file `.env`:
+
+~~~bash
+openssl rand -hex 32
+~~~
+
+Kunci ini digunakan untuk mengenkripsi password dan sertifikat CA router. Simpan kunci tersebut dalam backup rahasia. Jangan mengubahnya setelah router tersimpan kecuali kredensial akan dienkripsi ulang.
 
 ### Membuat administrator pertama
 
