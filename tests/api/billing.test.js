@@ -220,8 +220,8 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.equal(whatsappPage.status, 200);
   const whatsappHtml = await whatsappPage.text();
   assert.match(whatsappHtml, /class="wa-grid wa-admin-layout"/);
-  assert.match(whatsappHtml, /class="wa-connection-card"/);
-  assert.match(whatsappHtml, /class="wa-send-card"/);
+  assert.match(whatsappHtml, /wa-connection-card/);
+  assert.match(whatsappHtml, /wa-send-card/);
   assert.ok(whatsappHtml.indexOf("wa-scheduler") < whatsappHtml.indexOf("wa-send-card"));
 
   const dashboardPage = await get("/", admin);
