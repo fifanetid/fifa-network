@@ -363,6 +363,12 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.ok(modalCss.includes("grid-template-rows:auto minmax(0,1fr) auto!important"));
   assert.ok(modalCss.includes(".customer-modal-scroll{"));
   assert.ok(modalCss.includes("overflow-y:auto!important"));
+  assert.ok(modalCss.includes("display:flex!important"));
+  assert.ok(modalCss.includes("flex:1 1 0%!important"));
+  assert.ok(modalCss.includes("height:0!important"));
+  assert.ok(modalCss.includes("overflow-y:scroll!important"));
+  assert.ok(modalCss.includes("overflow:visible!important"));
+  assert.ok(modalCss.includes(".customer-edit-disclosure[open]>.customer-edit-form>.customer-modal-scroll"));
 
   const appCssResponse = await fetch(baseUrl + "/assets/css/app.css");
   assert.equal(appCssResponse.status, 200);
