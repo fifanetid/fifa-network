@@ -2,6 +2,7 @@
 
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const rateLimit = require("express-rate-limit");
 const { db } = require("../../../database/db");
 const billing = require("../../../modules/billing");
@@ -14,6 +15,24 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
   message: "Terlalu banyak percobaan login portal. Coba lagi dalam 15 menit."
 });
+
+const ticketCreateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  keyGenerator: (req) => "customer:" + String(req.customer.id),
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: "Terlalu banyak laporan dibuat. Coba lagi dalam 15 menit."
+});
+
+const ticketCategories = new Set(["internet", "billing", "account", "other"]);
+
+function newTicketNumber() {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en", {
+    timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit"
+  }).formatToParts(new Date()).map(part => [part.type, part.value]));
+  return "TKT-" + parts.year + parts.month + "-" + crypto.randomBytes(5).toString("hex").toUpperCase();
+}
 
 const rupiah = (value) => new Intl.NumberFormat("id-ID", {
   style: "currency", currency: "IDR", maximumFractionDigits: 0
@@ -118,6 +137,12 @@ router.get("/", (req, res) => {
     SELECT customer_code, full_name, phone, email, address
     FROM customers WHERE id=?
   `).get(customerId);
+  const supportTicketCount = db.prepare(
+    "SELECT COUNT(*) AS total FROM support_tickets WHERE customer_id=?"
+  ).get(customerId).total;
+  const openSupportTicketCount = db.prepare(
+    "SELECT COUNT(*) AS total FROM support_tickets WHERE customer_id=? AND status NOT IN ('resolved','closed')"
+  ).get(customerId).total;
 
   res.render("customer/dashboard", {
     title: "Portal Pelanggan",
@@ -125,6 +150,8 @@ router.get("/", (req, res) => {
     invoices,
     subscriptions,
     confirmations,
+    supportTicketCount,
+    openSupportTicketCount,
     notice: req.query.notice || null,
     rupiah
   });
@@ -208,6 +235,125 @@ router.post("/invoices/:id/confirm-payment", (req, res) => {
       : error.message;
     res.redirect("/customer?notice=" + encodeURIComponent(message));
   }
+});
+
+router.get("/tickets", (req, res) => {
+  const tickets = db.prepare(`
+    SELECT t.*,
+      (SELECT COUNT(*) FROM support_ticket_messages m WHERE m.ticket_id=t.id) AS message_count,
+      (SELECT m.message FROM support_ticket_messages m
+       WHERE m.ticket_id=t.id ORDER BY m.id DESC LIMIT 1) AS latest_message
+    FROM support_tickets t
+    WHERE t.customer_id=?
+    ORDER BY t.last_activity_at DESC,t.id DESC
+    LIMIT 100
+  `).all(req.customer.id);
+  res.render("customer/tickets", {
+    title: "Keluhan Saya",
+    customer: req.customer,
+    tickets,
+    notice: req.query.notice || null,
+    error: req.query.error || null
+  });
+});
+
+router.post("/tickets", ticketCreateLimiter, (req, res) => {
+  const subject = String(req.body.subject || "").trim();
+  const category = String(req.body.category || "");
+  const message = String(req.body.message || "").trim();
+  if (subject.length < 5 || subject.length > 120) {
+    return res.redirect("/customer/tickets?error=" + encodeURIComponent("Judul laporan harus 5–120 karakter."));
+  }
+  if (!ticketCategories.has(category)) {
+    return res.redirect("/customer/tickets?error=" + encodeURIComponent("Kategori laporan tidak valid."));
+  }
+  if (message.length < 10 || message.length > 5000) {
+    return res.redirect("/customer/tickets?error=" + encodeURIComponent("Detail gangguan harus 10–5.000 karakter."));
+  }
+
+  try {
+    const ticketId = db.transaction(() => {
+      const result = db.prepare(`
+        INSERT INTO support_tickets (ticket_number,customer_id,category,subject)
+        VALUES (?,?,?,?)
+      `).run(newTicketNumber(), req.customer.id, category, subject);
+      db.prepare(`
+        INSERT INTO support_ticket_messages
+          (ticket_id,sender_type,sender_customer_id,message)
+        VALUES (?,'customer',?,?)
+      `).run(result.lastInsertRowid, req.customer.id, message);
+      return Number(result.lastInsertRowid);
+    })();
+    return res.redirect("/customer/tickets/" + ticketId + "?notice=" + encodeURIComponent("Laporan berhasil dikirim."));
+  } catch (error) {
+    if (error.code === "SQLITE_CONSTRAINT_UNIQUE") {
+      return res.redirect("/customer/tickets?error=" + encodeURIComponent("Nomor laporan bentrok. Silakan kirim ulang."));
+    }
+    throw error;
+  }
+});
+
+router.get("/tickets/:id", (req, res) => {
+  const ticketId = Number(req.params.id);
+  if (!Number.isSafeInteger(ticketId) || ticketId < 1) return res.status(404).send("Laporan tidak ditemukan.");
+  const ticket = db.prepare(`
+    SELECT t.* FROM support_tickets t
+    WHERE t.id=? AND t.customer_id=?
+  `).get(ticketId, req.customer.id);
+  if (!ticket) return res.status(404).send("Laporan tidak ditemukan.");
+  const messages = db.prepare(`
+    SELECT m.id,m.sender_type,m.message,m.created_at,
+      CASE
+        WHEN m.sender_type='customer' THEN 'Kamu'
+        WHEN m.sender_type='staff' THEN COALESCE(u.name,'Petugas FF BILLING')
+        ELSE 'Sistem'
+      END AS sender_name
+    FROM support_ticket_messages m
+    LEFT JOIN users u ON u.id=m.sender_user_id
+    WHERE m.ticket_id=?
+    ORDER BY m.id ASC
+  `).all(ticketId);
+  res.render("customer/ticket", {
+    title: ticket.ticket_number,
+    customer: req.customer,
+    ticket,
+    messages,
+    notice: req.query.notice || null,
+    error: req.query.error || null
+  });
+});
+
+router.post("/tickets/:id/reply", (req, res) => {
+  const ticketId = Number(req.params.id);
+  if (!Number.isSafeInteger(ticketId) || ticketId < 1) return res.status(404).send("Laporan tidak ditemukan.");
+  const message = String(req.body.message || "").trim();
+  if (message.length < 1 || message.length > 5000) {
+    return res.redirect("/customer/tickets/" + ticketId + "?error=" + encodeURIComponent("Balasan harus 1–5.000 karakter."));
+  }
+  const ticket = db.prepare(`
+    SELECT id,status FROM support_tickets WHERE id=? AND customer_id=?
+  `).get(ticketId, req.customer.id);
+  if (!ticket) return res.status(404).send("Laporan tidak ditemukan.");
+  if (ticket.status === "closed") {
+    return res.redirect("/customer/tickets/" + ticketId + "?error=" + encodeURIComponent("Laporan sudah ditutup. Buat laporan baru bila gangguan masih terjadi."));
+  }
+
+  db.transaction(() => {
+    db.prepare(`
+      INSERT INTO support_ticket_messages
+        (ticket_id,sender_type,sender_customer_id,message)
+      VALUES (?,'customer',?,?)
+    `).run(ticketId, req.customer.id, message);
+    const nextStatus = ticket.status === "resolved" ? "open"
+      : ticket.status === "waiting_customer" ? "in_progress" : ticket.status;
+    db.prepare(`
+      UPDATE support_tickets
+      SET status=?,resolved_at=CASE WHEN ?='open' THEN NULL ELSE resolved_at END,
+          updated_at=CURRENT_TIMESTAMP,last_activity_at=CURRENT_TIMESTAMP
+      WHERE id=?
+    `).run(nextStatus, nextStatus, ticketId);
+  })();
+  res.redirect("/customer/tickets/" + ticketId + "?notice=" + encodeURIComponent("Balasan berhasil dikirim."));
 });
 
 router.post("/account/password", (req, res, next) => {

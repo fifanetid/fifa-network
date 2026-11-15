@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | FF BILLING</title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="/assets/css/portal.css">
+  <link rel="stylesheet" href="/assets/css/support-tickets.css">
+  <link rel="stylesheet" href="/assets/css/support-tickets.css">
+</head>
+<body class="portal-page">
+  <header class="portal-topbar">
+    <a class="portal-brand" href="/customer"><span class="brand-mark">FF</span><span><strong>FF BILLING</strong><small>PORTAL PELANGGAN</small></span></a>
+    <div class="portal-user"><span><%= customer.fullName %></span><a class="small-button" href="/customer">Kembali</a></div>
+  </header>
+  <main class="portal-main">
+    <div class="ticket-portal-heading"><div><a class="ticket-back-link" href="/customer">← Dashboard</a><span class="eyebrow">BANTUAN PELANGGAN</span><h1>Keluhan dan gangguan</h1><p>Kirim laporan kepada tim FF NETWORK dan pantau tindak lanjutnya di sini.</p></div></div>
+    <% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
+    <% if (error) { %><div class="notice error"><%= error %></div><% } %>
+    <section class="portal-panel ticket-create-panel">
+      <div class="portal-section-heading"><div><span class="eyebrow">LAPORAN BARU</span><h2>Ceritakan kendalamu</h2></div></div>
+      <form class="ticket-create-form" method="post" action="/customer/tickets">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label>Jenis keluhan
+          <select name="category" required>
+            <option value="internet">Gangguan internet</option>
+            <option value="billing">Tagihan / pembayaran</option>
+            <option value="account">Akun pelanggan</option>
+            <option value="other">Lainnya</option>
+          </select>
+        </label>
+        <label>Judul laporan<input name="subject" maxlength="120" minlength="5" required placeholder="Contoh: Internet sering terputus"></label>
+        <label class="ticket-form-wide">Detail gangguan<textarea name="message" rows="5" minlength="10" maxlength="5000" required placeholder="Jelaskan sejak kapan terjadi, lampu indikator perangkat, dan langkah yang sudah dicoba..."></textarea></label>
+        <p class="ticket-form-hint">Jangan sertakan password Wi-Fi, password router, atau kode rahasia pada laporan.</p>
+        <button class="primary-button" type="submit">Kirim laporan</button>
+      </form>
+    </section>
+
+    <section class="portal-panel">
+      <div class="portal-section-heading"><div><span class="eyebrow">RIWAYAT</span><h2>Laporan saya</h2></div><span class="pill muted"><%= tickets.length %> laporan</span></div>
+      <div class="portal-table-wrap">
+        <table class="portal-table ticket-portal-table">
+          <thead><tr><th>Nomor laporan</th><th>Keluhan</th><th>Status</th><th>Prioritas</th><th>Terakhir diperbarui</th><th>Aksi</th></tr></thead>
+          <tbody>
+            <% tickets.forEach(ticket => { %>
+              <tr>
+                <td><strong><%= ticket.ticket_number %></strong></td>
+                <td><strong><%= ticket.subject %></strong><small><%= {internet:"Gangguan internet",billing:"Tagihan / pembayaran",account:"Akun pelanggan",other:"Lainnya"}[ticket.category] %> · <%= ticket.message_count %> pesan</small></td>
+                <td><span class="ticket-status status-<%= ticket.status %>"><%= {open:"Baru",in_progress:"Sedang ditangani",waiting_customer:"Menunggu pelanggan",resolved:"Selesai",closed:"Ditutup"}[ticket.status] %></span></td>
+                <td><%= {low:"Rendah",normal:"Normal",high:"Tinggi",urgent:"Mendesak"}[ticket.priority] %></td>
+                <td><%= ticket.last_activity_at %></td>
+                <td><a class="small-button" href="/customer/tickets/<%= ticket.id %>">Lihat</a></td>
+              </tr>
+            <% }) %>
+            <% if (!tickets.length) { %><tr><td colspan="6" class="portal-empty">Belum ada laporan keluhan.</td></tr><% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <footer class="portal-footer">FF BILLING · Tim FF NETWORK akan menanggapi laporan melalui portal ini.</footer>
+  </main>
+</body>
+</html>

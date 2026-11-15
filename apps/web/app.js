@@ -13,6 +13,7 @@ const plansRoutes = require("./routes/plans");
 const auditRoutes = require("./routes/audit");
 const reportsRoutes = require("./routes/reports");
 const whatsappRoutes = require("./routes/whatsapp");
+const supportTicketRoutes = require("./routes/support-tickets");
 const { dbDir } = require("../../database/db");
 
 const app = express();
@@ -73,6 +74,7 @@ app.use("/admin/users", userRoutes);
 app.use("/admin/audit", auditRoutes);
 app.use("/reports", reportsRoutes);
 app.use("/admin/whatsapp", whatsappRoutes);
+app.use("/admin/tickets", supportTicketRoutes);
 app.use("/plans", plansRoutes);
 app.use("/billing", billingRoutes);
 
