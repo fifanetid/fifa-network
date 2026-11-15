@@ -32,8 +32,8 @@
 .app-shell .eyebrow{font-size:9px;letter-spacing:.1em;font-weight:700}
 .app-shell .notice{border-radius:7px;padding:10px 12px;font-size:11px}
 .app-shell .table-wrap{border-radius:8px;border-color:#e3e8ee}
-.app-shell .users-table{font-size:11px}
-.app-shell .users-table th{
+.app-shell:not(:has(.customer-management-screen)) .users-table{font-size:11px}
+.app-shell:not(:has(.customer-management-screen)) .users-table th{
   padding:10px 11px;
   color:#748195;
   background:#f6f8fa;
@@ -41,9 +41,9 @@
   font-weight:700;
   letter-spacing:.065em;
 }
-.app-shell .users-table td{padding:10px 11px}
-.app-shell .users-table td strong{font-size:10px}
-.app-shell .users-table td small{font-size:9px}
+.app-shell:not(:has(.customer-management-screen)) .users-table td{padding:10px 11px}
+.app-shell:not(:has(.customer-management-screen)) .users-table td strong{font-size:10px}
+.app-shell:not(:has(.customer-management-screen)) .users-table td small{font-size:9px}
 
 /* One button system: blue = primary, neutral = secondary, red = destructive */
 .app-shell .primary-button,
@@ -327,6 +327,32 @@
   border-color:#345d90!important;
   color:#fff!important;
   background:#345d90!important;
+}
+.app-shell .customer-management-screen .small-button{
+  border-color:#465365;
+  color:#d2dce8;
+  background:#202a35;
+}
+.app-shell .customer-management-screen .small-button:hover{
+  border-color:#68778a;
+  color:#fff;
+  background:#293442;
+}
+.app-shell .customer-management-screen .danger-button{
+  border-color:#81434a;
+  color:#ffb3b8;
+  background:#2e2228;
+}
+.app-shell .customer-management-screen .danger-button:hover{
+  border-color:#b45b63;
+  color:#fff;
+  background:#3a252c;
+}
+.app-shell .customer-management-screen .danger-button.is-disabled:disabled{
+  border-color:#46505d;
+  color:#718093;
+  background:#252e38;
+  opacity:.65;
 }
 .app-shell .customer-management-screen .customer-modal-secondary{
   border-color:#465365;
