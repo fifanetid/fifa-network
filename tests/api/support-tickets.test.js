@@ -158,7 +158,7 @@ test("petugas dapat memfilter, menugaskan, mengubah status, dan membalas laporan
   assert.match(inbox, /Tagihan tidak sesuai/);
 
   const detail = await refreshToken("/admin/tickets/" + ticket.id, technician);
-  assert.match(detail, /Data pelanggan/);
+  assert.match(detail, /DATA PELANGGAN/i);
   assert.match(detail, /Percakapan/);
 
   const updated = await post("/admin/tickets/" + ticket.id + "/update", technician, {
@@ -222,7 +222,7 @@ test("status selesai dapat dibuka kembali oleh pelanggan, tetapi tiket ditutup t
   assert.equal(update.status, 302);
   assert.ok(db.prepare("SELECT closed_at FROM support_tickets WHERE id=?").get(ticket.id).closed_at);
 
-  await refreshToken("/customer/tickets/" + ticket.id, customer);
+  await refreshToken("/customer/tickets", customer);
   reply = await post("/customer/tickets/" + ticket.id + "/reply", customer, {
     message: "Balasan setelah ditutup seharusnya tidak disimpan."
   });
