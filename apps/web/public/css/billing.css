@@ -1758,3 +1758,192 @@ body:has(.customer-edit-disclosure[open]){
     padding:8px 12px max(9px,env(safe-area-inset-bottom))!important;
   }
 }
+
+
+/* Customer create modal — reference-style overlay and one native scroll body */
+.customer-reference-overlay{
+  position:fixed!important;
+  inset:0!important;
+  z-index:5000!important;
+  display:none;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100vw!important;
+  height:100vh!important;
+  height:100dvh!important;
+  margin:0!important;
+  padding:12px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  background:rgba(0,0,0,.76)!important;
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+}
+.customer-reference-overlay.show{display:flex!important}
+.customer-reference-overlay[hidden]{display:none!important}
+.customer-reference-panel{
+  position:relative!important;
+  display:flex!important;
+  flex:0 0 auto!important;
+  flex-direction:column!important;
+  width:min(720px,calc(100vw - 24px))!important;
+  height:min(820px,calc(100vh - 24px))!important;
+  height:min(820px,calc(100dvh - 24px))!important;
+  max-height:calc(100vh - 24px)!important;
+  max-height:calc(100dvh - 24px)!important;
+  min-height:0!important;
+  margin:auto!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:1px solid #3b4654!important;
+  border-radius:10px!important;
+  color:#dce5ef!important;
+  background:#171e27!important;
+  box-shadow:0 24px 70px rgba(0,0,0,.58)!important;
+}
+.customer-reference-heading{
+  position:relative!important;
+  top:auto!important;
+  z-index:2!important;
+  display:flex!important;
+  flex:0 0 auto!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+  width:100%!important;
+  margin:0!important;
+  padding:15px 18px 13px!important;
+  border:0!important;
+  border-bottom:1px solid #35404d!important;
+  border-radius:0!important;
+  color:#edf2f8!important;
+  background:#171e27!important;
+  box-shadow:none!important;
+}
+.customer-reference-heading .eyebrow{color:#8b9bb0!important}
+.customer-reference-heading h3{
+  margin:4px 0 3px!important;
+  color:#edf2f8!important;
+  font-size:15px!important;
+  font-weight:700!important;
+  line-height:1.35!important;
+}
+.customer-reference-heading p{
+  margin:0!important;
+  color:#8594a8!important;
+  font-size:9px!important;
+  line-height:1.5!important;
+}
+.customer-reference-form{
+  display:flex!important;
+  flex:1 1 auto!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  gap:0!important;
+  width:100%!important;
+  height:auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:0!important;
+  border-radius:0!important;
+  color:#dce5ef!important;
+  background:#171e27!important;
+  box-shadow:none!important;
+}
+.customer-reference-form>input[type="hidden"]{display:none!important}
+.customer-reference-form>.customer-reference-body{
+  position:relative!important;
+  display:flex!important;
+  flex:1 1 0%!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  gap:10px!important;
+  width:100%!important;
+  height:auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-height:75vh!important;
+  max-height:75dvh!important;
+  margin:0!important;
+  padding:14px 17px 18px!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior-y:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+  scrollbar-width:thin!important;
+  scrollbar-color:#566477 #171e27!important;
+  background:#171e27!important;
+}
+.customer-reference-form>.customer-reference-body::-webkit-scrollbar{width:10px}
+.customer-reference-form>.customer-reference-body::-webkit-scrollbar-thumb{
+  min-height:40px;
+  border:2px solid #171e27;
+  border-radius:10px;
+  background:#566477;
+}
+.customer-reference-form>.customer-reference-body::-webkit-scrollbar-track{background:#171e27}
+.customer-reference-form .customer-form-section,
+.customer-reference-form .customer-extra-fields{
+  flex:0 0 auto!important;
+  width:100%!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+.customer-reference-form .customer-extra-fields[open]{
+  overflow:visible!important;
+  background:#1b242e!important;
+}
+.customer-reference-form .customer-extra-fields>summary{
+  background:#1b242e!important;
+  color:#dce5ef!important;
+}
+.customer-reference-form .customer-form-actions.customer-reference-footer{
+  position:relative!important;
+  top:auto!important;
+  bottom:auto!important;
+  z-index:3!important;
+  display:flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  width:100%!important;
+  min-height:62px!important;
+  margin:0!important;
+  padding:10px 18px max(10px,env(safe-area-inset-bottom))!important;
+  border:0!important;
+  border-top:1px solid #35404c!important;
+  border-radius:0 0 9px 9px!important;
+  background:#171e27!important;
+  box-shadow:0 -5px 16px rgba(0,0,0,.16)!important;
+}
+body.customer-modal-open{overflow:hidden!important}
+@media(max-width:600px){
+  .customer-reference-overlay{padding:7px!important;align-items:stretch!important}
+  .customer-reference-panel{
+    width:100%!important;
+    height:100%!important;
+    max-height:100%!important;
+    margin:0!important;
+    border-radius:8px!important;
+  }
+  .customer-reference-heading{padding:12px 13px 10px!important}
+  .customer-reference-form>.customer-reference-body{
+    max-height:none!important;
+    padding:10px 12px 15px!important;
+    scrollbar-gutter:auto!important;
+  }
+  .customer-reference-form .customer-simple-grid,
+  .customer-reference-form .customer-extra-grid{grid-template-columns:1fr!important;gap:8px!important}
+  .customer-reference-form .customer-field-wide{grid-column:auto!important}
+  .customer-reference-form>.customer-form-actions.customer-reference-footer{
+    min-height:58px!important;
+    padding:8px 12px max(9px,env(safe-area-inset-bottom))!important;
+  }
+}
