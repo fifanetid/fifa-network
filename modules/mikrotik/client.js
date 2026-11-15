@@ -66,7 +66,10 @@ async function inspectRouter(router, options = {}) {
 
     const identity = firstRecord(identityRaw);
     const resources = firstRecord(resourcesRaw);
-    const activePpp = mapActivePpp(activePppRaw);
+    const activePppRows = Array.isArray(activePppRaw)
+      ? activePppRaw
+      : activePppRaw && typeof activePppRaw === "object" ? [activePppRaw] : [];
+    const activePpp = mapActivePpp(activePppRows);
 
     return {
       identity: safeText(identity.name || router.router_name, 80),
@@ -76,7 +79,7 @@ async function inspectRouter(router, options = {}) {
       cpuCount: safeInteger(resources["cpu-count"]),
       memoryFreeBytes: safeInteger(resources["free-memory"]),
       memoryTotalBytes: safeInteger(resources["total-memory"]),
-      activePppCount: activePpp.length,
+      activePppCount: activePppRows.length,
       activePpp
     };
   } finally {
