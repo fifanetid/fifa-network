@@ -1,14 +1,14 @@
 <%- include("partials/header", { title }) %>
-<section class="welcome">
+<section class="welcome dashboard-welcome">
   <div><span class="eyebrow light">BILLING OVERVIEW</span><h2>Selamat datang, <%= currentUser.name %></h2><p>Pantau pelanggan, langganan, dan tagihan FF BILLING dari satu dashboard.</p></div>
   <div class="welcome-orb">FF</div>
 </section>
-<section class="stat-grid">
+<section class="stat-grid dashboard-stat-grid">
   <% stats.forEach((item, index) => { %>
     <article class="stat-card">
       <div class="stat-top"><span><%= item.label %></span><span class="stat-icon"><%= ["♙","⌁","▤","◎"][index] %></span></div>
       <strong><%= item.value %></strong>
-      <small>Ringkasan data billing saat ini</small>
+      <small><%= item.description %></small>
     </article>
   <% }) %>
 </section>
