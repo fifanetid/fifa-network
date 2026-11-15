@@ -1,0 +1,74 @@
+<%- include("partials/header", { title }) %>
+<% const dateLabel = value => value || "Belum"; %>
+<% const staffName = message => message.sender_type==="staff" ? (message.staff_name || "Petugas") : message.sender_type==="customer" ? (message.customer_name || "Pelanggan") : "Sistem"; %>
+<% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
+<% if (error) { %><div class="notice error"><%= error %></div><% } %>
+<div class="ticket-detail-heading">
+  <div><a class="ticket-back-link" href="/admin/tickets">← Kembali ke keluhan</a><span class="eyebrow">DETAIL LAPORAN</span><h2><%= ticket.subject %></h2><p><strong><%= ticket.ticket_number %></strong> · Dibuat <%= ticket.created_at %></p></div>
+  <span class="ticket-status status-<%= ticket.status %>"><%= statusLabels[ticket.status] %></span>
+</div>
+
+<section class="ticket-detail-grid">
+  <div class="panel ticket-conversation-panel">
+    <div class="panel-heading"><div><span class="eyebrow">RIWAYAT KOMUNIKASI</span><h3>Percakapan</h3></div><span class="pill muted"><%= messages.length %> pesan</span></div>
+    <div class="ticket-thread">
+      <% messages.forEach(message => { %>
+        <article class="ticket-message <%= message.sender_type==="staff"?"message-staff":message.sender_type==="system"?"message-system":"message-customer" %>">
+          <div class="ticket-message-meta"><strong><%= staffName(message) %></strong><time><%= message.created_at %></time></div>
+          <p><%= message.message %></p>
+        </article>
+      <% }) %>
+    </div>
+    <% if (ticket.status === "closed") { %>
+      <p class="ticket-closed-note">Laporan ini sudah ditutup. Ubah status ke proses penanganan bila perlu dibuka kembali.</p>
+    <% } else { %>
+      <form class="ticket-reply-form" method="post" action="/admin/tickets/<%= ticket.id %>/reply">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label>Balasan petugas<textarea name="message" rows="4" minlength="1" maxlength="5000" required placeholder="Tulis perkembangan penanganan atau pertanyaan untuk pelanggan..."></textarea></label>
+        <button class="primary-button" type="submit">Kirim balasan</button>
+      </form>
+    <% } %>
+  </div>
+
+  <aside class="ticket-side-column">
+    <section class="panel ticket-customer-panel">
+      <div class="panel-heading"><div><span class="eyebrow">DATA PELANGGAN</span><h3>Informasi pelapor</h3></div></div>
+      <strong class="ticket-customer-name"><%= ticket.full_name %></strong>
+      <span><%= ticket.customer_code %></span>
+      <span><%= ticket.phone %></span>
+      <span><%= ticket.email || "Email belum diisi" %></span>
+      <p><%= ticket.address || "Alamat belum diisi" %></p>
+      <a class="small-button" href="/billing">Buka data pelanggan</a>
+    </section>
+
+    <section class="panel ticket-manage-panel">
+      <div class="panel-heading"><div><span class="eyebrow">TINDAK LANJUT</span><h3>Pengelolaan laporan</h3></div></div>
+      <form method="post" action="/admin/tickets/<%= ticket.id %>/update" class="ticket-manage-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label>Status
+          <select name="status" required>
+            <% Object.entries(statusLabels).forEach(([key,label]) => { %><option value="<%= key %>" <%= ticket.status===key?"selected":"" %>><%= label %></option><% }) %>
+          </select>
+        </label>
+        <label>Prioritas
+          <select name="priority" required>
+            <% Object.entries(priorityLabels).forEach(([key,label]) => { %><option value="<%= key %>" <%= ticket.priority===key?"selected":"" %>><%= label %></option><% }) %>
+          </select>
+        </label>
+        <label>Petugas
+          <select name="assigned_to">
+            <option value="">Belum ditugaskan</option>
+            <% staffUsers.forEach(user => { %><option value="<%= user.id %>" <%= Number(ticket.assigned_to)===user.id?"selected":"" %>><%= user.name %> · <%= user.role %></option><% }) %>
+          </select>
+        </label>
+        <button class="primary-button" type="submit">Simpan perubahan</button>
+      </form>
+      <div class="ticket-meta-list">
+        <div><span>Kategori</span><strong><%= categoryLabels[ticket.category] %></strong></div>
+        <div><span>Respons pertama</span><strong><%= dateLabel(ticket.first_response_at) %></strong></div>
+        <div><span>Diselesaikan</span><strong><%= dateLabel(ticket.resolved_at) %></strong></div>
+      </div>
+    </section>
+  </aside>
+</section>
+<%- include("partials/footer") %>
