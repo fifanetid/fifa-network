@@ -164,3 +164,15 @@
   .ticket-portal-detail-heading{flex-direction:column}
   .ticket-message-meta{align-items:flex-start;flex-direction:column;gap:3px}
 }
+
+.ticket-portal-shortcut .ticket-shortcut-row{
+  display:flex;align-items:center;justify-content:space-between;gap:15px;
+  padding:10px 12px;border:1px solid #e5e9ee;border-radius:7px;background:#fafbfc
+}
+.ticket-shortcut-row>div{display:grid;gap:2px}
+.ticket-shortcut-row>div strong{color:#25364b;font-size:19px}
+.ticket-shortcut-row>div span{color:#7d8999;font-size:9px}
+.ticket-shortcut-row .primary-button{min-height:32px;white-space:nowrap}
+@media(max-width:520px){
+  .ticket-portal-shortcut .ticket-shortcut-row{align-items:flex-start;flex-direction:column}
+}
