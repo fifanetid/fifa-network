@@ -87,13 +87,9 @@ nano .env
 
 Ganti nilai SESSION_SECRET dengan hasil acak tersebut. Jangan commit .env.
 
-Buat kunci enkripsi aplikasi dan simpan pada `APP_ENCRYPTION_KEY` di file `.env`:
+Kunci `APP_ENCRYPTION_KEY` dibuat otomatis pada startup pertama jika nilainya kosong di `.env`. FF BILLING menyimpan kunci acak 32-byte (64 karakter hex) dengan izin file privat. Kunci ini digunakan untuk mengenkripsi password dan sertifikat CA router menggunakan AES-256-GCM.
 
-~~~bash
-openssl rand -hex 32
-~~~
-
-Kunci ini digunakan untuk mengenkripsi password dan sertifikat CA router. Simpan kunci tersebut dalam backup rahasia. Jangan mengubahnya setelah router tersimpan kecuali kredensial akan dienkripsi ulang.
+Simpan backup kunci bersama backup database, tetapi di lokasi rahasia yang terpisah. Jangan menghapus, mengganti, atau membagikan kunci setelah kredensial router tersimpan.
 
 ### Membuat administrator pertama
 
