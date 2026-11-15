@@ -1,0 +1,143 @@
+<%- include("../partials/header", { title }) %>
+<% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
+<% if (error) { %><div class="notice error"><%= error %></div><% } %>
+
+<section class="mikrotik-intro">
+  <div>
+    <span class="eyebrow">NETWORK MONITORING</span>
+    <h2>Router MikroTik</h2>
+    <p>Hubungkan router dan pantau resource serta sesi PPP aktif dari FF BILLING.</p>
+  </div>
+  <span class="mikrotik-readonly-tag"><span></span> MODE BACA-Saja</span>
+</section>
+
+<% if (!encryptionReady) { %>
+  <div class="notice error mikrotik-key-warning">
+    Kunci enkripsi belum dikonfigurasi. Tambahkan <code>APP_ENCRYPTION_KEY</code> pada file <code>.env</code> sebelum menyimpan kredensial router.
+  </div>
+<% } %>
+
+<section class="mikrotik-summary-grid">
+  <article><span>Total router</span><strong><%= routers.length %></strong><small>Terdaftar di FF BILLING</small></article>
+  <article><span>Terhubung</span><strong><%= routers.filter(r=>r.connection_status==="connected").length %></strong><small>Uji koneksi terakhir berhasil</small></article>
+  <article><span>Gagal / belum diuji</span><strong><%= routers.filter(r=>r.connection_status!=="connected").length %></strong><small>Periksa konfigurasi dan akses jaringan</small></article>
+  <article><span>Total PPP aktif</span><strong><%= routers.reduce((sum,r)=>sum+(r.connection_status==="connected"?r.active_ppp_count:0),0) %></strong><small>Hasil uji koneksi terakhir</small></article>
+</section>
+
+<section class="panel mikrotik-add-panel">
+  <div class="panel-heading">
+    <div><span class="eyebrow">KONEKSI BARU</span><h3>Tambahkan router</h3></div>
+    <span class="pill muted">API read-only</span>
+  </div>
+  <p class="muted-text">Gunakan IP privat router yang dapat dijangkau server FF BILLING, misalnya melalui LAN atau VPN site-to-site/WireGuard.</p>
+  <form class="mikrotik-form" method="post" action="/admin/mikrotik/routers">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Nama router<input name="router_name" maxlength="80" required placeholder="Contoh: MikroTik Utama"></label>
+    <label>IP privat router<input name="host" inputmode="decimal" required placeholder="192.168.88.1"></label>
+    <label>Username API<input name="api_username" maxlength="64" required autocomplete="off" placeholder="ffbilling-read"></label>
+    <label>Password API<input name="api_password" type="password" minlength="8" maxlength="200" required autocomplete="new-password" placeholder="Password khusus API"></label>
+    <label class="mikrotik-tls-option"><input type="checkbox" name="api_tls" value="1"><span><strong>Gunakan API-SSL (port 8729)</strong><small>Disarankan bila router memiliki sertifikat TLS yang valid. Tanpa ini API memakai TCP 8728 dan hanya boleh di jaringan privat.</small></span></label>
+    <label class="mikrotik-form-wide">Sertifikat CA PEM (opsional)
+      <textarea name="api_tls_ca" rows="3" maxlength="15000" placeholder="Tempel sertifikat CA di sini bila router menggunakan sertifikat internal/self-signed. Dikosongkan bila sertifikat sudah dipercaya sistem."></textarea>
+      <small>Jika diisi, sertifikat CA akan dienkripsi sebelum disimpan.</small>
+    </label>
+    <div class="mikrotik-form-note"><strong>Keamanan:</strong> password dan sertifikat disimpan dalam bentuk terenkripsi. Jangan gunakan akun administrator utama router; buat akun khusus dengan izin <code>read</code> dan <code>api</code> saja.</div>
+    <button class="primary-button" type="submit" <%= !encryptionReady ? "disabled" : "" %>>Simpan router</button>
+  </form>
+</section>
+
+<section class="panel mikrotik-router-panel">
+  <div class="panel-heading">
+    <div><span class="eyebrow">PERANGKAT TERDAFTAR</span><h3>Daftar router</h3></div>
+    <span class="pill muted"><%= routers.length %> router</span>
+  </div>
+  <% if (!routers.length) { %>
+    <div class="mikrotik-empty">
+      <strong>Belum ada router yang terhubung</strong>
+      <p>Tambahkan IP dan akun API read-only router untuk memulai pemantauan.</p>
+    </div>
+  <% } %>
+  <div class="mikrotik-router-list">
+    <% routers.forEach(item => { %>
+      <article class="mikrotik-router-card">
+        <div class="mikrotik-router-heading">
+          <div>
+            <span class="eyebrow"><%= item.host %>:<%= item.api_port %></span>
+            <h3><%= item.router_name %></h3>
+            <p><%= item.router_identity || "Identitas router belum dibaca" %> · <%= item.api_tls ? "API-SSL" : "API TCP" %> · Pengguna <%= item.api_username %></p>
+          </div>
+          <span class="mikrotik-status status-<%= item.connection_status %>"><%= item.connection_status==="connected"?"Terhubung":item.connection_status==="failed"?"Gagal":"Belum diuji" %></span>
+        </div>
+
+        <% if (item.connection_status==="connected") { %>
+          <div class="mikrotik-metric-grid">
+            <div><span>RouterOS</span><strong><%= item.router_version || "-" %></strong></div>
+            <div><span>Uptime</span><strong><%= item.router_uptime || "-" %></strong></div>
+            <div><span>CPU</span><strong><%= item.cpu_load === null ? "-" : item.cpu_load + "%" %></strong></div>
+            <div><span>PPP aktif</span><strong><%= item.active_ppp_count %></strong></div>
+            <div><span>Memori bebas</span><strong><%= item.memory_free_bytes === null ? "-" : (item.memory_free_bytes/1048576).toFixed(0) + " MB" %></strong></div>
+            <div><span>CPU core</span><strong><%= item.cpu_count === null ? "-" : item.cpu_count %></strong></div>
+          </div>
+        <% } %>
+
+        <% if (item.connection_status==="failed" && item.last_error) { %>
+          <div class="mikrotik-router-error"><strong>Uji koneksi gagal</strong><span><%= item.last_error %></span></div>
+        <% } %>
+        <div class="mikrotik-last-check">Pemeriksaan terakhir: <%= item.last_checked_at || "Belum pernah" %></div>
+
+        <div class="mikrotik-actions">
+          <form method="post" action="/admin/mikrotik/routers/<%= item.id %>/test">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="primary-button" type="submit">Uji koneksi / Perbarui status</button>
+          </form>
+          <details class="mikrotik-edit-details">
+            <summary class="small-button">Ubah pengaturan</summary>
+            <form class="mikrotik-form mikrotik-edit-form" method="post" action="/admin/mikrotik/routers/<%= item.id %>/update">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <label>Nama router<input name="router_name" maxlength="80" required value="<%= item.router_name %>"></label>
+              <label>IP privat router<input name="host" required value="<%= item.host %>"></label>
+              <label>Username API<input name="api_username" maxlength="64" required value="<%= item.api_username %>" autocomplete="off"></label>
+              <label>Password API baru<input name="api_password" type="password" minlength="8" maxlength="200" autocomplete="new-password" placeholder="Kosongkan untuk mempertahankan password"></label>
+              <label class="mikrotik-tls-option"><input type="checkbox" name="api_tls" value="1" <%= item.api_tls ? "checked" : "" %>><span><strong>Gunakan API-SSL (port 8729)</strong><small>Port TCP 8728 digunakan bila opsi tidak dipilih.</small></span></label>
+              <label class="mikrotik-form-wide">Sertifikat CA PEM (opsional)
+                <textarea name="api_tls_ca" rows="3" maxlength="15000" placeholder="<%= item.api_tls_ca_encrypted ? "Sertifikat tersimpan terenkripsi. Tempel sertifikat baru untuk menggantinya." : "Tempel sertifikat CA bila diperlukan." %>"></textarea>
+              </label>
+              <p class="mikrotik-form-note mikrotik-form-wide">Password lama tidak pernah ditampilkan. Kosongkan kolom password untuk mempertahankannya. Menonaktifkan API-SSL akan menghapus sertifikat CA tersimpan.</p>
+              <button class="primary-button" type="submit" <%= !encryptionReady ? "disabled" : "" %>>Simpan perubahan</button>
+            </form>
+            <form class="mikrotik-delete-form" method="post" action="/admin/mikrotik/routers/<%= item.id %>/delete">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="danger-button" type="submit">Hapus data koneksi</button>
+              <small>Hanya menghapus data koneksi FF BILLING, tidak mengubah router.</small>
+            </form>
+          </details>
+        </div>
+
+        <% if (item.connection_status==="connected") { %>
+          <details class="mikrotik-ppp-details">
+            <summary>Lihat sesi PPP aktif (<%= item.active_ppp_count %>)</summary>
+            <div class="table-wrap mikrotik-ppp-table-wrap">
+              <table class="users-table">
+                <thead><tr><th>Username</th><th>Layanan</th><th>Caller ID</th><th>IP address</th><th>Uptime</th></tr></thead>
+                <tbody>
+                  <% item.activePpp.forEach(session => { %>
+                    <tr><td><strong><%= session.name %></strong></td><td><%= session.service || "-" %></td><td><%= session.callerId || "-" %></td><td><%= session.address || "-" %></td><td><%= session.uptime || "-" %></td></tr>
+                  <% }) %>
+                  <% if (!item.activePpp.length) { %><tr><td colspan="5" class="empty-cell">Tidak ada sesi PPP aktif.</td></tr><% } %>
+                </tbody>
+              </table>
+            </div>
+            <small>Data ini adalah snapshot dari uji koneksi terakhir, bukan pemantauan real-time.</small>
+          </details>
+        <% } %>
+      </article>
+    <% }) %>
+  </div>
+</section>
+
+<section class="mikrotik-safety-note">
+  <strong>Batas integrasi tahap ini</strong>
+  <p>FF BILLING hanya menjalankan perintah <code>/system/identity/print</code>, <code>/system/resource/print</code>, dan <code>/ppp/active/print</code>. Belum ada pembuatan, perubahan, penghapusan akun PPP, pemutusan sesi, atau perubahan konfigurasi router.</p>
+</section>
+
+<%- include("../partials/footer") %>

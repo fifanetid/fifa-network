@@ -1,0 +1,136 @@
+/* FF BILLING — MikroTik read-only monitoring */
+.mikrotik-intro{
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  margin:0 0 13px;padding:18px 20px;
+  border:1px solid #e0e7ef;border-left:3px solid #315f9d;
+  border-radius:8px;background:#fff
+}
+.mikrotik-intro h2{margin:4px 0;color:#25364b;font-size:19px;font-weight:700;letter-spacing:-.025em}
+.mikrotik-intro p{margin:0;color:#768397;font-size:10px;line-height:1.6}
+.mikrotik-readonly-tag{
+  display:inline-flex;align-items:center;gap:7px;padding:6px 9px;
+  border:1px solid #d4e6da;border-radius:5px;color:#3d7651;
+  background:#f0f7f2;font-size:8px;font-weight:750;letter-spacing:.05em;white-space:nowrap
+}
+.mikrotik-readonly-tag span{width:6px;height:6px;border-radius:50%;background:#45966a}
+.mikrotik-key-warning{margin:0 0 12px}
+.mikrotik-summary-grid{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:13px
+}
+.mikrotik-summary-grid article{
+  display:grid;gap:4px;min-width:0;padding:12px 14px;
+  border:1px solid #e2e7ed;border-radius:8px;background:#fff
+}
+.mikrotik-summary-grid span{color:#718096;font-size:9px;font-weight:650}
+.mikrotik-summary-grid strong{color:#26374b;font-size:21px;font-weight:720;letter-spacing:-.03em}
+.mikrotik-summary-grid small{color:#8a96a5;font-size:9px;line-height:1.4}
+.mikrotik-add-panel,.mikrotik-router-panel{margin-bottom:13px}
+.mikrotik-add-panel>.muted-text{margin:0 0 12px;font-size:10px;line-height:1.6}
+.mikrotik-form{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px 13px;
+  align-items:start
+}
+.mikrotik-form>label:not(.mikrotik-tls-option){
+  display:grid;gap:5px;min-width:0;color:#59697d;font-size:10px;font-weight:650
+}
+.mikrotik-form input:not([type=checkbox]),.mikrotik-form textarea{
+  width:100%;min-width:0;min-height:36px;margin:0;padding:8px 10px;
+  border:1px solid #dce3eb;border-radius:6px;color:#27374b;background:#fff;
+  font:inherit;font-size:10px
+}
+.mikrotik-form textarea{min-height:78px;line-height:1.5;resize:vertical}
+.mikrotik-form label>small{color:#8490a0;font-size:9px;font-weight:450;line-height:1.5}
+.mikrotik-form-wide{grid-column:1/-1}
+.mikrotik-tls-option{
+  display:flex;align-items:flex-start;gap:9px;grid-column:1/-1;
+  padding:10px;border:1px solid #e3e8ee;border-radius:6px;background:#f8fafb
+}
+.mikrotik-tls-option input[type=checkbox]{width:15px;height:15px;flex:0 0 15px;margin:2px 0 0;accent-color:#315f9d}
+.mikrotik-tls-option span{display:grid;gap:2px}
+.mikrotik-tls-option strong{color:#42536a;font-size:10px}
+.mikrotik-tls-option small{color:#7e8b9b;font-size:9px;line-height:1.5}
+.mikrotik-form-note{
+  grid-column:1/-1;margin:0;padding:9px 11px;border:1px solid #e7ebf0;
+  border-radius:6px;color:#738196;background:#f8fafb;font-size:9px;line-height:1.6
+}
+.mikrotik-form-note strong{color:#53657b}
+.mikrotik-form code,.mikrotik-safety-note code{
+  padding:1px 4px;border-radius:3px;color:#415b7b;background:#eef2f6;font-size:9px
+}
+.mikrotik-form .primary-button{justify-self:start;grid-column:1/-1}
+.mikrotik-empty{padding:24px;text-align:center;border:1px dashed #dce3eb;border-radius:7px;background:#fafbfc}
+.mikrotik-empty strong{color:#42536a;font-size:11px}
+.mikrotik-empty p{margin:4px 0 0;color:#8490a0;font-size:10px}
+.mikrotik-router-list{display:grid;gap:11px}
+.mikrotik-router-card{
+  min-width:0;padding:15px;border:1px solid #e3e8ee;border-radius:8px;background:#fff
+}
+.mikrotik-router-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:13px}
+.mikrotik-router-heading .eyebrow{color:#7e8c9e;font-size:8px}
+.mikrotik-router-heading h3{margin:3px 0;color:#29394e;font-size:14px;font-weight:700}
+.mikrotik-router-heading p{margin:0;color:#8290a0;font-size:9px;line-height:1.5}
+.mikrotik-status{
+  display:inline-flex;align-items:center;justify-content:center;min-height:23px;
+  padding:4px 8px;border:1px solid transparent;border-radius:5px;
+  font-size:9px;font-weight:700;white-space:nowrap
+}
+.mikrotik-status.status-connected{border-color:#d3e7da;color:#39724d;background:#eff7f1}
+.mikrotik-status.status-failed{border-color:#edd4d4;color:#9b4545;background:#fbf0f0}
+.mikrotik-status.status-not_tested{border-color:#e2e6eb;color:#788597;background:#f3f5f7}
+.mikrotik-metric-grid{
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;margin-top:12px
+}
+.mikrotik-metric-grid>div{
+  display:grid;gap:3px;min-width:0;padding:9px;border:1px solid #e8edf2;
+  border-radius:6px;background:#fafbfc
+}
+.mikrotik-metric-grid span{color:#7c899a;font-size:8px}
+.mikrotik-metric-grid strong{overflow:hidden;color:#34455b;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.mikrotik-router-error{
+  display:grid;gap:3px;margin-top:11px;padding:9px 10px;
+  border:1px solid #eddada;border-radius:6px;color:#905052;background:#fbf4f4
+}
+.mikrotik-router-error strong{font-size:9px}
+.mikrotik-router-error span{font-size:9px;line-height:1.5;overflow-wrap:anywhere}
+.mikrotik-last-check{margin-top:9px;color:#8a96a5;font-size:8px}
+.mikrotik-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:11px}
+.mikrotik-actions form{margin:0}
+.mikrotik-actions button{min-height:32px}
+.mikrotik-edit-details{position:relative}
+.mikrotik-edit-details>summary{display:inline-flex;align-items:center;justify-content:center;min-height:32px;cursor:pointer}
+.mikrotik-edit-form{
+  margin-top:10px;padding:12px;border:1px solid #e4e9ef;border-radius:7px;background:#f9fafb
+}
+.mikrotik-edit-form .primary-button{grid-column:1/-1}
+.mikrotik-delete-form{
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px;padding-top:10px;
+  border-top:1px solid #e7ebf0
+}
+.mikrotik-delete-form .danger-button{min-height:30px}
+.mikrotik-delete-form small{color:#8a96a5;font-size:8px}
+.mikrotik-ppp-details{margin-top:12px;padding-top:10px;border-top:1px solid #e8edf2}
+.mikrotik-ppp-details>summary{color:#345d90;font-size:10px;font-weight:650;cursor:pointer}
+.mikrotik-ppp-table-wrap{max-height:330px;overflow:auto;margin-top:9px;border:1px solid #e6ebf0;border-radius:6px}
+.mikrotik-ppp-table-wrap .users-table{min-width:560px}
+.mikrotik-ppp-details>small{display:block;margin-top:7px;color:#8a96a5;font-size:8px}
+.mikrotik-safety-note{
+  margin:0 0 14px;padding:12px 14px;border:1px solid #e2e8ef;border-left:3px solid #8295aa;
+  border-radius:7px;background:#f8fafc
+}
+.mikrotik-safety-note strong{color:#465870;font-size:10px}
+.mikrotik-safety-note p{margin:4px 0 0;color:#778599;font-size:9px;line-height:1.65}
+@media(max-width:1050px){
+  .mikrotik-metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .mikrotik-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mikrotik-intro{align-items:flex-start;flex-direction:column}
+  .mikrotik-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:560px){
+  .mikrotik-form{grid-template-columns:1fr}
+  .mikrotik-form-wide,.mikrotik-tls-option,.mikrotik-form .primary-button{grid-column:auto}
+  .mikrotik-router-heading{flex-direction:column}
+  .mikrotik-edit-form{grid-template-columns:1fr}
+  .mikrotik-edit-form .mikrotik-form-wide,.mikrotik-edit-form .primary-button{grid-column:auto}
+}

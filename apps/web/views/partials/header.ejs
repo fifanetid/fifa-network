@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/assets/css/portal.css">
   <link rel="stylesheet" href="/assets/css/admin-ui.css">
   <link rel="stylesheet" href="/assets/css/support-tickets.css">
+  <link rel="stylesheet" href="/assets/css/mikrotik.css">
 </head>
 <body>
 <div class="app-shell">
@@ -32,7 +33,9 @@
         <a class="<%= ['Manajemen Pelanggan','Billing & Pelanggan'].includes(title) ? 'active' : '' %>" href="/billing"><span>♙</span><span>Pelanggan</span></a>
         <a class="<%= title === 'Laporan Keuangan' ? 'active' : '' %>" href="/reports"><span>▥</span><span>Laporan Keuangan</span></a>
       <% } %>
-      <a href="#"><span>⌁</span><span>MikroTik (segera)</span></a>
+      <% if (currentUser && currentUser.role === "admin") { %>
+        <a class="<%= title === 'MikroTik' ? 'active' : '' %>" href="/admin/mikrotik"><span>⌁</span><span>MikroTik</span></a>
+      <% } %>
       <a href="#"><span>◎</span><span>GenieACS / ONT (segera)</span></a>
       <a href="#"><span>⚙</span><span>Pengaturan</span></a>
     </nav>

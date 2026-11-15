@@ -22,6 +22,21 @@ Migrasi 004_billing_integrity.sql memastikan pelanggan invoice sama dengan pelan
 
 Nominal uang disimpan sebagai integer rupiah. Status invoice: unpaid, partial, paid, atau void. Status jatuh tempo (overdue) dapat diturunkan dari due date dan saldo, bukan status pembayaran baru yang disimpan.
 
+## Integrasi MikroTik tahap awal
+
+Migrasi 013 menambahkan `mikrotik_routers` untuk menyimpan konfigurasi koneksi dan snapshot pemeriksaan. Password API dan CA sertifikat API-SSL dienkripsi AES-256-GCM dengan `APP_ENCRYPTION_KEY` (32 byte hex). Kunci harus tetap sama selama data router tersimpan; kehilangan atau penggantian kunci tanpa re-enkripsi akan membuat kredensial tidak dapat dibuka.
+
+Modul `modules/mikrotik/client.js` hanya menjalankan:
+- `/system/identity/print`
+- `/system/resource/print`
+- `/ppp/active/print`
+
+Pengaturan dan pengujian hanya dapat dilakukan admin. Host dibatasi ke alamat IPv4 privat (loopback hanya di development). Gunakan VPN/LAN untuk mencapai router; jangan buka port API ke internet. API-SSL pada port 8729 memerlukan sertifikat yang dipercaya. Jika memakai CA internal, tempel CA PEM pada pengaturan koneksi agar validasi TLS tetap aktif.
+
+Buat akun khusus RouterOS dengan kebijakan minimal `read,api`. Hindari grup bawaan `read` karena beberapa versi memiliki hak tambahan yang tidak diperlukan. Jangan memakai akun `admin` router.
+
+Belum ada provisioning PPP, perubahan konfigurasi, atau pemutusan sesi. Snapshot PPP pada FF BILLING adalah hasil pemeriksaan terakhir, bukan stream real-time.
+
 ## Dukungan pelanggan
 
 Migrasi 012 menambahkan:
