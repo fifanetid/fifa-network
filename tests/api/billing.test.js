@@ -190,6 +190,20 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.ok(customerCss.includes(".customer-modal-scroll{"));
   assert.ok(customerCss.includes("overflow-y:auto!important"));
   assert.ok(customerCss.includes(".customer-edit-disclosure[open]"));
+
+  assert.match(adminBillingHtml, /href="\/assets\/css\/admin-ui\.css"/);
+  const adminUiResponse = await fetch(baseUrl + "/assets/css/admin-ui.css");
+  assert.equal(adminUiResponse.status, 200);
+  const adminUiCss = await adminUiResponse.text();
+  assert.ok(adminUiCss.includes("--ui-primary:#2b5d98"));
+  assert.ok(adminUiCss.includes(".app-shell .primary-button"));
+  assert.ok(adminUiCss.includes(".app-shell .small-button"));
+  assert.ok(adminUiCss.includes(".app-shell .danger-button"));
+  assert.ok(adminUiCss.includes(".app-shell .customer-modal-primary"));
+  assert.ok(adminUiCss.includes(".app-shell .customer-management-screen .primary-button"));
+  assert.ok(adminUiCss.includes("min-height:var(--ui-control-height)!important"));
+  assert.ok(adminUiCss.includes("input:focus"));
+
   const createdPlan = await post("/billing/plans", admin, {
     plan_code: "HTTP-FIF10",
     name: "Paket Uji 10 Mbps",
