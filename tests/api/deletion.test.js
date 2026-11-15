@@ -37,6 +37,11 @@ db.prepare("INSERT INTO customer_portal_accounts (customer_id,password_hash) VAL
   .run(cleanCustomer, bcrypt.hashSync("portal-test-password", 4));
 
 const historyCustomer = addCustomer("DELETE-HISTORY", "Pelanggan Berriwayat", "081234567802");
+const supportOnlyCustomer = addCustomer("DELETE-SUPPORT", "Pelanggan Riwayat Keluhan", "081234567803");
+db.prepare(`
+  INSERT INTO support_tickets (ticket_number,customer_id,category,subject)
+  VALUES ('TKT-DELETE-SUPPORT-001',?,'internet','Gangguan internet pelanggan')
+`).run(supportOnlyCustomer);
 const planId = db.prepare(`
   INSERT INTO internet_plans (plan_code,name,speed_mbps,monthly_price_idr)
   VALUES ('DELETE-PLAN','Paket Riwayat',10,100000)
@@ -203,6 +208,18 @@ test("pelanggan dengan riwayat layanan atau WhatsApp tidak dapat dihapus permane
     db.prepare("SELECT COUNT(*) AS total FROM whatsapp_message_logs WHERE customer_id=?").get(historyCustomer).total,
     1
   );
+});
+
+test("pelanggan dengan riwayat keluhan tidak dapat dihapus permanen", async () => {
+  const admin = await login("admin-one@example.test");
+  const html = await refreshToken("/billing", admin);
+  assert.match(html, /memiliki riwayat layanan, invoice, pembayaran, WhatsApp, atau keluhan pelanggan/);
+  const response = await post("/billing/customers/" + supportOnlyCustomer + "/delete", admin);
+  assert.equal(response.status, 302);
+  const location = new URL(response.headers.get("location"), baseUrl);
+  assert.match(location.searchParams.get("error"), /1 laporan keluhan/i);
+  assert.ok(db.prepare("SELECT id FROM customers WHERE id=?").get(supportOnlyCustomer));
+  assert.ok(db.prepare("SELECT id FROM support_tickets WHERE customer_id=?").get(supportOnlyCustomer));
 });
 
 test("finance tidak memiliki izin menghapus pelanggan", async () => {
