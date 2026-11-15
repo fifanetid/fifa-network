@@ -188,7 +188,8 @@ test("admin dapat menyimpan router, menguji koneksi, mengedit dan menghapus data
   const admin = await login("admin-mikrotik@example.test");
   let html = await refreshToken("/admin/mikrotik", admin);
   assert.match(html, /Router MikroTik/);
-  assert.match(html, /APP_ENCRYPTION_KEY/);
+  assert.match(html, /API read-only/);
+  assert.doesNotMatch(html, /APP_ENCRYPTION_KEY/);
 
   const invalid = await post("/admin/mikrotik/routers", admin, {
     router_name: "Router Publik", host: "8.8.8.8",
