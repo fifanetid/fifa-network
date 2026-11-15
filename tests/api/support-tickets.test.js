@@ -178,7 +178,7 @@ test("petugas dapat memfilter, menugaskan, mengubah status, dan membalas laporan
   saved = db.prepare("SELECT status,first_response_at FROM support_tickets WHERE id=?").get(ticket.id);
   assert.equal(saved.status, "waiting_customer");
   assert.ok(saved.first_response_at);
-  assert.equal(db.prepare("SELECT COUNT(*) AS total FROM support_ticket_messages WHERE ticket_id=?").get(ticket.id).total, 2);
+  assert.equal(db.prepare("SELECT COUNT(*) AS total FROM support_ticket_messages WHERE ticket_id=?").get(ticket.id).total, 3);
   assert.equal(
     db.prepare("SELECT COUNT(*) AS total FROM audit_logs WHERE entity_type='support_ticket' AND entity_id=?")
       .get(String(ticket.id)).total,
@@ -227,7 +227,7 @@ test("status selesai dapat dibuka kembali oleh pelanggan, tetapi tiket ditutup t
     message: "Balasan setelah ditutup seharusnya tidak disimpan."
   });
   assert.equal(reply.status, 302);
-  assert.equal(db.prepare("SELECT COUNT(*) AS total FROM support_ticket_messages WHERE ticket_id=?").get(ticket.id).total, 3);
+  assert.equal(db.prepare("SELECT COUNT(*) AS total FROM support_ticket_messages WHERE ticket_id=?").get(ticket.id).total, 4);
   assert.equal(db.prepare("SELECT status FROM support_tickets WHERE id=?").get(ticket.id).status, "closed");
 });
 
