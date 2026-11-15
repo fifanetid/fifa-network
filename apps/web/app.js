@@ -45,7 +45,14 @@ app.use(session({
   }
 }));
 
-const { generateToken, csrfSynchronisedProtection } = csrfSync();
+const { generateToken, csrfSynchronisedProtection } = csrfSync({
+  getTokenFromRequest: (req) => {
+    const bodyToken = req.body && typeof req.body === "object"
+      ? req.body._csrf
+      : undefined;
+    return bodyToken || req.headers["x-csrf-token"];
+  }
+});
 app.use(csrfSynchronisedProtection);
 app.use((req, res, next) => {
   res.locals.csrfToken = generateToken(req);
