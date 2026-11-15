@@ -6,6 +6,7 @@
   <title><%= title %> | FF BILLING</title>
   <link rel="stylesheet" href="/assets/css/app.css">
   <link rel="stylesheet" href="/assets/css/portal.css">
+  <link rel="stylesheet" href="/assets/css/support-tickets.css">
 </head>
 <body class="portal-page">
   <header class="portal-topbar">
@@ -90,6 +91,17 @@
         </table>
       </div>
       <p class="portal-help">Konfirmasi pembayaran bukan bukti pembayaran otomatis. Status tagihan baru berubah setelah tim FF NETWORK memeriksa dan menyetujuinya.</p>
+    </section>
+
+    <section class="portal-panel ticket-portal-shortcut">
+      <div class="portal-section-heading">
+        <div><span class="eyebrow">BANTUAN PELANGGAN</span><h2>Keluhan dan gangguan</h2></div>
+        <span class="pill muted"><%= supportTicketCount %> laporan</span>
+      </div>
+      <div class="ticket-shortcut-row">
+        <div><strong><%= openSupportTicketCount %></strong><span>laporan masih perlu ditangani</span></div>
+        <a class="primary-button" href="/customer/tickets">Buka keluhan saya</a>
+      </div>
     </section>
 
     <section class="portal-panel">
