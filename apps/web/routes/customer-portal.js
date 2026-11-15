@@ -19,6 +19,7 @@ const loginLimiter = rateLimit({
 const ticketCreateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 5,
+  keyGenerator: (req) => "customer:" + String(req.customer.id),
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: "Terlalu banyak laporan dibuat. Coba lagi dalam 15 menit."
