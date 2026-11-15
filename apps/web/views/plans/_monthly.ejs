@@ -47,7 +47,7 @@
             <% if (currentUser.role === "admin") { %>
               <td class="plan-actions">
                 <details>
-                  <summary>Edit</summary>
+                  <summary class="plan-edit-trigger">Edit</summary>
                   <form class="plan-inline-form" method="post" action="/plans/monthly/<%= plan.id %>/update">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <label>Kode<input name="plan_code" value="<%= plan.plan_code %>" maxlength="30" required></label>
