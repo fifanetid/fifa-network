@@ -109,7 +109,7 @@ test("externally supplied valid key is used without writing it into .env", async
 test("malformed custom key fails safely instead of replacing a possible data key", async () => {
   const temp = temporaryEnv();
   try {
-    assert.rejects(
+    await assert.rejects(
       ensureAppEncryptionKey({ envPath: temp.envPath, env: { APP_ENCRYPTION_KEY: "not-a-key" } }),
       /formatnya tidak valid/i
     );
