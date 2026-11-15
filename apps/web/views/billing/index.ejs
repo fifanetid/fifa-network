@@ -27,82 +27,7 @@
     <div class="customer-toolbar-actions">
       <button class="customer-tool-button" type="button" id="printCustomers"><span>⎙</span> Cetak</button>
       <button class="customer-tool-button" type="button" id="exportCustomers"><span>⇩</span> Export CSV</button>
-      <details class="customer-create-disclosure" <%= openCustomerForm ? "open" : "" %>>
-        <summary class="customer-add-button"><span>＋</span> Tambah Pelanggan</summary>
-        <button class="customer-modal-backdrop" type="button" aria-label="Tutup formulir tambah pelanggan" onclick="this.closest('details.customer-create-disclosure').open=false"></button>
-        <form class="customer-create-form customer-simple-form" method="post" action="/billing/customers">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <div class="customer-modal-heading">
-            <div><span class="eyebrow">MANAJEMEN PELANGGAN</span><h3>Tambah Pelanggan Baru</h3><p>Lengkapi data pelanggan dan pilih layanan bila diperlukan.</p></div>
-            <button class="customer-modal-close" type="button" aria-label="Tutup" onclick="this.closest('details').open=false">×</button>
-          </div>
-          <div class="customer-modal-scroll">
-            <% if (customerFormError) { %><div class="customer-form-error" role="alert"><%= customerFormError %></div><% } %>
-
-            <section class="customer-form-section">
-              <div class="customer-section-heading"><span class="customer-section-icon">▣</span><div><h4>Informasi Pribadi Pelanggan</h4><p>Identitas dan kontak utama pelanggan</p></div></div>
-              <div class="customer-simple-grid">
-                <label>Nama lengkap <b>*</b><input name="full_name" maxlength="120" required placeholder="Nama pelanggan"></label>
-                <label>No. telepon / WhatsApp <b>*</b><input name="phone" maxlength="30" required placeholder="08xxxxxxxxxx"></label>
-                <label>ID pelanggan <b>*</b><input name="customer_code" maxlength="30" required placeholder="Contoh: FN-0001"></label>
-                <label>NIK / No. KTP <span class="customer-optional">Opsional</span><input name="identity_number" maxlength="80" placeholder="Nomor identitas"></label>
-                <label>Email <span class="customer-optional">Opsional</span><input type="email" name="email" maxlength="254" placeholder="nama@email.com"></label>
-                <label class="customer-field-wide">Alamat lengkap <b>*</b><textarea name="address" maxlength="500" required placeholder="Jalan, RT/RW, desa, kecamatan"></textarea></label>
-              </div>
-            </section>
-
-            <details class="customer-extra-fields customer-subscription-fields">
-              <summary><span class="customer-section-icon">⌁</span> Paket & Akses Layanan</summary>
-              <p class="customer-extra-help">Pilih paket bulanan untuk sekaligus membuat langganan pelanggan.</p>
-              <div class="customer-extra-grid">
-                <label class="customer-field-wide">Paket internet
-                  <select name="plan_id">
-                    <option value="">— Belum pilih paket —</option>
-                    <% plans.filter(plan => plan.is_active === 1).forEach(plan => { %>
-                      <option value="<%= plan.id %>"><%= plan.plan_code %> · <%= plan.name %> · <%= plan.speed_mbps %> Mbps · <%= rupiah(plan.monthly_price_idr) %>/bulan</option>
-                    <% }) %>
-                  </select>
-                </label>
-                <label>Tanggal mulai langganan<input type="date" name="start_date"></label>
-                <label>Tanggal billing (1–28)<input type="number" name="billing_day" min="1" max="28" value="1"></label>
-                <label class="customer-field-wide">Referensi perangkat <span class="customer-optional">Opsional</span><input name="external_device_ref" maxlength="150" placeholder="Serial ONU / ID perangkat"></label>
-                <label class="customer-field-wide">Catatan layanan <span class="customer-optional">Opsional</span><textarea name="subscription_notes" maxlength="500" placeholder="Catatan terkait layanan"></textarea></label>
-              </div>
-            </details>
-
-            <details class="customer-extra-fields customer-portal-fields">
-              <summary><span class="customer-section-icon">♙</span> Penagihan, Status & Akses Portal</summary>
-              <p class="customer-extra-help">Buat akun portal agar pelanggan dapat melihat invoice dan mengirim konfirmasi pembayaran.</p>
-              <% if (currentUser.role === "admin") { %>
-                <label class="customer-consent">
-                  <input type="checkbox" name="create_portal_account" value="1" data-portal-enable>
-                  <span><strong>Buat akses portal sekarang</strong><small>ID login menggunakan ID pelanggan yang diisi di atas.</small></span>
-                </label>
-                <label class="customer-portal-password">Password sementara (minimal 12 karakter)
-                  <input type="password" name="portal_password" minlength="12" maxlength="200" autocomplete="new-password" placeholder="Masukkan password portal" data-portal-password disabled>
-                </label>
-              <% } else { %>
-                <p class="customer-extra-help">Akses portal hanya dapat dibuat oleh admin.</p>
-              <% } %>
-              <label class="customer-consent customer-consent-spaced">
-                <input type="checkbox" name="whatsapp_opt_in" value="1">
-                <span><strong>Setuju menerima pengingat WhatsApp</strong><small>Aktifkan hanya jika pelanggan telah memberikan persetujuan.</small></span>
-              </label>
-            </details>
-
-            <details class="customer-extra-fields">
-              <summary><span class="customer-section-icon">☷</span> Catatan Tambahan</summary>
-              <div class="customer-extra-grid">
-                <label class="customer-field-wide">Catatan internal <span class="customer-optional">Opsional</span><textarea name="notes" maxlength="500" placeholder="Catatan tambahan untuk pelanggan"></textarea></label>
-              </div>
-            </details>
-          </div>
-          <div class="customer-form-actions">
-            <button class="customer-modal-secondary" type="button" onclick="this.closest('details.customer-create-disclosure').open=false">Batal</button>
-            <button class="customer-modal-primary" type="submit">✓ Simpan Pelanggan</button>
-          </div>
-        </form>
-      </details>
+      <button class="customer-add-button" type="button" id="openCustomerCreateModal"><span>＋</span> Tambah Pelanggan</button>
     </div>
   </div>
 
@@ -214,6 +139,83 @@
 
 
 
+
+<div class="customer-reference-overlay" id="customerCreateModal" data-open-on-load="<%= openCustomerForm ? '1' : '0' %>" aria-hidden="true" hidden>
+  <div class="customer-reference-panel" role="dialog" aria-modal="true" aria-labelledby="customerCreateTitle">
+    <div class="customer-modal-heading customer-reference-heading">
+      <div><span class="eyebrow">MANAJEMEN PELANGGAN</span><h3 id="customerCreateTitle">Tambah Pelanggan Baru</h3><p>Lengkapi data pelanggan dan pilih layanan bila diperlukan.</p></div>
+      <button class="customer-modal-close" type="button" aria-label="Tutup" data-close-customer-modal>×</button>
+    </div>
+    <form class="customer-reference-form customer-simple-form" method="post" action="/billing/customers">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="customer-reference-body customer-modal-scroll">
+            <% if (customerFormError) { %><div class="customer-form-error" role="alert"><%= customerFormError %></div><% } %>
+
+            <section class="customer-form-section">
+              <div class="customer-section-heading"><span class="customer-section-icon">▣</span><div><h4>Informasi Pribadi Pelanggan</h4><p>Identitas dan kontak utama pelanggan</p></div></div>
+              <div class="customer-simple-grid">
+                <label>Nama lengkap <b>*</b><input name="full_name" maxlength="120" required placeholder="Nama pelanggan"></label>
+                <label>No. telepon / WhatsApp <b>*</b><input name="phone" maxlength="30" required placeholder="08xxxxxxxxxx"></label>
+                <label>ID pelanggan <b>*</b><input name="customer_code" maxlength="30" required placeholder="Contoh: FN-0001"></label>
+                <label>NIK / No. KTP <span class="customer-optional">Opsional</span><input name="identity_number" maxlength="80" placeholder="Nomor identitas"></label>
+                <label>Email <span class="customer-optional">Opsional</span><input type="email" name="email" maxlength="254" placeholder="nama@email.com"></label>
+                <label class="customer-field-wide">Alamat lengkap <b>*</b><textarea name="address" maxlength="500" required placeholder="Jalan, RT/RW, desa, kecamatan"></textarea></label>
+              </div>
+            </section>
+
+            <details class="customer-extra-fields customer-subscription-fields">
+              <summary><span class="customer-section-icon">⌁</span> Paket & Akses Layanan</summary>
+              <p class="customer-extra-help">Pilih paket bulanan untuk sekaligus membuat langganan pelanggan.</p>
+              <div class="customer-extra-grid">
+                <label class="customer-field-wide">Paket internet
+                  <select name="plan_id">
+                    <option value="">— Belum pilih paket —</option>
+                    <% plans.filter(plan => plan.is_active === 1).forEach(plan => { %>
+                      <option value="<%= plan.id %>"><%= plan.plan_code %> · <%= plan.name %> · <%= plan.speed_mbps %> Mbps · <%= rupiah(plan.monthly_price_idr) %>/bulan</option>
+                    <% }) %>
+                  </select>
+                </label>
+                <label>Tanggal mulai langganan<input type="date" name="start_date"></label>
+                <label>Tanggal billing (1–28)<input type="number" name="billing_day" min="1" max="28" value="1"></label>
+                <label class="customer-field-wide">Referensi perangkat <span class="customer-optional">Opsional</span><input name="external_device_ref" maxlength="150" placeholder="Serial ONU / ID perangkat"></label>
+                <label class="customer-field-wide">Catatan layanan <span class="customer-optional">Opsional</span><textarea name="subscription_notes" maxlength="500" placeholder="Catatan terkait layanan"></textarea></label>
+              </div>
+            </details>
+
+            <details class="customer-extra-fields customer-portal-fields">
+              <summary><span class="customer-section-icon">♙</span> Penagihan, Status & Akses Portal</summary>
+              <p class="customer-extra-help">Buat akun portal agar pelanggan dapat melihat invoice dan mengirim konfirmasi pembayaran.</p>
+              <% if (currentUser.role === "admin") { %>
+                <label class="customer-consent">
+                  <input type="checkbox" name="create_portal_account" value="1" data-portal-enable>
+                  <span><strong>Buat akses portal sekarang</strong><small>ID login menggunakan ID pelanggan yang diisi di atas.</small></span>
+                </label>
+                <label class="customer-portal-password">Password sementara (minimal 12 karakter)
+                  <input type="password" name="portal_password" minlength="12" maxlength="200" autocomplete="new-password" placeholder="Masukkan password portal" data-portal-password disabled>
+                </label>
+              <% } else { %>
+                <p class="customer-extra-help">Akses portal hanya dapat dibuat oleh admin.</p>
+              <% } %>
+              <label class="customer-consent customer-consent-spaced">
+                <input type="checkbox" name="whatsapp_opt_in" value="1">
+                <span><strong>Setuju menerima pengingat WhatsApp</strong><small>Aktifkan hanya jika pelanggan telah memberikan persetujuan.</small></span>
+              </label>
+            </details>
+
+            <details class="customer-extra-fields">
+              <summary><span class="customer-section-icon">☷</span> Catatan Tambahan</summary>
+              <div class="customer-extra-grid">
+                <label class="customer-field-wide">Catatan internal <span class="customer-optional">Opsional</span><textarea name="notes" maxlength="500" placeholder="Catatan tambahan untuk pelanggan"></textarea></label>
+              </div>
+            </details>
+          </div>
+          <div class="customer-form-actions customer-reference-footer">
+            <button class="customer-modal-secondary" type="button" data-close-customer-modal>Batal</button>
+            <button class="customer-modal-primary" type="submit">✓ Simpan Pelanggan</button>
+          </div>
+        </form>
+  </div>
+</div>
 
 <% if (currentUser.role === "admin") { %>
 <section class="panel billing-panel">
