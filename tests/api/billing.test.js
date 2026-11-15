@@ -175,6 +175,12 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.match(adminBillingHtml, /customer-table/);
   assert.match(adminBillingHtml, /Tagihan belum bayar/);
   assert.match(adminBillingHtml, /name="create_portal_account"/);
+  assert.match(adminBillingHtml, /id="openCustomerCreateModal"/);
+  assert.match(adminBillingHtml, /id="customerCreateModal"/);
+  assert.match(adminBillingHtml, /class="customer-reference-panel"/);
+  assert.match(adminBillingHtml, /class="customer-reference-body customer-modal-scroll"/);
+  assert.match(adminBillingHtml, /data-close-customer-modal/);
+  assert.match(adminBillingHtml, /showModal|openCustomerCreateModal/);
 
   const customerCssResponse = await fetch(baseUrl + "/assets/css/billing.css");
   assert.equal(customerCssResponse.status, 200);
@@ -348,27 +354,25 @@ test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lif
   assert.equal(errorPage.status, 200);
   const errorHtml = await errorPage.text();
   assert.match(errorHtml, /Password portal harus 12/);
-  assert.match(errorHtml, /customer-create-disclosure[^>]*open/);
-  assert.match(errorHtml, /class="customer-modal-scroll"/);
-  assert.match(errorHtml, /class="customer-modal-backdrop" type="button"/);
-  assert.match(errorHtml, /event.key !== "Escape"/);
+  assert.match(errorHtml, /id="customerCreateModal"[^>]*data-open-on-load="1"/);
+  assert.match(errorHtml, /class="customer-reference-body customer-modal-scroll"/);
+  assert.match(errorHtml, /data-close-customer-modal/);
+  assert.match(errorHtml, /openCustomerCreateModal/);
+  assert.match(errorHtml, /event.key === "Escape"/);
 
   const modalCssResponse = await fetch(baseUrl + "/assets/css/billing.css");
   assert.equal(modalCssResponse.status, 200);
   const modalCss = await modalCssResponse.text();
-  assert.ok(modalCss.includes("height:min(780px"));
-  assert.ok(modalCss.includes(".customer-create-disclosure[open]>.customer-simple-form"));
+  assert.ok(modalCss.includes(".customer-reference-overlay{"));
+  assert.ok(modalCss.includes(".customer-reference-overlay.show"));
+  assert.ok(modalCss.includes("height:min(820px,calc(100dvh - 24px))"));
+  assert.ok(modalCss.includes(".customer-reference-panel{"));
+  assert.ok(modalCss.includes(".customer-reference-form{"));
+  assert.ok(modalCss.includes(".customer-reference-form>.customer-reference-body"));
   assert.ok(modalCss.includes("overflow-y:auto!important"));
-  assert.ok(modalCss.includes("position:sticky!important"));
-  assert.ok(modalCss.includes("grid-template-rows:auto minmax(0,1fr) auto!important"));
-  assert.ok(modalCss.includes(".customer-modal-scroll{"));
-  assert.ok(modalCss.includes("overflow-y:auto!important"));
-  assert.ok(modalCss.includes("display:flex!important"));
-  assert.ok(modalCss.includes("flex:1 1 0%!important"));
-  assert.ok(modalCss.includes("height:0!important"));
-  assert.ok(modalCss.includes("overflow-y:scroll!important"));
-  assert.ok(modalCss.includes("overflow:visible!important"));
-  assert.ok(modalCss.includes(".customer-edit-disclosure[open]>.customer-edit-form>.customer-modal-scroll"));
+  assert.ok(modalCss.includes(".customer-reference-form .customer-extra-fields"));
+  assert.ok(modalCss.includes(".customer-reference-footer"));
+  assert.ok(modalCss.includes("body.customer-modal-open"));
 
   const appCssResponse = await fetch(baseUrl + "/assets/css/app.css");
   assert.equal(appCssResponse.status, 200);
