@@ -52,6 +52,7 @@ function parseRouterInput(body, existing = null) {
   const host = String(body.host || "").trim();
   const username = String(body.api_username || "").trim();
   const password = String(body.api_password || "");
+  const caCertificate = String(body.api_tls_ca || "").trim();
   const tls = ["1","on","true"].includes(String(body.api_tls || "").toLowerCase());
 
   if (name.length < 2 || name.length > 80) throw new Error("Nama router harus 2–80 karakter.");
@@ -65,12 +66,21 @@ function parseRouterInput(body, existing = null) {
     throw new Error("Password API minimal 8 karakter dan maksimal 200 karakter.");
   }
   if (!password && !existing) throw new Error("Password API wajib diisi.");
+  if (caCertificate.length > 15000 ||
+      caCertificate && (!caCertificate.includes("-----BEGIN CERTIFICATE-----") ||
+        !caCertificate.includes("-----END CERTIFICATE-----"))) {
+    throw new Error("Sertifikat CA harus berupa PEM yang valid dan maksimal 15.000 karakter.");
+  }
+  if (!tls && caCertificate) throw new Error("Sertifikat CA hanya digunakan saat API-SSL diaktifkan.");
 
   return {
     router_name: name,
     host,
     api_port: tls ? 8729 : 8728,
     api_tls: tls ? 1 : 0,
+    api_tls_ca_encrypted: !tls ? null
+      : caCertificate ? encryptSecret(caCertificate)
+        : existing?.api_tls_ca_encrypted || null,
     api_username: username,
     api_password_encrypted: password ? encryptSecret(password) : existing.api_password_encrypted
   };
@@ -88,8 +98,8 @@ router.post("/routers", (req, res) => {
     const input = parseRouterInput(req.body);
     const result = db.prepare(`
       INSERT INTO mikrotik_routers
-        (router_name,host,api_port,api_tls,api_username,api_password_encrypted,created_by,updated_by)
-      VALUES (@router_name,@host,@api_port,@api_tls,@api_username,@api_password_encrypted,@userId,@userId)
+        (router_name,host,api_port,api_tls,api_tls_ca_encrypted,api_username,api_password_encrypted,created_by,updated_by)
+      VALUES (@router_name,@host,@api_port,@api_tls,@api_tls_ca_encrypted,@api_username,@api_password_encrypted,@userId,@userId)
     `).run({ ...input, userId: req.session.user.id });
     recordAudit({
       user: req.session.user,
@@ -118,6 +128,7 @@ router.post("/routers/:id/update", (req, res) => {
     db.prepare(`
       UPDATE mikrotik_routers
       SET router_name=@router_name,host=@host,api_port=@api_port,api_tls=@api_tls,
+          api_tls_ca_encrypted=@api_tls_ca_encrypted,
           api_username=@api_username,api_password_encrypted=@api_password_encrypted,
           connection_status='not_tested',router_identity=NULL,router_version=NULL,
           router_uptime=NULL,cpu_load=NULL,cpu_count=NULL,memory_free_bytes=NULL,
