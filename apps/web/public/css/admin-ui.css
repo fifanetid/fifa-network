@@ -1,0 +1,428 @@
+/*
+ * FF BILLING — unified admin component layer
+ * Loaded after page styles so primary/secondary/danger controls share one system.
+ */
+:root{
+  --ui-primary:#2b5d98;
+  --ui-primary-hover:#234d80;
+  --ui-primary-soft:#edf3fa;
+  --ui-text:#263449;
+  --ui-muted:#738196;
+  --ui-border:#dce3eb;
+  --ui-surface:#ffffff;
+  --ui-surface-soft:#f7f9fb;
+  --ui-danger:#c23d46;
+  --ui-danger-hover:#a92f38;
+  --ui-radius:7px;
+  --ui-control-height:36px;
+}
+
+/* Shared typography and surface rhythm */
+.app-shell .panel,
+.app-shell .stat-card,
+.app-shell .report-card,
+.app-shell .plan-page-intro{
+  border-radius:9px;
+  box-shadow:none;
+}
+.app-shell .panel{padding:18px}
+.app-shell .panel-heading{gap:12px;margin-bottom:13px}
+.app-shell .panel-heading h3,
+.app-shell .panel h3{font-size:14px;font-weight:680;letter-spacing:-.015em}
+.app-shell .eyebrow{font-size:9px;letter-spacing:.1em;font-weight:700}
+.app-shell .notice{border-radius:7px;padding:10px 12px;font-size:11px}
+.app-shell .table-wrap{border-radius:8px;border-color:#e3e8ee}
+.app-shell:not(:has(.customer-management-screen)) .users-table{font-size:11px}
+.app-shell:not(:has(.customer-management-screen)) .users-table th{
+  padding:10px 11px;
+  color:#748195;
+  background:#f6f8fa;
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.065em;
+}
+.app-shell:not(:has(.customer-management-screen)) .users-table td{padding:10px 11px}
+.app-shell:not(:has(.customer-management-screen)) .users-table td strong{font-size:10px}
+.app-shell:not(:has(.customer-management-screen)) .users-table td small{font-size:9px}
+
+/* One button system: blue = primary, neutral = secondary, red = destructive */
+.app-shell .primary-button,
+.app-shell .customer-add-button,
+.app-shell .customer-modal-primary{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  min-height:var(--ui-control-height)!important;
+  margin:0!important;
+  padding:8px 13px!important;
+  border:1px solid var(--ui-primary)!important;
+  border-radius:var(--ui-radius)!important;
+  color:#fff!important;
+  background:var(--ui-primary)!important;
+  font-family:inherit!important;
+  font-size:11px!important;
+  font-weight:650!important;
+  line-height:1.2!important;
+  text-decoration:none!important;
+  box-shadow:none!important;
+  transform:none!important;
+  cursor:pointer;
+  transition:background-color .15s ease,border-color .15s ease,color .15s ease!important;
+}
+.app-shell .primary-button:hover,
+.app-shell .customer-add-button:hover,
+.app-shell .customer-modal-primary:hover{
+  border-color:var(--ui-primary-hover)!important;
+  color:#fff!important;
+  background:var(--ui-primary-hover)!important;
+  box-shadow:none!important;
+  transform:none!important;
+}
+.app-shell .primary-button:disabled,
+.app-shell .customer-modal-primary:disabled{opacity:.55;cursor:not-allowed}
+
+.app-shell .small-button,
+.app-shell .customer-modal-secondary,
+.app-shell .customer-tool-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-height:32px;
+  padding:6px 10px;
+  border:1px solid var(--ui-border);
+  border-radius:var(--ui-radius);
+  color:#46566d;
+  background:#fff;
+  font-family:inherit;
+  font-size:10px;
+  font-weight:600;
+  line-height:1.2;
+  text-decoration:none;
+  box-shadow:none;
+  cursor:pointer;
+  transition:background-color .15s ease,border-color .15s ease,color .15s ease;
+}
+.app-shell .small-button:hover,
+.app-shell .customer-modal-secondary:hover,
+.app-shell .customer-tool-button:hover{
+  border-color:#b9c7d8;
+  color:#30445e;
+  background:#f4f7fa;
+  box-shadow:none;
+  transform:none;
+}
+.app-shell a.small-button{white-space:nowrap}
+
+.app-shell .danger-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-height:29px;
+  padding:5px 10px;
+  border:1px solid #e7c7ca;
+  border-radius:var(--ui-radius);
+  color:var(--ui-danger);
+  background:#fff;
+  font-family:inherit;
+  font-size:10px;
+  font-weight:650;
+  line-height:1.2;
+  box-shadow:none;
+  cursor:pointer;
+}
+.app-shell .danger-button:hover{
+  border-color:#d99ca2;
+  color:var(--ui-danger-hover);
+  background:#fff5f5;
+}
+.app-shell .danger-button.is-disabled:disabled{
+  border-color:#e2e6eb;
+  color:#9aa4b1;
+  background:#f3f5f7;
+  opacity:1;
+  cursor:not-allowed;
+  box-shadow:none;
+}
+
+.app-shell .link-button{
+  padding:4px 2px;
+  border:0;
+  color:var(--ui-primary);
+  background:transparent;
+  font-size:10px;
+  font-weight:650;
+  text-decoration:none;
+  box-shadow:none;
+}
+.app-shell .link-button:hover{color:var(--ui-primary-hover);text-decoration:underline}
+
+/* Icon-only row actions use the same neutral/destructive colours */
+.app-shell .customer-icon-button{
+  display:inline-grid;
+  place-items:center;
+  width:30px;
+  height:30px;
+  min-height:30px;
+  padding:0;
+  border:1px solid var(--ui-border);
+  border-radius:6px;
+  color:#52647b;
+  background:#fff;
+  font-family:inherit;
+  font-size:12px;
+  font-weight:650;
+  line-height:1;
+  box-shadow:none;
+  cursor:pointer;
+}
+.app-shell .customer-icon-button:hover{
+  border-color:#b9c7d8;
+  color:#30445e;
+  background:#f4f7fa;
+}
+.app-shell .customer-icon-button.customer-delete-icon{
+  border-color:#e7c7ca;
+  color:var(--ui-danger);
+  background:#fff;
+}
+.app-shell .customer-icon-button.customer-delete-icon:hover{
+  border-color:#d99ca2;
+  color:var(--ui-danger-hover);
+  background:#fff5f5;
+}
+.app-shell .customer-icon-button.is-disabled:disabled{
+  border-color:#e2e6eb;
+  color:#9aa4b1;
+  background:#f3f5f7;
+  opacity:.65;
+  cursor:not-allowed;
+}
+
+/* Close/overlay controls are deliberately not styled as normal action buttons */
+.app-shell .customer-modal-backdrop,
+.app-shell .plan-modal-backdrop{
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.app-shell .customer-modal-close,
+.app-shell .plan-modal-close{
+  display:inline-grid;
+  place-items:center;
+  width:30px;
+  height:30px;
+  min-height:30px;
+  padding:0;
+  border:1px solid var(--ui-border);
+  border-radius:6px;
+  color:#59697e;
+  background:#fff;
+  font-size:18px;
+  line-height:1;
+  box-shadow:none;
+  cursor:pointer;
+}
+.app-shell .customer-modal-close:hover,
+.app-shell .plan-modal-close:hover{
+  border-color:#b9c7d8;
+  color:#30445e;
+  background:#f4f7fa;
+}
+
+/* Inputs, selects and text areas */
+.app-shell:not(:has(.customer-management-screen)) input:not([type=checkbox]):not([type=radio]):not([type=hidden]),
+.app-shell:not(:has(.customer-management-screen)) select,
+.app-shell:not(:has(.customer-management-screen)) textarea{
+  min-height:var(--ui-control-height);
+  margin:0!important;
+  padding:8px 10px;
+  border:1px solid var(--ui-border);
+  border-radius:6px;
+  color:var(--ui-text);
+  background:#fff;
+  font-family:inherit;
+  font-size:11px;
+  line-height:1.35;
+  box-shadow:none;
+}
+.app-shell:not(:has(.customer-management-screen)) textarea{min-height:72px}
+.app-shell:not(:has(.customer-management-screen)) input:focus,
+.app-shell:not(:has(.customer-management-screen)) select:focus,
+.app-shell:not(:has(.customer-management-screen)) textarea:focus{
+  outline:2px solid rgba(43,93,152,.14);
+  border-color:#7695b8;
+  box-shadow:none;
+}
+.app-shell:not(:has(.customer-management-screen)) input::placeholder,
+.app-shell:not(:has(.customer-management-screen)) textarea::placeholder{color:#98a3b1}
+.app-shell:not(:has(.customer-management-screen)) input:-webkit-autofill,
+.app-shell:not(:has(.customer-management-screen)) input:-webkit-autofill:hover,
+.app-shell:not(:has(.customer-management-screen)) input:-webkit-autofill:focus{
+  -webkit-text-fill-color:var(--ui-text);
+  box-shadow:0 0 0 1000px #fff inset;
+  transition:background-color 9999s ease-out 0s;
+}
+.app-shell:not(:has(.customer-management-screen)) form label{
+  color:#58677b;
+  font-size:10px;
+  font-weight:650;
+}
+
+/* User management form and reset actions */
+.app-shell .create-user-form{gap:12px 14px}
+.app-shell .create-user-form label{display:grid;gap:6px}
+.app-shell .create-user-form .primary-button{
+  grid-column:auto;
+  justify-self:start;
+  min-width:130px;
+  margin:2px 0 0;
+}
+.app-shell .create-user-form .primary-button span{float:none;margin-left:4px}
+.app-shell .actions-cell{min-width:180px}
+.app-shell .actions-cell form{margin:4px 0}
+.app-shell .reset-details{margin-top:7px}
+.app-shell .reset-details summary{
+  color:var(--ui-primary);
+  font-size:10px;
+  font-weight:650;
+  cursor:pointer;
+}
+.app-shell .reset-details form{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.app-shell .reset-details input{flex:1 1 155px;min-width:0;margin:0}
+.app-shell .role-pill{border-radius:5px;background:#eef2f7;color:#52647c;font-size:9px;font-weight:650}
+
+/* Package catalogue actions and tabs */
+.app-shell .plan-type-tabs>a.active{
+  border-color:#cbd8e7;
+  color:var(--ui-primary);
+  background:#fff;
+  box-shadow:0 1px 2px rgba(24,40,62,.05);
+}
+.app-shell .plan-add-details>summary{min-height:var(--ui-control-height)!important}
+.app-shell .plan-actions>details>summary{color:var(--ui-primary);font-weight:650}
+.app-shell .plan-actions>form{display:inline-block;vertical-align:middle}
+.app-shell .plan-actions>form .small-button,
+.app-shell .plan-actions>form .danger-button{min-height:29px}
+
+/* WhatsApp page actions follow the same hierarchy and sizing */
+.app-shell .wa-actions{gap:8px}
+.app-shell .wa-actions .primary-button,
+.app-shell .wa-card .primary-button{min-height:var(--ui-control-height)!important}
+.app-shell .wa-actions .small-button{min-height:32px}
+
+/* Customer workspace keeps its dark surface, but actions use the same palette */
+.app-shell .customer-management-screen .primary-button,
+.app-shell .customer-management-screen .customer-add-button,
+.app-shell .customer-management-screen .customer-modal-primary{
+  border-color:#426fa7!important;
+  color:#fff!important;
+  background:#426fa7!important;
+  box-shadow:none!important;
+  transform:none!important;
+}
+.app-shell .customer-management-screen .primary-button:hover,
+.app-shell .customer-management-screen .customer-add-button:hover,
+.app-shell .customer-management-screen .customer-modal-primary:hover{
+  border-color:#345d90!important;
+  color:#fff!important;
+  background:#345d90!important;
+}
+.app-shell .customer-management-screen .small-button{
+  border-color:#465365;
+  color:#d2dce8;
+  background:#202a35;
+}
+.app-shell .customer-management-screen .small-button:hover{
+  border-color:#68778a;
+  color:#fff;
+  background:#293442;
+}
+.app-shell .customer-management-screen .danger-button{
+  border-color:#81434a;
+  color:#ffb3b8;
+  background:#2e2228;
+}
+.app-shell .customer-management-screen .danger-button:hover{
+  border-color:#b45b63;
+  color:#fff;
+  background:#3a252c;
+}
+.app-shell .customer-management-screen .danger-button.is-disabled:disabled{
+  border-color:#46505d;
+  color:#718093;
+  background:#252e38;
+  opacity:.65;
+}
+.app-shell .customer-management-screen .customer-modal-secondary{
+  border-color:#465365;
+  color:#d2dce8;
+  background:#202a35;
+}
+.app-shell .customer-management-screen .customer-modal-secondary:hover{
+  border-color:#68778a;
+  color:#fff;
+  background:#293442;
+}
+.app-shell .customer-management-screen .customer-tool-button{
+  border-color:#3b4857;
+  color:#c8d3e1;
+  background:#202a35;
+}
+.app-shell .customer-management-screen .customer-tool-button:hover{
+  border-color:#68778a;
+  color:#fff;
+  background:#293442;
+}
+.app-shell .customer-management-screen .customer-icon-button{
+  border-color:#465365;
+  color:#c3cfdd;
+  background:#202a35;
+}
+.app-shell .customer-management-screen .customer-icon-button:hover{
+  border-color:#68778a;
+  color:#fff;
+  background:#293442;
+}
+.app-shell .customer-management-screen .customer-icon-button.customer-delete-icon{
+  border-color:#a83f48;
+  color:#fff;
+  background:#c9434d;
+}
+.app-shell .customer-management-screen .customer-icon-button.customer-delete-icon:hover{
+  border-color:#b43741;
+  background:#b43741;
+}
+.app-shell .customer-management-screen .customer-modal-close{
+  border-color:#465365;
+  color:#c3cfdd;
+  background:#202a35;
+}
+.app-shell .customer-management-screen .customer-modal-close:hover{
+  border-color:#68778a;
+  color:#fff;
+  background:#293442;
+}
+.app-shell .customer-management-screen .customer-reference-panel,
+.app-shell .customer-management-screen .customer-reference-heading,
+.app-shell .customer-management-screen .customer-reference-footer{
+  color:#dce5ef;
+}
+
+/* Consistent disabled/focus states */
+.app-shell button:focus-visible,
+.app-shell a.small-button:focus-visible,
+.app-shell a.primary-button:focus-visible{
+  outline:2px solid rgba(43,93,152,.35);
+  outline-offset:2px;
+}
+.app-shell button:disabled{cursor:not-allowed}
+.app-shell .primary-button:disabled,
+.app-shell .small-button:disabled{opacity:.55}
+@media(max-width:760px){
+  .app-shell .panel{padding:14px}
+  .app-shell .create-user-form{grid-template-columns:1fr}
+  .app-shell .create-user-form .primary-button{grid-column:auto}
+}
