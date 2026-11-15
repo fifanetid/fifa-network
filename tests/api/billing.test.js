@@ -50,7 +50,7 @@ async function login(email) {
   const response = await fetch(baseUrl + "/login", {
     method: "POST",
     redirect: "manual",
-    headers: { "content-type": "application/x-www-form-urlencoded", "x-csrf-token": token, cookie },
+    headers: { "content-type": "application/x-www-form-urlencoded", cookie },
     body: new URLSearchParams({ identifier: email, password: "test-password-123", _csrf: token })
   });
   cookie = cookieFrom(response, cookie);
@@ -82,6 +82,32 @@ async function refreshToken(session) {
   assert.equal(page.status, 200);
   session.token = tokenFrom(await page.text());
 }
+
+test("login accepts a normal HTML form token and an X-CSRF-Token header", async () => {
+  // Standard browser form: token arrives only in the hidden _csrf field.
+  const formLogin = await login("admin-http@example.test");
+  assert.ok(formLogin.cookie);
+
+  // Header-based clients remain supported without a body token.
+  let cookie = "";
+  const page = await fetch(baseUrl + "/login");
+  cookie = cookieFrom(page, cookie);
+  const token = tokenFrom(await page.text());
+  const response = await fetch(baseUrl + "/login", {
+    method: "POST",
+    redirect: "manual",
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+      "x-csrf-token": token,
+      cookie
+    },
+    body: new URLSearchParams({
+      identifier: "finance-http@example.test",
+      password: "test-password-123"
+    })
+  });
+  assert.equal(response.status, 302);
+});
 
 test("billing HTTP flow enforces login, role, CSRF, CRUD and invoice payment lifecycle", async () => {
   const anonymous = await fetch(baseUrl + "/billing", { redirect: "manual" });
