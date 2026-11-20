@@ -13,7 +13,7 @@ function safeValue(value) {
 }
 function classify(path) {
  const value=path.join(".").toLowerCase();
- if(/wan|ppp|ipconnection|wand evice|wanconnection|dsl|gpon|epon/.test(value))return "wan";
+ if(/wan|ppp|ipconnection|wandevice|wanconnection|dsl|gpon|epon/.test(value))return "wan";
  if(/wlan|wifi|wireless|ssid/.test(value))return "wlan";
  if(/lan|ethernet|host|dhcp|bridge/.test(value))return "lan";
  return "other";
