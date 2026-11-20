@@ -15,7 +15,7 @@ GENIEACS_PASSWORD=
 GENIEACS_NBI_TIMEOUT_MS=8000
 ~~~
 
-NBI harus tetap bind ke localhost atau jaringan privat dan tidak diekspos langsung ke internet. Gunakan firewall, autentikasi, HTTPS bila lintas host, dan akun layanan dengan hak minimum.
+Penting: GenieACS NBI secara default tidak menyediakan autentikasi bawaan (unauthenticated by design) dan default interface-nya loopback. Pertahankan NBI pada localhost bila FF BILLING berada di host yang sama. Bila harus diakses lintas host, batasi dengan firewall/VPN serta reverse proxy yang menambahkan autentikasi dan HTTPS. Variabel GENIEACS_USERNAME dan GENIEACS_PASSWORD mengirim HTTP Basic Authentication ke reverse proxy; variabel tersebut tidak mengaktifkan autentikasi pada GenieACS NBI itu sendiri. Jangan pernah mengekspos port 7557 langsung ke internet.
 
 Konektor memakai GET /devices dengan query, projection, limit, dan skip serta Basic Authentication bila dikonfigurasi.
 Dokumentasi GenieACS: https://docs.genieacs.com/en/latest/api-reference.html
