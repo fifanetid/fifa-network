@@ -39,7 +39,7 @@ function cookieFrom(response,current=""){const value=response.headers.get("set-c
 async function get(pathname,session,redirect="follow"){const r=await fetch(baseUrl+pathname,{headers:{cookie:session.cookie||""},redirect});session.cookie=cookieFrom(r,session.cookie||"");return r;}
 async function post(pathname,session,values={}){const r=await fetch(baseUrl+pathname,{method:"POST",redirect:"manual",headers:{"content-type":"application/x-www-form-urlencoded","x-csrf-token":session.token,cookie:session.cookie},body:new URLSearchParams({...values,_csrf:session.token})});session.cookie=cookieFrom(r,session.cookie);return r;}
 async function login(){const session={cookie:""};const page=await get("/login",session);assert.equal(page.status,200);session.token=tokenFrom(await page.text());const r=await post("/login",session,{identifier:"tenant-scope-admin@example.test",password:"tenant-scope-password"});assert.equal(r.status,302);return session;}
-async function refreshToken(pathname,session){const page=await get(pathname,session);assert.equal(page.status,200);session.token=tokenFrom(await page.text());return page.text();}
+async function refreshToken(pathname,session){const page=await get(pathname,session);assert.equal(page.status,200);const html=await page.text();session.token=tokenFrom(html);return html;}
 
 test("network and operations pages only display records from the authenticated tenant",async()=>{
  const session=await login();
