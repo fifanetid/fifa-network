@@ -335,7 +335,7 @@ WHEN NEW.tenant_id <> (SELECT tenant_id FROM support_tickets WHERE id=NEW.ticket
    SELECT 1 FROM tenant_memberships m
    WHERE m.tenant_id=NEW.tenant_id AND m.user_id=NEW.sender_user_id AND m.status='active'
  ))
-BEGIN SELECT RAISE(ABORT,'support message participants must belong to the ticket tenant'); END;
+BEGIN SELECT RAISE(ABORT,'support message participants must belong to the same tenant as the ticket'); END;
 CREATE TRIGGER IF NOT EXISTS trg_support_messages_tenant_update
 BEFORE UPDATE OF ticket_id,sender_customer_id,sender_user_id,tenant_id ON support_ticket_messages
 WHEN NEW.tenant_id <> (SELECT tenant_id FROM support_tickets WHERE id=NEW.ticket_id)
@@ -344,7 +344,7 @@ WHEN NEW.tenant_id <> (SELECT tenant_id FROM support_tickets WHERE id=NEW.ticket
    SELECT 1 FROM tenant_memberships m
    WHERE m.tenant_id=NEW.tenant_id AND m.user_id=NEW.sender_user_id AND m.status='active'
  ))
-BEGIN SELECT RAISE(ABORT,'support message participants must belong to the ticket tenant'); END;
+BEGIN SELECT RAISE(ABORT,'support message participants must belong to the same tenant as the ticket'); END;
 
 CREATE TRIGGER IF NOT EXISTS trg_genieacs_links_tenant_insert
 BEFORE INSERT ON genieacs_device_links
