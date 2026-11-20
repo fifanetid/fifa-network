@@ -48,7 +48,7 @@ router.get("/", (req, res) => {
   }
   const tickets = db.prepare(`
     SELECT t.*,c.customer_code,c.full_name,c.phone,
-      u.name AS assigned_name,
+      CASE WHEN assigned_membership.user_id IS NOT NULL THEN u.name ELSE NULL END AS assigned_name,
       (SELECT COUNT(*) FROM support_ticket_messages m WHERE m.ticket_id=t.id AND m.tenant_id=t.tenant_id) AS message_count,
       (SELECT m.message FROM support_ticket_messages m
        WHERE m.ticket_id=t.id AND m.tenant_id=t.tenant_id ORDER BY m.id DESC LIMIT 1) AS latest_message
@@ -95,8 +95,9 @@ router.get("/:id", (req, res) => {
   const messages = db.prepare(`
     SELECT m.*,u.name AS staff_name,c.full_name AS customer_name
     FROM support_ticket_messages m
-    LEFT JOIN users u ON u.id=m.sender_user_id
-    LEFT JOIN customers c ON c.id=m.sender_customer_id
+    LEFT JOIN tenant_memberships sender_membership ON sender_membership.user_id=m.sender_user_id AND sender_membership.tenant_id=m.tenant_id AND sender_membership.status='active'
+    LEFT JOIN users u ON u.id=m.sender_user_id AND sender_membership.user_id IS NOT NULL
+    LEFT JOIN customers c ON c.id=m.sender_customer_id AND c.tenant_id=m.tenant_id
     WHERE m.ticket_id=? AND m.tenant_id=?
     ORDER BY m.id ASC
   `).all(id,req.tenant.id);
