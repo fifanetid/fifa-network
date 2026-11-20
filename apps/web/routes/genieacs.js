@@ -4,6 +4,7 @@ const { db } = require("../../../database/db");
 const { getGenieAcsClient, genieAcsConfigurationStatus } = require("../../../modules/genieacs");
 const { getConfig } = require("../../../modules/genieacs/client");
 const { encryptSecret } = require("../../../modules/security/secrets");
+const { extractDeviceDetails } = require("../../../modules/genieacs/device-details");
 const { recordAudit } = require("../../../modules/audit");
 const { requireRole } = require("../middleware/auth");
 const canView = requireRole("admin", "teknisi");
@@ -65,6 +66,23 @@ router.post("/settings/test",admins,async(req,res)=>{
   db.prepare("UPDATE tenant_integrations SET last_tested_at=CURRENT_TIMESTAMP,last_test_status='failed' WHERE tenant_id=? AND integration_type='genieacs' AND display_name='primary'").run(req.tenant.id);
   recordAudit({user:req.session.user,action:"genieacs.integration.test_failed",entityType:"tenant_integration",summary:"Uji koneksi GenieACS gagal: "+String(error.message).slice(0,200),tenantId:req.tenant.id});
   return renderPage(req,res,{error:error.message});
+ }
+});
+
+router.get("/device/:deviceId",canView,async(req,res)=>{
+ const deviceId=String(req.params.deviceId||"").trim();
+ if(!deviceId||deviceId.length>200||/[\\r\\n]/.test(deviceId))return res.status(400).send("ID perangkat tidak valid.");
+ const link=db.prepare(`SELECT l.genieacs_device_id,l.serial_number,l.manufacturer,l.product_class,c.customer_code,c.full_name
+  FROM genieacs_device_links l JOIN customers c ON c.id=l.customer_id AND c.tenant_id=l.tenant_id
+  WHERE l.tenant_id=? AND l.genieacs_device_id=?`).get(req.tenant.id,deviceId);
+ if(!link)return res.status(404).send("Perangkat belum ditautkan ke pelanggan tenant ini.");
+ try {
+  const raw=await getGenieAcsClient(req.tenant.id).getDeviceData(deviceId);
+  if(!raw)return res.status(404).send("Data perangkat tidak ditemukan di GenieACS.");
+  const details=extractDeviceDetails(raw);
+  return res.render("genieacs/device",{title:"Detail ONT "+(link.serial_number||deviceId),details,link,error:null});
+ } catch(error) {
+  return res.status(502).render("genieacs/device",{title:"Detail ONT",details:null,link,error:error.message});
  }
 });
 
