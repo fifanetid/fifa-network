@@ -35,7 +35,11 @@ router.post("/settings",admins,(req,res)=>{
   if(username.length>200||password.length>20000) throw new Error("Username atau password NBI terlalu panjang.");
   const validated=getConfig({GENIEACS_NBI_URL:endpointUrl,GENIEACS_USERNAME:username,GENIEACS_PASSWORD:password,GENIEACS_NBI_TIMEOUT_MS:"8000"});
   const existing=db.prepare("SELECT secret_encrypted FROM tenant_integrations WHERE tenant_id=? AND integration_type='genieacs' AND display_name='primary'").get(req.tenant.id);
-  const encrypted=password?encryptSecret(password):(existing?.secret_encrypted||null);
+  let retainedSecret=existing?.secret_encrypted||null;
+  if(!existing&&req.tenant.id===1&&!password) {
+   try { const legacyConfig=getConfig(); if(legacyConfig.password) retainedSecret=encryptSecret(legacyConfig.password); } catch {}
+  }
+  const encrypted=password?encryptSecret(password):retainedSecret;
   db.prepare(`
    INSERT INTO tenant_integrations
     (tenant_id,integration_type,display_name,endpoint_url,username,secret_encrypted,config_json,is_enabled,last_tested_at,last_test_status)
