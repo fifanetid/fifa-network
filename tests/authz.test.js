@@ -25,6 +25,7 @@ const ids = {
 
 function invoke(userId, expected) {
   const req = { session: {
+    tenantId: 1,
     user: userId ? { id: userId, role: "stale-role" } : null,
     destroy(callback) { callback(); }
   } };
