@@ -91,6 +91,7 @@ Akses melalui `/admin/operations`. Fitur ini dikembangkan dengan mengambil inspi
 
 - Registry tenant, membership dengan role per tenant, domain kustom, registrasi integrasi per tenant, dan audit event tenant tersedia melalui migrasi 016. Migrasi 017 menambahkan tenant ownership keys dan guard relasi lintas tenant pada data operasional.
 - Instalasi lama otomatis ditempatkan pada tenant default **FIFA Network**.
+- Billing, dashboard, laporan, audit, operasional, MikroTik, dan tautan GenieACS mulai memakai tenant scope. Login tetap dibatasi pada tenant default.
 - **Penting:** tenant switching dan pendaftaran tenant baru belum diaktifkan. Semua route/data bisnis masih harus discope per tenant sebelum layanan SaaS publik aman digunakan. Lihat [docs/MULTI_TENANT_ARCHITECTURE.md](docs/MULTI_TENANT_ARCHITECTURE.md).
 
 ## Teknologi dan pemisahan database
