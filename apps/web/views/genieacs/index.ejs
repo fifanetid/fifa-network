@@ -60,9 +60,9 @@
  <div class="panel-heading"><div><span class="eyebrow">CUSTOMER MAPPING</span><h3>Perangkat tertaut</h3></div><span class="pill muted"><%= links.length %> tautan</span></div>
  <% if(!links.length){ %><div class="genieacs-empty">Belum ada perangkat GenieACS yang ditautkan ke pelanggan.</div><% }else{ %>
  <div class="table-wrap"><table class="users-table genieacs-table">
-  <thead><tr><th>Pelanggan</th><th>Perangkat</th><th>Serial Number</th><th>Vendor / Model</th><th>Langganan</th><th>Dibuat</th><% if(currentUser&&currentUser.role==="admin"){ %><th>Aksi</th><% } %></tr></thead>
+  <thead><tr><th>Pelanggan</th><th>Perangkat</th><th>Serial Number</th><th>Vendor / Model</th><th>Langganan</th><th>Detail</th><th>Dibuat</th><% if(currentUser&&currentUser.role==="admin"){ %><th>Aksi</th><% } %></tr></thead>
   <tbody><% links.forEach(link=>{ %><tr>
-   <td><strong><%= link.customer_code %></strong><small><%= link.full_name %></small></td><td><%= link.genieacs_device_id %></td><td><%= link.serial_number||"-" %></td><td><%= [link.manufacturer,link.product_class].filter(Boolean).join(" / ")||"-" %></td><td><%= link.linked_subscription_id?"#"+link.linked_subscription_id+" — "+link.plan_name:"Pelanggan umum" %></td><td><%= link.linked_at %></td>
+   <td><strong><%= link.customer_code %></strong><small><%= link.full_name %></small></td><td><%= link.genieacs_device_id %></td><td><%= link.serial_number||"-" %></td><td><%= [link.manufacturer,link.product_class].filter(Boolean).join(" / ")||"-" %></td><td><%= link.linked_subscription_id?"#"+link.linked_subscription_id+" — "+link.plan_name:"Pelanggan umum" %></td><td><a class="genieacs-detail-link" href="/admin/genieacs/device/<%= encodeURIComponent(link.genieacs_device_id) %>">WAN / WLAN / LAN</a></td><td><%= link.linked_at %></td>
    <% if(currentUser&&currentUser.role==="admin"){ %><td><form method="post" action="/admin/genieacs/links/<%= link.id %>/delete" onsubmit="return confirm('Lepas tautan perangkat ini?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="danger-button" type="submit">Lepas</button></form></td><% } %>
   </tr><% }) %></tbody>
  </table></div><% } %>

@@ -64,7 +64,8 @@ function createGenieAcsClient(options={}) {
    if(term){if(term.length>100)throw new Error("Pencarian maksimal 100 karakter.");p.query=JSON.stringify({$or:[{"_deviceId._SerialNumber":term},{"_deviceId._OUI":term},{"_id":term}]});}
    const r=await request("/devices",p);if(!Array.isArray(r))throw new GenieAcsError("Format daftar perangkat tidak sesuai.");return r.map(safeDevice).filter(Boolean);
   },
-  async getDevice(deviceId){const id=String(deviceId||"").trim();if(!id||id.length>200||/[\r\n]/.test(id))throw new Error("ID perangkat tidak valid.");const r=await request("/devices",{query:JSON.stringify({_id:id}),projection:"_id,_deviceId,_lastInform"});return Array.isArray(r)&&r.length?safeDevice(r[0]):null;}
+  async getDevice(deviceId){const id=String(deviceId||"").trim();if(!id||id.length>200||/[\r\n]/.test(id))throw new Error("ID perangkat tidak valid.");const r=await request("/devices",{query:JSON.stringify({_id:id}),projection:"_id,_deviceId,_lastInform"});return Array.isArray(r)&&r.length?safeDevice(r[0]):null;},
+  async getDeviceData(deviceId){const id=String(deviceId||"").trim();if(!id||id.length>200||/[\r\n]/.test(id))throw new Error("ID perangkat tidak valid.");const r=await request("/devices",{query:JSON.stringify({_id:id})});return Array.isArray(r)&&r.length&&r[0]&&typeof r[0]==="object"?r[0]:null;}
  };
 }
 module.exports={createGenieAcsClient,getConfig,safeDevice,GenieAcsError};
