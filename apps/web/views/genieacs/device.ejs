@@ -1,0 +1,47 @@
+<%- include("../partials/header", { title }) %>
+<section class="genieacs-intro">
+ <div><span class="eyebrow">TR-069 DEVICE MANAGEMENT</span><h2>Detail ONT</h2><p>Parameter WAN, WLAN, dan LAN yang berhasil dibaca dari GenieACS.</p></div>
+ <span class="genieacs-mode"><span></span> READ-ONLY NBI</span>
+</section>
+<p><a class="genieacs-back-link" href="/admin/genieacs">← Kembali ke GenieACS</a></p>
+<% if(error){ %><div class="notice error"><%= error %></div><% } %>
+<% if(details){ %>
+<section class="panel genieacs-device-summary">
+ <div class="genieacs-device-title"><div><span class="eyebrow">PERANGKAT TERTAUT</span><h3><%= link.customer_code %> — <%= link.full_name %></h3><p><%= details.id %></p></div><span class="pill muted"><%= details.total %> parameter aman</span></div>
+ <div class="genieacs-device-meta">
+  <div><small>Serial Number</small><strong><%= details.serialNumber||link.serial_number||"-" %></strong></div>
+  <div><small>Manufacturer</small><strong><%= details.manufacturer||link.manufacturer||"-" %></strong></div>
+  <div><small>Product Class</small><strong><%= details.productClass||link.product_class||"-" %></strong></div>
+  <div><small>Last Inform</small><strong><%= details.lastInform||"Belum tersedia" %></strong></div>
+ </div>
+</section>
+<section class="panel genieacs-parameters-panel">
+ <div class="panel-heading"><div><span class="eyebrow">DEVICE PARAMETERS</span><h3>Parameter jaringan</h3><p>Nilai sensitif seperti password, PSK, token, dan username sengaja disembunyikan.</p></div></div>
+ <nav class="genieacs-tabs" role="tablist" aria-label="Kelompok parameter">
+  <button type="button" class="active" data-tab="wan">WAN <span><%= details.groups.wan.length %></span></button>
+  <button type="button" data-tab="wlan">WLAN <span><%= details.groups.wlan.length %></span></button>
+  <button type="button" data-tab="lan">LAN <span><%= details.groups.lan.length %></span></button>
+  <button type="button" data-tab="other">Lainnya <span><%= details.groups.other.length %></span></button>
+ </nav>
+ <% ["wan","wlan","lan","other"].forEach((group)=>{ %>
+ <section class="genieacs-tab-panel <%= group==="wan"?"active":"" %>" data-panel="<%= group %>">
+  <% if(!details.groups[group].length){ %><div class="genieacs-empty">Belum ada parameter <%= group.toUpperCase() %> yang tersedia pada perangkat ini.</div><% }else{ %>
+  <div class="table-wrap"><table class="users-table genieacs-parameter-table">
+   <thead><tr><th>Parameter path</th><th>Nilai</th><th>Waktu data</th><th>Akses</th></tr></thead>
+   <tbody><% details.groups[group].forEach((item)=>{ %><tr><td><code><%= item.path %></code></td><td class="genieacs-parameter-value"><%= item.value||"-" %></td><td><%= item.timestamp||"-" %></td><td><span class="pill muted">Read-only</span></td></tr><% }) %></tbody>
+  </table></div>
+  <% } %>
+ </section>
+ <% }) %>
+</section>
+<section class="genieacs-safety-note"><strong>Mode aman</strong><p>Halaman ini hanya membaca parameter dari NBI. Tidak ada tombol untuk mengubah SSID, password Wi-Fi, WAN, atau menjalankan reboot. Parameter kredensial tidak ditampilkan.</p></section>
+<script>
+document.querySelectorAll(".genieacs-tabs [data-tab]").forEach((button)=>{
+ button.addEventListener("click",()=>{
+  document.querySelectorAll(".genieacs-tabs [data-tab]").forEach((item)=>item.classList.toggle("active",item===button));
+  document.querySelectorAll(".genieacs-tab-panel[data-panel]").forEach((panel)=>panel.classList.toggle("active",panel.dataset.panel===button.dataset.tab));
+ });
+});
+</script>
+<% } %>
+<%- include("../partials/footer") %>
