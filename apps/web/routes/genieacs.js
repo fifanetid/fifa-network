@@ -19,7 +19,7 @@ async function renderPage(req,res,extra={}) {
   title:"GenieACS / ONT",configuration,search,devices,links:loadLinks(),
   customers:db.prepare("SELECT id,customer_code,full_name FROM customers WHERE status='active' ORDER BY full_name COLLATE NOCASE").all(),
   subscriptions:db.prepare("SELECT s.id,s.customer_id,p.name AS plan_name,s.status FROM subscriptions s JOIN internet_plans p ON p.id=s.plan_id WHERE s.status IN ('active','suspended') ORDER BY s.id DESC").all(),
-  notice:null,error:connectionError,...extra
+  notice:null,...extra,error:extra.error || connectionError
  });
 }
 router.get("/",canView,async(req,res)=>renderPage(req,res,{notice:req.query.notice||null,error:req.query.error||null}));
