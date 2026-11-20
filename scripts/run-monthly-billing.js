@@ -13,10 +13,10 @@ function main(args) {
   const now = jakartaDateParts();
   const period = args[0] || now.year + "-" + now.month;
   const dueDate = args[1] || period + "-10";
-  const invoices = billing.generateMonthlyInvoices({ period, dueDate });
+  const invoices = billing.generateMonthlyInvoices({ period, dueDate, tenantId:1 });
   db.prepare(`
-    INSERT INTO audit_logs (actor_user_id, actor_name, actor_role, action, entity_type, entity_id, summary)
-    VALUES (NULL, 'FF BILLING Scheduler', 'system', 'invoice.batch_create', 'invoice_batch', ?, ?)
+    INSERT INTO audit_logs (tenant_id,actor_user_id, actor_name, actor_role, action, entity_type, entity_id, summary)
+    VALUES (1,NULL, 'FF BILLING Scheduler', 'system', 'invoice.batch_create', 'invoice_batch', ?, ?)
   `).run(
     invoices[0] ? String(invoices[0].id) : null,
     "Scheduler menerbitkan " + invoices.length + " invoice untuk periode " + period
