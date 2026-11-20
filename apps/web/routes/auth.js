@@ -2,6 +2,7 @@ const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const rateLimit = require("express-rate-limit");
 const { db } = require("../../../database/db");
+const { getUserTenants } = require("../../../modules/tenancy");
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -38,14 +39,21 @@ router.post("/login", loginLimiter, (req, res, next) => {
     return res.redirect("/login?error=1");
   }
 
+  const memberships = getUserTenants(user.id);
+  // Tenant selection is intentionally unavailable until all application modules
+  // are scoped. Refuse ambiguous memberships instead of choosing a tenant silently.
+  if (memberships.length !== 1) return res.redirect("/login?error=1");
+  const tenant = memberships[0];
+
   req.session.regenerate((err) => {
     if (err) return next(err);
     req.session.user = {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role
+      role: tenant.membership_role
     };
+    req.session.tenantId = tenant.id;
     db.prepare("UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?").run(user.id);
     req.session.save((saveError) => {
       if (saveError) return next(saveError);
