@@ -42,7 +42,7 @@ test("akun tenant default dapat login dengan membership default",async()=>{
 test("akun yang hanya terdaftar pada tenant kedua ditolak sampai isolasi semua modul selesai",async()=>{
  const result=await login("tenant-dua-admin@example.test");
  assert.equal(result.response.status,302);
- assert.match(result.response.headers.get("location")||"","/login\\?error=1/);
+ assert.equal(result.response.headers.get("location"),"/login?error=1");
  assert.ok(db.prepare("SELECT id FROM tenant_memberships WHERE tenant_id=? AND user_id=?").get(tenant2,tenant2User));
  assert.ok(db.prepare("SELECT id FROM tenant_memberships WHERE tenant_id=1 AND user_id=?").get(adminId));
 });
