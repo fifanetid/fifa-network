@@ -379,3 +379,89 @@ BEFORE DELETE ON users
 BEGIN
   DELETE FROM tenant_memberships WHERE user_id=OLD.id;
 END;
+
+-- Tenant ownership cannot be reassigned through ordinary record updates.
+CREATE TRIGGER IF NOT EXISTS trg_customers_tenant_immutable
+BEFORE UPDATE OF tenant_id ON customers
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_internet_plans_tenant_immutable
+BEFORE UPDATE OF tenant_id ON internet_plans
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_subscriptions_tenant_immutable
+BEFORE UPDATE OF tenant_id ON subscriptions
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_invoices_tenant_immutable
+BEFORE UPDATE OF tenant_id ON invoices
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_payments_tenant_immutable
+BEFORE UPDATE OF tenant_id ON payments
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_payment_reversals_tenant_immutable
+BEFORE UPDATE OF tenant_id ON payment_reversals
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_audit_logs_tenant_immutable
+BEFORE UPDATE OF tenant_id ON audit_logs
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_whatsapp_message_logs_tenant_immutable
+BEFORE UPDATE OF tenant_id ON whatsapp_message_logs
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_app_settings_tenant_immutable
+BEFORE UPDATE OF tenant_id ON app_settings
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_voucher_packages_tenant_immutable
+BEFORE UPDATE OF tenant_id ON voucher_packages
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_customer_portal_accounts_tenant_immutable
+BEFORE UPDATE OF tenant_id ON customer_portal_accounts
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_customer_payment_confirmations_tenant_immutable
+BEFORE UPDATE OF tenant_id ON customer_payment_confirmations
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_support_tickets_tenant_immutable
+BEFORE UPDATE OF tenant_id ON support_tickets
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_support_ticket_messages_tenant_immutable
+BEFORE UPDATE OF tenant_id ON support_ticket_messages
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_mikrotik_routers_tenant_immutable
+BEFORE UPDATE OF tenant_id ON mikrotik_routers
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_genieacs_device_links_tenant_immutable
+BEFORE UPDATE OF tenant_id ON genieacs_device_links
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_network_odps_tenant_immutable
+BEFORE UPDATE OF tenant_id ON network_odps
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_expense_categories_tenant_immutable
+BEFORE UPDATE OF tenant_id ON expense_categories
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_expenses_tenant_immutable
+BEFORE UPDATE OF tenant_id ON expenses
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_inventory_items_tenant_immutable
+BEFORE UPDATE OF tenant_id ON inventory_items
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_inventory_movements_tenant_immutable
+BEFORE UPDATE OF tenant_id ON inventory_movements
+WHEN OLD.tenant_id <> NEW.tenant_id
+BEGIN SELECT RAISE(ABORT,'tenant ownership is immutable'); END;
