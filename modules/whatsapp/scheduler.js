@@ -89,7 +89,7 @@ async function runReminderJob({ automatic = false, limit = 20, delayMs = 5000, t
   try {
     // Re-check after acquiring the shared lock so an admin disable action
     // cannot race with a cron tick that has already started.
-    if (automatic && !getAutomaticReminderSettings().enabled) {
+    if (automatic && !getAutomaticReminderSettings(tenant).enabled) {
       return { checked: 0, sent: 0, failed: 0, skipped: 0, disabled: true };
     }
     if (automatic && whatsapp.snapshot().status !== "connected") {
