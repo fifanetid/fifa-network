@@ -66,6 +66,15 @@ GENIEACS_NBI_TIMEOUT_MS=8000
 
 Lihat [docs/GENIEACS_INTEGRATION.md](docs/GENIEACS_INTEGRATION.md). FF BILLING memakai SQLite terpisah untuk seluruh data billing dan referensi perangkat. GenieACS tetap mengelola perangkat di MongoDB miliknya sendiri.
 
+### Operasional ISP: ODP, keuangan, dan inventaris
+
+Menu **Operasional ISP** menyediakan fondasi tambahan:
+- **ODP**: pencatatan kode, nama, alamat, koordinat, kapasitas port, status, dan jumlah pelanggan tertaut. Data koordinat pelanggan dan relasi ODP disiapkan pada SQLite untuk pengembangan peta jaringan.
+- **Pengeluaran**: pencatatan pengeluaran operasional, kategori, vendor, tanggal, nominal rupiah, dan metode pembayaran; finance dapat mencatat pengeluaran, admin mengelola kategori.
+- **Inventaris**: katalog barang/SKU, kategori, satuan, harga perolehan, lokasi, batas stok minimum, serta mutasi masuk/keluar/penyesuaian yang tercatat secara append-only dan dicegah menjadi stok negatif.
+
+Akses melalui `/admin/operations`. Fitur ini dikembangkan dengan mengambil inspirasi kategori kebutuhan operasional yang didokumentasikan pada referensi Alijaya; implementasi kode dan skema FF BILLING tetap mandiri.
+
 ### Laporan, audit, dan notifikasi
 - Audit log aktivitas penting yang append-only
 - Laporan keuangan dengan perhitungan pembayaran bersih setelah reversal
@@ -177,6 +186,7 @@ fifa-network/
 ├── apps/web/                 # Express web app, routes, views, public assets
 ├── modules/billing/          # Validasi domain dan aturan invoice/pembayaran
 ├── modules/genieacs/         # Konektor GenieACS NBI read-only
+├── apps/web/routes/operations.js # ODP, pengeluaran, inventaris
 ├── database/migrations/      # Migrasi SQLite
 ├── scripts/                  # Setup administrator
 ├── docs/                     # Dokumentasi teknis
