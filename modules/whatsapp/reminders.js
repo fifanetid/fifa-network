@@ -28,19 +28,21 @@ function reminderStageLabel(daysUntilDue) {
  * Read-only preview of invoices that match the exact reminder schedule.
  * It uses the same date, consent, balance and deduplication rules as sending.
  */
-function getReminderPreview({ today = jakartaDate() } = {}) {
+function getReminderPreview({ today = jakartaDate(), tenantId = 1 } = {}) {
+  const tenant = Number(tenantId);
+  if (!Number.isSafeInteger(tenant) || tenant < 1) throw new Error("Tenant pengingat tidak valid.");
   const rows = db.prepare(`
     SELECT i.id AS invoice_id, i.invoice_number, i.due_date, i.billing_period,
       i.total_idr, c.id AS customer_id, c.customer_code, c.full_name, c.phone,
       COALESCE((SELECT SUM(amount_idr) FROM payments WHERE invoice_id=i.id),0)
       - COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r JOIN payments p ON p.id=r.payment_id WHERE p.invoice_id=i.id),0) AS paid_idr
-    FROM invoices i JOIN customers c ON c.id=i.customer_id
-    WHERE i.status IN ('unpaid','partial') AND c.status='active' AND c.whatsapp_opt_in=1
+    FROM invoices i JOIN customers c ON c.id=i.customer_id AND c.tenant_id=i.tenant_id
+    WHERE i.tenant_id=? AND i.status IN ('unpaid','partial') AND c.status='active' AND c.whatsapp_opt_in=1
       AND i.due_date <= date(?, '+3 days')
     ORDER BY i.due_date ASC, i.id ASC
-  `).all(today);
+  `).all(tenant,today);
 
-  const findLog = db.prepare("SELECT id,status FROM whatsapp_message_logs WHERE dedupe_key=?");
+  const findLog = db.prepare("SELECT id,status FROM whatsapp_message_logs WHERE dedupe_key=? AND tenant_id=?");
 
   return rows.map((row) => {
     const remaining = row.total_idr - row.paid_idr;
@@ -51,7 +53,7 @@ function getReminderPreview({ today = jakartaDate() } = {}) {
     if (!stage) return null;
 
     const dedupeKey = row.invoice_id + ":" + stage;
-    const existing = findLog.get(dedupeKey);
+    const existing = findLog.get(dedupeKey,tenant);
     const alreadySent = existing?.status === "sent";
 
     return {
@@ -69,11 +71,13 @@ function getReminderPreview({ today = jakartaDate() } = {}) {
   }).filter(Boolean);
 }
 
-async function processReminders({ today = jakartaDate(), limit = 20, delayMs = 5000 } = {}) {
+async function processReminders({ today = jakartaDate(), limit = 20, delayMs = 5000, tenantId = 1 } = {}) {
+  const tenant = Number(tenantId);
+  if (!Number.isSafeInteger(tenant) || tenant < 1) throw new Error("Tenant pengingat tidak valid.");
   if (running) return { checked: 0, sent: 0, failed: 0, skipped: 0, busy: true, date: today };
   running = true;
   try {
-    const rows = getReminderPreview({ today });
+    const rows = getReminderPreview({ today,tenantId:tenant });
     let sent = 0, failed = 0, skipped = 0;
     for (const row of rows) {
       if (sent >= limit) break;
@@ -92,19 +96,19 @@ async function processReminders({ today = jakartaDate(), limit = 20, delayMs = 5
       try {
         await sendText(row.phone, message);
         if (exists) {
-          db.prepare("UPDATE whatsapp_message_logs SET status='sent',error_message=NULL,created_at=CURRENT_TIMESTAMP WHERE id=?").run(exists.id);
+          db.prepare("UPDATE whatsapp_message_logs SET status='sent',error_message=NULL,created_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=?").run(exists.id,tenant);
         } else {
-          db.prepare("INSERT INTO whatsapp_message_logs (customer_id,invoice_id,phone,message_type,dedupe_key,status) VALUES (?,?,?,'reminder',?,'sent')")
-            .run(row.customer_id, row.invoice_id, row.phone, key);
+          db.prepare("INSERT INTO whatsapp_message_logs (tenant_id,customer_id,invoice_id,phone,message_type,dedupe_key,status) VALUES (?,?,?,?,'reminder',?,'sent')")
+            .run(tenant,row.customer_id, row.invoice_id, row.phone, key);
         }
         sent++;
       } catch (error) {
         if (exists) {
-          db.prepare("UPDATE whatsapp_message_logs SET status='failed',error_message=?,created_at=CURRENT_TIMESTAMP WHERE id=?")
-            .run(String(error.message).slice(0, 500), exists.id);
+          db.prepare("UPDATE whatsapp_message_logs SET status='failed',error_message=?,created_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=?")
+            .run(String(error.message).slice(0, 500), exists.id,tenant);
         } else {
-          db.prepare("INSERT INTO whatsapp_message_logs (customer_id,invoice_id,phone,message_type,dedupe_key,status,error_message) VALUES (?,?,?,'reminder',?,'failed',?)")
-            .run(row.customer_id, row.invoice_id, row.phone, key, String(error.message).slice(0, 500));
+          db.prepare("INSERT INTO whatsapp_message_logs (tenant_id,customer_id,invoice_id,phone,message_type,dedupe_key,status,error_message) VALUES (?,?,?,?,'reminder',?,'failed',?)")
+            .run(tenant,row.customer_id, row.invoice_id, row.phone, key, String(error.message).slice(0, 500));
         }
         failed++;
       }

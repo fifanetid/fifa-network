@@ -56,8 +56,8 @@ router.post("/login", loginLimiter, (req, res, next) => {
   const account = db.prepare(`
     SELECT a.customer_id, a.password_hash, c.customer_code, c.full_name
     FROM customer_portal_accounts a
-    JOIN customers c ON c.id=a.customer_id
-    WHERE c.customer_code=? COLLATE NOCASE
+    JOIN customers c ON c.id=a.customer_id AND a.tenant_id=c.tenant_id
+    WHERE c.tenant_id=1 AND c.customer_code=? COLLATE NOCASE
       AND a.is_active=1 AND c.status='active'
     LIMIT 1
   `).get(customerCode);
@@ -73,7 +73,7 @@ router.post("/login", loginLimiter, (req, res, next) => {
       customerCode: account.customer_code,
       fullName: account.full_name
     };
-    db.prepare("UPDATE customer_portal_accounts SET last_login_at=CURRENT_TIMESTAMP WHERE customer_id=?")
+    db.prepare("UPDATE customer_portal_accounts SET last_login_at=CURRENT_TIMESTAMP WHERE customer_id=? AND tenant_id=1")
       .run(account.customer_id);
     req.session.save((saveError) => {
       if (saveError) return next(saveError);
@@ -96,9 +96,9 @@ router.get("/", (req, res) => {
       (SELECT COUNT(*) FROM customer_payment_confirmations pc
        WHERE pc.invoice_id=i.id AND pc.status='pending') AS pending_confirmations
     FROM invoices i
-    WHERE i.customer_id=? AND i.status<>'void'
+    WHERE i.customer_id=? AND i.tenant_id=? AND i.status<>'void'
     ORDER BY i.id DESC LIMIT 100
-  `).all(customerId).map(invoice => ({
+  `).all(customerId,req.customer.tenantId).map(invoice => ({
     ...invoice,
     remaining_idr: Math.max(0, invoice.total_idr - invoice.paid_idr)
   }));
@@ -106,9 +106,9 @@ router.get("/", (req, res) => {
   const subscriptions = db.prepare(`
     SELECT s.id, s.start_date, s.end_date, s.status, s.external_device_ref,
       p.plan_code, p.name AS plan_name, p.speed_mbps, p.monthly_price_idr
-    FROM subscriptions s JOIN internet_plans p ON p.id=s.plan_id
-    WHERE s.customer_id=? ORDER BY s.id DESC
-  `).all(customerId);
+    FROM subscriptions s JOIN internet_plans p ON p.id=s.plan_id AND p.tenant_id=s.tenant_id
+    WHERE s.customer_id=? AND s.tenant_id=? ORDER BY s.id DESC
+  `).all(customerId,req.customer.tenantId);
 
   const confirmations = db.prepare(`
     SELECT pc.*, i.invoice_number,
@@ -127,22 +127,22 @@ router.get("/", (req, res) => {
         ELSE pc.status
       END AS display_status
     FROM customer_payment_confirmations pc
-    JOIN invoices i ON i.id=pc.invoice_id
-    LEFT JOIN payments p ON p.id=pc.payment_id
-    WHERE pc.customer_id=?
+    JOIN invoices i ON i.id=pc.invoice_id AND i.tenant_id=pc.tenant_id
+    LEFT JOIN payments p ON p.id=pc.payment_id AND p.tenant_id=pc.tenant_id
+    WHERE pc.customer_id=? AND pc.tenant_id=?
     ORDER BY pc.id DESC LIMIT 50
-  `).all(customerId);
+  `).all(customerId,req.customer.tenantId);
 
   const customer = db.prepare(`
     SELECT customer_code, full_name, phone, email, address
-    FROM customers WHERE id=?
-  `).get(customerId);
+    FROM customers WHERE id=? AND tenant_id=?
+  `).get(customerId,req.customer.tenantId);
   const supportTicketCount = db.prepare(
-    "SELECT COUNT(*) AS total FROM support_tickets WHERE customer_id=?"
-  ).get(customerId).total;
+    "SELECT COUNT(*) AS total FROM support_tickets WHERE customer_id=? AND tenant_id=?"
+  ).get(customerId,req.customer.tenantId).total;
   const openSupportTicketCount = db.prepare(
-    "SELECT COUNT(*) AS total FROM support_tickets WHERE customer_id=? AND status NOT IN ('resolved','closed')"
-  ).get(customerId).total;
+    "SELECT COUNT(*) AS total FROM support_tickets WHERE customer_id=? AND tenant_id=? AND status NOT IN ('resolved','closed')"
+  ).get(customerId,req.customer.tenantId).total;
 
   res.render("customer/dashboard", {
     title: "Portal Pelanggan",
@@ -170,11 +170,11 @@ router.get("/invoices/:id/print", (req, res) => {
         JOIN payments rp ON rp.id=r.payment_id WHERE rp.invoice_id=i.id
       ),0) AS paid_idr
     FROM invoices i
-    JOIN customers c ON c.id=i.customer_id
-    JOIN subscriptions s ON s.id=i.subscription_id
-    JOIN internet_plans p ON p.id=s.plan_id
-    WHERE i.id=? AND i.customer_id=? AND i.status<>'void'
-  `).get(invoiceId, req.customer.id);
+    JOIN customers c ON c.id=i.customer_id AND c.tenant_id=i.tenant_id
+    JOIN subscriptions s ON s.id=i.subscription_id AND s.tenant_id=i.tenant_id
+    JOIN internet_plans p ON p.id=s.plan_id AND p.tenant_id=i.tenant_id
+    WHERE i.id=? AND i.customer_id=? AND i.tenant_id=? AND i.status<>'void'
+  `).get(invoiceId, req.customer.id,req.customer.tenantId);
 
   if (!invoice) return res.status(404).send("Invoice tidak ditemukan.");
   res.render("customer/invoice-print", { title: "Invoice " + invoice.invoice_number, invoice, rupiah });
@@ -195,14 +195,14 @@ router.post("/invoices/:id/confirm-payment", (req, res) => {
           JOIN payments rp ON rp.id=r.payment_id WHERE rp.invoice_id=i.id
         ),0) AS paid_idr
       FROM invoices i
-      WHERE i.id=? AND i.customer_id=? AND i.status IN ('unpaid','partial')
-    `).get(invoiceId, req.customer.id);
+      WHERE i.id=? AND i.customer_id=? AND i.tenant_id=? AND i.status IN ('unpaid','partial')
+    `).get(invoiceId, req.customer.id,req.customer.tenantId);
 
     if (!invoice) throw new Error("Invoice tidak ditemukan atau sudah lunas.");
     const pending = db.prepare(`
       SELECT COUNT(*) AS total FROM customer_payment_confirmations
-      WHERE invoice_id=? AND customer_id=? AND status='pending'
-    `).get(invoiceId, req.customer.id).total;
+      WHERE invoice_id=? AND customer_id=? AND tenant_id=? AND status='pending'
+    `).get(invoiceId, req.customer.id,req.customer.tenantId).total;
     if (pending > 0) throw new Error("Konfirmasi pembayaran untuk invoice ini masih menunggu pemeriksaan admin.");
 
     const amount = Number(req.body.amount_idr);
@@ -224,9 +224,9 @@ router.post("/invoices/:id/confirm-payment", (req, res) => {
 
     db.prepare(`
       INSERT INTO customer_payment_confirmations
-        (customer_id,invoice_id,amount_idr,payment_method,payment_reference,paid_at,notes)
-      VALUES (?,?,?,?,?,?,?)
-    `).run(req.customer.id, invoiceId, amount, method, reference, paidAt, notes);
+        (tenant_id,customer_id,invoice_id,amount_idr,payment_method,payment_reference,paid_at,notes)
+      VALUES (?,?,?,?,?,?,?,?)
+    `).run(req.customer.tenantId,req.customer.id, invoiceId, amount, method, reference, paidAt, notes);
 
     res.redirect("/customer?notice=" + encodeURIComponent("Konfirmasi pembayaran berhasil dikirim dan menunggu pemeriksaan admin."));
   } catch (error) {
@@ -240,14 +240,14 @@ router.post("/invoices/:id/confirm-payment", (req, res) => {
 router.get("/tickets", (req, res) => {
   const tickets = db.prepare(`
     SELECT t.*,
-      (SELECT COUNT(*) FROM support_ticket_messages m WHERE m.ticket_id=t.id) AS message_count,
+      (SELECT COUNT(*) FROM support_ticket_messages m WHERE m.ticket_id=t.id AND m.tenant_id=t.tenant_id) AS message_count,
       (SELECT m.message FROM support_ticket_messages m
-       WHERE m.ticket_id=t.id ORDER BY m.id DESC LIMIT 1) AS latest_message
+       WHERE m.ticket_id=t.id AND m.tenant_id=t.tenant_id ORDER BY m.id DESC LIMIT 1) AS latest_message
     FROM support_tickets t
-    WHERE t.customer_id=?
+    WHERE t.customer_id=? AND t.tenant_id=?
     ORDER BY t.last_activity_at DESC,t.id DESC
     LIMIT 100
-  `).all(req.customer.id);
+  `).all(req.customer.id,req.customer.tenantId);
   res.render("customer/tickets", {
     title: "Keluhan Saya",
     customer: req.customer,
@@ -274,14 +274,14 @@ router.post("/tickets", ticketCreateLimiter, (req, res) => {
   try {
     const ticketId = db.transaction(() => {
       const result = db.prepare(`
-        INSERT INTO support_tickets (ticket_number,customer_id,category,subject)
-        VALUES (?,?,?,?)
-      `).run(newTicketNumber(), req.customer.id, category, subject);
+        INSERT INTO support_tickets (tenant_id,ticket_number,customer_id,category,subject)
+        VALUES (?,?,?,?,?)
+      `).run(req.customer.tenantId,newTicketNumber(), req.customer.id, category, subject);
       db.prepare(`
         INSERT INTO support_ticket_messages
-          (ticket_id,sender_type,sender_customer_id,message)
-        VALUES (?,'customer',?,?)
-      `).run(result.lastInsertRowid, req.customer.id, message);
+          (tenant_id,ticket_id,sender_type,sender_customer_id,message)
+        VALUES (?,?,'customer',?,?)
+      `).run(req.customer.tenantId,result.lastInsertRowid, req.customer.id, message);
       return Number(result.lastInsertRowid);
     })();
     return res.redirect("/customer/tickets/" + ticketId + "?notice=" + encodeURIComponent("Laporan berhasil dikirim."));
@@ -298,8 +298,8 @@ router.get("/tickets/:id", (req, res) => {
   if (!Number.isSafeInteger(ticketId) || ticketId < 1) return res.status(404).send("Laporan tidak ditemukan.");
   const ticket = db.prepare(`
     SELECT t.* FROM support_tickets t
-    WHERE t.id=? AND t.customer_id=?
-  `).get(ticketId, req.customer.id);
+    WHERE t.id=? AND t.customer_id=? AND t.tenant_id=?
+  `).get(ticketId, req.customer.id,req.customer.tenantId);
   if (!ticket) return res.status(404).send("Laporan tidak ditemukan.");
   const messages = db.prepare(`
     SELECT m.id,m.sender_type,m.message,m.created_at,
@@ -310,9 +310,9 @@ router.get("/tickets/:id", (req, res) => {
       END AS sender_name
     FROM support_ticket_messages m
     LEFT JOIN users u ON u.id=m.sender_user_id
-    WHERE m.ticket_id=?
+    WHERE m.ticket_id=? AND m.tenant_id=?
     ORDER BY m.id ASC
-  `).all(ticketId);
+  `).all(ticketId,req.customer.tenantId);
   res.render("customer/ticket", {
     title: ticket.ticket_number,
     customer: req.customer,
@@ -331,8 +331,8 @@ router.post("/tickets/:id/reply", (req, res) => {
     return res.redirect("/customer/tickets/" + ticketId + "?error=" + encodeURIComponent("Balasan harus 1–5.000 karakter."));
   }
   const ticket = db.prepare(`
-    SELECT id,status FROM support_tickets WHERE id=? AND customer_id=?
-  `).get(ticketId, req.customer.id);
+    SELECT id,status FROM support_tickets WHERE id=? AND customer_id=? AND tenant_id=?
+  `).get(ticketId, req.customer.id,req.customer.tenantId);
   if (!ticket) return res.status(404).send("Laporan tidak ditemukan.");
   if (ticket.status === "closed") {
     return res.redirect("/customer/tickets/" + ticketId + "?error=" + encodeURIComponent("Laporan sudah ditutup. Buat laporan baru bila gangguan masih terjadi."));
@@ -341,17 +341,17 @@ router.post("/tickets/:id/reply", (req, res) => {
   db.transaction(() => {
     db.prepare(`
       INSERT INTO support_ticket_messages
-        (ticket_id,sender_type,sender_customer_id,message)
-      VALUES (?,'customer',?,?)
-    `).run(ticketId, req.customer.id, message);
+        (tenant_id,ticket_id,sender_type,sender_customer_id,message)
+      VALUES (?,?,'customer',?,?)
+    `).run(req.customer.tenantId,ticketId, req.customer.id, message);
     const nextStatus = ticket.status === "resolved" ? "open"
       : ticket.status === "waiting_customer" ? "in_progress" : ticket.status;
     db.prepare(`
       UPDATE support_tickets
       SET status=?,resolved_at=CASE WHEN ?='open' THEN NULL ELSE resolved_at END,
           updated_at=CURRENT_TIMESTAMP,last_activity_at=CURRENT_TIMESTAMP
-      WHERE id=?
-    `).run(nextStatus, nextStatus, ticketId);
+      WHERE id=? AND tenant_id=?
+    `).run(nextStatus, nextStatus, ticketId,req.customer.tenantId);
   })();
   res.redirect("/customer/tickets/" + ticketId + "?notice=" + encodeURIComponent("Balasan berhasil dikirim."));
 });
@@ -363,15 +363,15 @@ router.post("/account/password", (req, res, next) => {
     return res.redirect("/customer?notice=" + encodeURIComponent("Password baru harus 12–200 karakter."));
   }
 
-  const account = db.prepare("SELECT password_hash FROM customer_portal_accounts WHERE customer_id=?")
-    .get(req.customer.id);
+  const account = db.prepare("SELECT password_hash FROM customer_portal_accounts WHERE customer_id=? AND tenant_id=?")
+    .get(req.customer.id,req.customer.tenantId);
   if (!account || !bcrypt.compareSync(currentPassword, account.password_hash)) {
     return res.redirect("/customer?notice=" + encodeURIComponent("Password saat ini tidak sesuai."));
   }
 
   const passwordHash = bcrypt.hashSync(newPassword, 12);
-  db.prepare("UPDATE customer_portal_accounts SET password_hash=?,updated_at=CURRENT_TIMESTAMP WHERE customer_id=?")
-    .run(passwordHash, req.customer.id);
+  db.prepare("UPDATE customer_portal_accounts SET password_hash=?,updated_at=CURRENT_TIMESTAMP WHERE customer_id=? AND tenant_id=?")
+    .run(passwordHash, req.customer.id,req.customer.tenantId);
   res.redirect("/customer?notice=" + encodeURIComponent("Password portal berhasil diperbarui."));
 });
 
