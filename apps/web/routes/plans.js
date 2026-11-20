@@ -66,13 +66,13 @@ router.get("/", managers, (req, res) => {
   const activeTab = req.query.type === "voucher" ? "voucher" : "monthly";
   const plans = db.prepare(`
     SELECT p.*,
-      (SELECT COUNT(*) FROM subscriptions s WHERE s.plan_id=p.id) AS subscription_count,
-      CASE WHEN (SELECT COUNT(*) FROM subscriptions s WHERE s.plan_id=p.id)=0
+      (SELECT COUNT(*) FROM subscriptions s WHERE s.plan_id=p.id AND s.tenant_id=p.tenant_id) AS subscription_count,
+      CASE WHEN (SELECT COUNT(*) FROM subscriptions s WHERE s.plan_id=p.id AND s.tenant_id=p.tenant_id)=0
         THEN 1 ELSE 0 END AS can_delete
-    FROM internet_plans p
+    FROM internet_plans p WHERE p.tenant_id=?
     ORDER BY p.is_active DESC, p.name COLLATE NOCASE
-  `).all();
-  const vouchers = db.prepare("SELECT * FROM voucher_packages ORDER BY is_active DESC, name COLLATE NOCASE").all();
+  `).all(req.tenant.id);
+  const vouchers = db.prepare("SELECT * FROM voucher_packages WHERE tenant_id=? ORDER BY is_active DESC, name COLLATE NOCASE").all(req.tenant.id);
   res.render("plans/index", {
     title: "Paket Internet",
     activeTab,
@@ -91,15 +91,16 @@ router.post("/monthly", admins, (req, res) => {
   try {
     const v = billing.validatePlan(req.body);
     const result = db.prepare(`
-      INSERT INTO internet_plans (plan_code,name,speed_mbps,monthly_price_idr,description)
-      VALUES (?,?,?,?,?)
-    `).run(v.plan_code, v.name, v.speed_mbps, v.monthly_price_idr, v.description);
+      INSERT INTO internet_plans (tenant_id,plan_code,name,speed_mbps,monthly_price_idr,description)
+      VALUES (?,?,?,?,?,?)
+    `).run(req.tenant.id,v.plan_code, v.name, v.speed_mbps, v.monthly_price_idr, v.description);
     recordAudit({
       user: req.session.user,
       action: "plan.create",
       entityType: "internet_plan",
       entityId: result.lastInsertRowid,
-      summary: "Menambahkan paket bulanan " + v.plan_code
+      summary: "Menambahkan paket bulanan " + v.plan_code,
+      tenantId:req.tenant.id
     });
     res.redirect(redirectWith("/plans?type=monthly", "notice", "Paket bulanan berhasil ditambahkan."));
   } catch (error) {
@@ -118,15 +119,16 @@ router.post("/monthly/:id/update", admins, (req, res) => {
     const result = db.prepare(`
       UPDATE internet_plans
       SET plan_code=?,name=?,speed_mbps=?,monthly_price_idr=?,description=?,updated_at=CURRENT_TIMESTAMP
-      WHERE id=?
-    `).run(v.plan_code, v.name, v.speed_mbps, v.monthly_price_idr, v.description, id);
+      WHERE id=? AND tenant_id=?
+    `).run(v.plan_code, v.name, v.speed_mbps, v.monthly_price_idr, v.description, id,req.tenant.id);
     if (!result.changes) return res.status(404).send("Paket bulanan tidak ditemukan.");
     recordAudit({
       user: req.session.user,
       action: "plan.update",
       entityType: "internet_plan",
       entityId: id,
-      summary: "Memperbarui paket bulanan " + v.plan_code
+      summary: "Memperbarui paket bulanan " + v.plan_code,
+      tenantId:req.tenant.id
     });
     res.redirect(redirectWith("/plans?type=monthly", "notice", "Paket bulanan berhasil diperbarui."));
   } catch (error) {
@@ -140,14 +142,15 @@ router.post("/monthly/:id/update", admins, (req, res) => {
 router.post("/monthly/:id/status", admins, (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isSafeInteger(id) || id < 1) return res.status(400).send("ID paket tidak valid.");
-  const result = db.prepare("UPDATE internet_plans SET is_active=1-is_active,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
+  const result = db.prepare("UPDATE internet_plans SET is_active=1-is_active,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=?").run(id,req.tenant.id);
   if (!result.changes) return res.status(404).send("Paket bulanan tidak ditemukan.");
   recordAudit({
     user: req.session.user,
     action: "plan.status",
     entityType: "internet_plan",
     entityId: id,
-    summary: "Mengubah status paket bulanan ID " + id
+    summary: "Mengubah status paket bulanan ID " + id,
+    tenantId:req.tenant.id
   });
   res.redirect(redirectWith("/plans?type=monthly", "notice", "Status paket bulanan diperbarui."));
 });
@@ -161,13 +164,13 @@ router.post("/monthly/:id/delete", admins, (req, res) => {
   try {
     const deleted = db.transaction(() => {
       const plan = db.prepare(
-        "SELECT id,plan_code,name FROM internet_plans WHERE id=?"
-      ).get(id);
+        "SELECT id,plan_code,name FROM internet_plans WHERE id=? AND tenant_id=?"
+      ).get(id,req.tenant.id);
       if (!plan) throw new Error("Paket bulanan tidak ditemukan.");
 
       const used = db.prepare(
-        "SELECT COUNT(*) AS total FROM subscriptions WHERE plan_id=?"
-      ).get(id).total;
+        "SELECT COUNT(*) AS total FROM subscriptions WHERE plan_id=? AND tenant_id=?"
+      ).get(id,req.tenant.id).total;
       if (used > 0) {
         throw new Error(
           "Paket " + plan.plan_code + " tidak dapat dihapus karena masih digunakan oleh " +
@@ -175,13 +178,13 @@ router.post("/monthly/:id/delete", admins, (req, res) => {
         );
       }
 
-      db.prepare("DELETE FROM internet_plans WHERE id=?").run(id);
+      db.prepare("DELETE FROM internet_plans WHERE id=? AND tenant_id=?").run(id,req.tenant.id);
       recordAudit({
         user: req.session.user,
         action: "plan.delete",
         entityType: "internet_plan",
         entityId: id,
-        summary: "Menghapus paket bulanan " + plan.plan_code + " tanpa riwayat langganan"
+        summary: "Menghapus paket bulanan " + plan.plan_code + " tanpa riwayat langganan",tenantId:req.tenant.id
       });
       return plan;
     })();
@@ -205,10 +208,10 @@ router.post("/voucher", admins, (req, res) => {
     const v = validateVoucher(req.body);
     const result = db.prepare(`
       INSERT INTO voucher_packages
-        (package_code,name,validity_value,validity_unit,quota_mb,speed_mbps,price_idr,description)
-      VALUES (?,?,?,?,?,?,?,?)
+        (tenant_id,package_code,name,validity_value,validity_unit,quota_mb,speed_mbps,price_idr,description)
+      VALUES (?,?,?,?,?,?,?,?,?)
     `).run(
-      v.package_code, v.name, v.validity_value, v.validity_unit,
+      req.tenant.id,v.package_code, v.name, v.validity_value, v.validity_unit,
       v.quota_mb, v.speed_mbps, v.price_idr, v.description
     );
     recordAudit({
@@ -216,7 +219,8 @@ router.post("/voucher", admins, (req, res) => {
       action: "voucher_plan.create",
       entityType: "voucher_package",
       entityId: result.lastInsertRowid,
-      summary: "Menambahkan paket voucher " + v.package_code
+      summary: "Menambahkan paket voucher " + v.package_code,
+      tenantId:req.tenant.id
     });
     res.redirect(redirectWith("/plans?type=voucher", "notice", "Paket voucher berhasil ditambahkan."));
   } catch (error) {
@@ -236,10 +240,10 @@ router.post("/voucher/:id/update", admins, (req, res) => {
       UPDATE voucher_packages
       SET package_code=?,name=?,validity_value=?,validity_unit=?,quota_mb=?,speed_mbps=?,
           price_idr=?,description=?,updated_at=CURRENT_TIMESTAMP
-      WHERE id=?
+      WHERE id=? AND tenant_id=?
     `).run(
       v.package_code, v.name, v.validity_value, v.validity_unit,
-      v.quota_mb, v.speed_mbps, v.price_idr, v.description, id
+      v.quota_mb, v.speed_mbps, v.price_idr, v.description, id,req.tenant.id
     );
     if (!result.changes) return res.status(404).send("Paket voucher tidak ditemukan.");
     recordAudit({
@@ -247,7 +251,8 @@ router.post("/voucher/:id/update", admins, (req, res) => {
       action: "voucher_plan.update",
       entityType: "voucher_package",
       entityId: id,
-      summary: "Memperbarui paket voucher " + v.package_code
+      summary: "Memperbarui paket voucher " + v.package_code,
+      tenantId:req.tenant.id
     });
     res.redirect(redirectWith("/plans?type=voucher", "notice", "Paket voucher berhasil diperbarui."));
   } catch (error) {
@@ -267,19 +272,20 @@ router.post("/voucher/:id/delete", admins, (req, res) => {
   try {
     const deleted = db.transaction(() => {
       const voucher = db.prepare(
-        "SELECT id,package_code,name FROM voucher_packages WHERE id=?"
-      ).get(id);
+        "SELECT id,package_code,name FROM voucher_packages WHERE id=? AND tenant_id=?"
+      ).get(id,req.tenant.id);
       if (!voucher) throw new Error("Paket voucher tidak ditemukan.");
 
       // If voucher sales/redemptions are added later with foreign keys, SQLite
       // will reject this delete and preserve the referenced history.
-      db.prepare("DELETE FROM voucher_packages WHERE id=?").run(id);
+      db.prepare("DELETE FROM voucher_packages WHERE id=? AND tenant_id=?").run(id,req.tenant.id);
       recordAudit({
         user: req.session.user,
         action: "voucher_plan.delete",
         entityType: "voucher_package",
         entityId: id,
-        summary: "Menghapus paket voucher " + voucher.package_code
+        summary: "Menghapus paket voucher " + voucher.package_code,
+        tenantId:req.tenant.id
       });
       return voucher;
     })();
@@ -299,14 +305,15 @@ router.post("/voucher/:id/delete", admins, (req, res) => {
 router.post("/voucher/:id/status", admins, (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isSafeInteger(id) || id < 1) return res.status(400).send("ID paket tidak valid.");
-  const result = db.prepare("UPDATE voucher_packages SET is_active=1-is_active,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
+  const result = db.prepare("UPDATE voucher_packages SET is_active=1-is_active,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=?").run(id,req.tenant.id);
   if (!result.changes) return res.status(404).send("Paket voucher tidak ditemukan.");
   recordAudit({
     user: req.session.user,
     action: "voucher_plan.status",
     entityType: "voucher_package",
     entityId: id,
-    summary: "Mengubah status paket voucher ID " + id
+    summary: "Mengubah status paket voucher ID " + id,
+    tenantId:req.tenant.id
   });
   res.redirect(redirectWith("/plans?type=voucher", "notice", "Status paket voucher diperbarui."));
 });
