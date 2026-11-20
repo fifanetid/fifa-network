@@ -1,0 +1,62 @@
+<%- include("../partials/header", { title }) %>
+<section class="genieacs-intro">
+ <div><span class="eyebrow">TR-069 DEVICE MANAGEMENT</span><h2>GenieACS / ONT</h2><p>Temukan perangkat pelanggan dari GenieACS dan tautkan ke data pelanggan FF BILLING.</p></div>
+ <span class="genieacs-mode"><span></span> READ-ONLY NBI</span>
+</section>
+<% if (notice) { %><div class="notice success"><%= notice %></div><% } %>
+<% if (error) { %><div class="notice error"><%= error %></div><% } %>
+<section class="genieacs-connection panel">
+ <div><span class="eyebrow">KONEKSI NORTHBOUND INTERFACE</span><h3><%= configuration.configured ? "Endpoint terkonfigurasi" : "Konfigurasi perlu diperiksa" %></h3><p><code><%= configuration.endpoint || "Konfigurasi URL belum valid" %></code></p><small>Autentikasi: <%= configuration.authenticationConfigured ? "username/password disetel" : "belum disetel" %> · Timeout: <%= configuration.timeoutMs || "-" %> ms</small></div>
+ <span class="genieacs-status <%= configuration.configured ? "ready" : "failed" %>"><%= configuration.configured ? "CONFIGURED" : "NOT CONFIGURED" %></span>
+</section>
+<section class="panel genieacs-search-panel">
+ <div class="panel-heading"><div><span class="eyebrow">DEVICE INVENTORY</span><h3>Cari perangkat</h3></div><span class="pill muted">Maksimal 100 hasil</span></div>
+ <form class="genieacs-search-form" method="get" action="/admin/genieacs">
+  <label for="genieacs-search">ID perangkat / Serial Number / OUI</label>
+  <div class="genieacs-search-row"><input id="genieacs-search" name="search" maxlength="100" value="<%= search %>" placeholder="Masukkan ID atau serial number" required><button class="primary-button" type="submit">Cari perangkat</button></div>
+  <small>Pencarian menggunakan kecocokan persis (exact match). NBI tidak diakses langsung dari browser pengguna.</small>
+ </form>
+ <% if(search&&!devices.length&&!error){ %><div class="genieacs-empty">Tidak ada perangkat yang cocok dengan pencarian tersebut.</div><% } %>
+ <% if(devices.length){ %>
+ <div class="table-wrap"><table class="users-table genieacs-table">
+  <thead><tr><th>Perangkat</th><th>Serial</th><th>Vendor / Model</th><th>Inform terakhir</th><th>Status</th><th>Hubungkan</th></tr></thead>
+  <tbody><% devices.forEach(device=>{ %><tr>
+   <td><strong><%= device.id %></strong></td><td><%= device.serialNumber||"-" %></td><td><%= [device.manufacturer,device.productClass].filter(Boolean).join(" / ")||"-" %></td><td><%= device.lastInform||"Belum ada data" %></td>
+   <td><span class="genieacs-status <%= device.online?"ready":"offline" %>"><%= device.online?"Online indikatif":"Offline / tidak diketahui" %></span></td>
+   <td><% if(currentUser&&currentUser.role==="admin"){ %>
+    <form class="genieacs-link-form" method="post" action="/admin/genieacs/links">
+     <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="genieacs_device_id" value="<%= device.id %>">
+     <select name="customer_id" required><option value="">Pilih pelanggan</option><% customers.forEach(c=>{ %><option value="<%= c.id %>"><%= c.customer_code %> — <%= c.full_name %></option><% }) %></select>
+     <select name="subscription_id"><option value="">Tanpa langganan spesifik</option><% subscriptions.forEach(s=>{ %><option value="<%= s.id %>" data-customer-id="<%= s.customer_id %>">#<%= s.id %> — <%= s.plan_name %> (<%= s.status %>)</option><% }) %></select>
+     <button class="small-button" type="submit">Tautkan</button>
+    </form>
+   <% }else{ %><span class="muted-text">Hanya admin dapat menautkan</span><% } %></td>
+  </tr><% }) %></tbody>
+ </table></div><% } %>
+</section>
+<section class="panel genieacs-links-panel">
+ <div class="panel-heading"><div><span class="eyebrow">CUSTOMER MAPPING</span><h3>Perangkat tertaut</h3></div><span class="pill muted"><%= links.length %> tautan</span></div>
+ <% if(!links.length){ %><div class="genieacs-empty">Belum ada perangkat GenieACS yang ditautkan ke pelanggan.</div><% }else{ %>
+ <div class="table-wrap"><table class="users-table genieacs-table">
+  <thead><tr><th>Pelanggan</th><th>Perangkat</th><th>Serial Number</th><th>Vendor / Model</th><th>Langganan</th><th>Dibuat</th><% if(currentUser&&currentUser.role==="admin"){ %><th>Aksi</th><% } %></tr></thead>
+  <tbody><% links.forEach(link=>{ %><tr>
+   <td><strong><%= link.customer_code %></strong><small><%= link.full_name %></small></td><td><%= link.genieacs_device_id %></td><td><%= link.serial_number||"-" %></td><td><%= [link.manufacturer,link.product_class].filter(Boolean).join(" / ")||"-" %></td><td><%= link.linked_subscription_id?"#"+link.linked_subscription_id+" — "+link.plan_name:"Pelanggan umum" %></td><td><%= link.linked_at %></td>
+   <% if(currentUser&&currentUser.role==="admin"){ %><td><form method="post" action="/admin/genieacs/links/<%= link.id %>/delete" onsubmit="return confirm('Lepas tautan perangkat ini?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="danger-button" type="submit">Lepas</button></form></td><% } %>
+  </tr><% }) %></tbody>
+ </table></div><% } %>
+</section>
+<section class="genieacs-safety-note"><strong>Batas integrasi saat ini</strong><p>FF BILLING hanya membaca metadata perangkat dasar melalui NBI. Aplikasi tidak mengakses MongoDB GenieACS secara langsung dan tidak menyimpan password PPPoE, password Wi-Fi, atau seluruh parameter TR-069. Reboot, perubahan SSID/password, WAN, dan operasi provisioning belum diaktifkan.</p></section>
+<script>
+document.querySelectorAll(".genieacs-link-form").forEach((form)=>{
+ const customer=form.querySelector('[name="customer_id"]');
+ const subscription=form.querySelector('[name="subscription_id"]');
+ customer.addEventListener("change",()=>{
+  Array.from(subscription.options).forEach((option)=>{
+   if(!option.value)return;
+   option.hidden=option.dataset.customerId!==customer.value;
+   if(option.hidden&&option.selected)subscription.value="";
+  });
+ });
+});
+</script>
+<%- include("../partials/footer") %>

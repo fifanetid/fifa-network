@@ -42,7 +42,29 @@
 - Password router dan CA sertifikat API-SSL disimpan terenkripsi AES-256-GCM
 - Akses RouterOS menggunakan akun terpisah yang disarankan hanya memiliki kebijakan read dan api
 - Tahap ini bersifat baca-saja; belum membuat/mengubah/menghapus akun PPP, memutus sesi, atau mengubah konfigurasi router
-- GenieACS tetap terpisah dari database internal MongoDB-nya
+- GenieACS tetap terpisah dari database internal MongoDB-nya; FF BILLING berkomunikasi melalui NBI
+
+
+### GenieACS / ONT
+
+Halaman **GenieACS / ONT** tersedia untuk admin dan teknisi:
+- Pencarian perangkat via GenieACS Northbound Interface (NBI) berdasarkan ID perangkat, serial number, atau OUI (exact match)
+- Menampilkan serial number, vendor, product class, waktu inform terakhir, dan status online indikatif
+- Admin dapat menautkan satu perangkat ke pelanggan dan langganan; tautan dapat dilepas dari halaman
+- Perubahan tautan dicatat pada audit log
+- Konektor NBI read-only dengan timeout, batas ukuran respons, dan Basic Authentication opsional
+- Metadata minimum saja yang disimpan. Password Wi-Fi, password PPPoE, dan dokumen parameter perangkat tidak disalin
+- NBI harus tetap berada di localhost/jaringan privat; jangan mengekspos port NBI ke internet
+
+Konfigurasi tambahan di `.env`:
+~~~dotenv
+GENIEACS_NBI_URL=http://127.0.0.1:7557
+GENIEACS_USERNAME=
+GENIEACS_PASSWORD=
+GENIEACS_NBI_TIMEOUT_MS=8000
+~~~
+
+Lihat [docs/GENIEACS_INTEGRATION.md](docs/GENIEACS_INTEGRATION.md). FF BILLING memakai SQLite terpisah untuk seluruh data billing dan referensi perangkat. GenieACS tetap mengelola perangkat di MongoDB miliknya sendiri.
 
 ### Laporan, audit, dan notifikasi
 - Audit log aktivitas penting yang append-only
@@ -53,7 +75,7 @@
 - Payment gateway/otomatisasi pembayaran
 - SMS/email, prorata, denda, dan pajak
 - Provisioning PPP otomatis (membuat, mengubah, menonaktifkan/menghapus akun PPP, atau memutus sesi); monitoring RouterOS baca-saja sudah tersedia
-- Integrasi GenieACS NBI, provisioning TR-069, dan monitoring ONT
+- Operasi provisioning TR-069 (reboot, ubah SSID/password/WAN) belum diaktifkan; integrasi NBI read-only dan pemetaan perangkat sudah tersedia
 - Backup/restore terkelola dan pemantauan production
 
 ## Teknologi dan pemisahan database
@@ -61,8 +83,8 @@
 - Node.js 20+, Express.js, EJS
 - @fibercom/routeros-api untuk komunikasi RouterOS API v6/v7
 - SQLite untuk akun dan data aplikasi/billing
-- GenieACS tetap menggunakan MongoDB internalnya sendiri
-- FF BILLING hanya menyimpan referensi perangkat eksternal; tidak membaca/menulis koleksi MongoDB GenieACS secara langsung
+- Integrasi GenieACS NBI read-only untuk mencari perangkat, membaca identitas dasar ONT, dan menautkannya ke pelanggan/langganan
+- FF BILLING hanya menyimpan referensi perangkat pada SQLite; tidak membaca/menulis koleksi MongoDB GenieACS secara langsung
 - Nginx/HTTPS disarankan untuk akses jarak jauh
 
 ## Instalasi Linux
@@ -154,6 +176,7 @@ Aplikasi mendengarkan di 127.0.0.1:3000. Untuk akses internet, pasang reverse pr
 fifa-network/
 ├── apps/web/                 # Express web app, routes, views, public assets
 ├── modules/billing/          # Validasi domain dan aturan invoice/pembayaran
+├── modules/genieacs/         # Konektor GenieACS NBI read-only
 ├── database/migrations/      # Migrasi SQLite
 ├── scripts/                  # Setup administrator
 ├── docs/                     # Dokumentasi teknis
