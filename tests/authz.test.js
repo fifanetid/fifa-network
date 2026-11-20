@@ -86,7 +86,7 @@ test("hanya admin yang dapat mencatat reversal pembayaran", () => {
     clearCookie() {}
   };
   let adminNext=false;
-  requireRole("admin")({session:{user:{id:ids.admin,role:"admin"}}},res,()=>{adminNext=true;});
+  requireRole("admin")({session:{tenantId:1,user:{id:ids.admin,role:"admin"}}},res,()=>{adminNext=true;});
   assert.equal(adminNext,true);
 
   const financeRes = {
@@ -96,7 +96,7 @@ test("hanya admin yang dapat mencatat reversal pembayaran", () => {
     redirect(path) { this.redirected=path; return this; },
     clearCookie() {}
   };
-  requireRole("admin")({session:{user:{id:ids.finance,role:"finance"}}},financeRes,()=>{});
+  requireRole("admin")({session:{tenantId:1,user:{id:ids.finance,role:"finance"}}},financeRes,()=>{});
   assert.equal(financeRes.statusCode,403);
 });
 
