@@ -27,7 +27,7 @@ function getAutomaticReminderSettings(tenantId = 1) {
 
 function setAutomaticRemindersEnabled(enabled, userId = null, tenantId = 1) {
   const tenant = Number(tenantId);
-  if (!Number.isSafeInteger(tenant) || tenant < 1) throw new Error("Tenant pengaturan tidak valid.");
+  if (!Number.isSafeInteger(tenant) || tenant !== 1) throw new Error("Pengaturan WhatsApp masih dibatasi ke tenant default sampai setting key menjadi tenant-scoped.");
   if (typeof enabled !== "boolean") {
     throw new TypeError("Status pengingat otomatis harus boolean.");
   }
@@ -72,7 +72,7 @@ function releaseReminderLock(ownerToken) {
 
 async function runReminderJob({ automatic = false, limit = 20, delayMs = 5000, tenantId = 1 } = {}) {
   const tenant = Number(tenantId);
-  if (!Number.isSafeInteger(tenant) || tenant < 1) throw new Error("Tenant pengingat tidak valid.");
+  if (!Number.isSafeInteger(tenant) || tenant !== 1) throw new Error("Scheduler WhatsApp masih dibatasi ke tenant default sampai gateway dan job lock mendukung isolasi tenant.");
   if (automatic && !getAutomaticReminderSettings(tenant).enabled) {
     return { checked: 0, sent: 0, failed: 0, skipped: 0, disabled: true };
   }
