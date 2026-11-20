@@ -12,14 +12,20 @@ Migration `016_tenant_registry.sql` introduces:
 
 `modules/tenancy` provides membership lookup and a fail-closed tenant guard. The guard is intentionally not mounted globally yet.
 
+## Tenant ownership milestone (migration 017)
+
+Migration `017_tenant_data_ownership.sql` adds a `tenant_id` to all current ISP business tables and backfills existing rows to the default tenant through SQLite's `DEFAULT 1`. Database triggers reject unknown tenant IDs and cross-tenant parent/child relationships for subscriptions, invoices, payments, reversals, customer portal records, support tickets/messages, ODP assignments, expenses, inventory movements, WhatsApp logs, and GenieACS links.
+
+The ownership keys are an intermediate safety milestone, **not complete isolation**. Existing routes and background jobs still use legacy unscoped queries. Some legacy globally-unique constraints/settings also remain global. New records default to the default tenant until every write path explicitly supplies a trusted tenant context. Do not create or activate a second tenant.
+
 ## Important safety boundary
 
 This release does **not** claim production multi-tenancy. Existing business tables and route queries are still single-tenant/global. Do not create additional customer tenants or expose tenant switching until every business table has a tenant key, every read/write is scoped by the authenticated tenant, and cross-tenant isolation tests pass.
 
 The next implementation phase must:
-1. Add tenant ownership to all tenant-owned records (customers, plans, subscriptions, invoices, payments/reversals, portal accounts, tickets/messages, vouchers, ODP, expenses, inventory/movements, GenieACS links, MikroTik routers, WhatsApp logs/settings).
-2. Backfill all existing records to the default FIFA Network tenant in a reversible, backed-up migration.
-3. Add composite foreign keys/unique constraints so child records cannot reference a parent in another tenant.
+1. Scope every read/write route and query by authenticated tenant before enabling tenant creation or tenant switching (customers, plans, subscriptions, invoices, payments/reversals, portal accounts, tickets/messages, vouchers, ODP, expenses, inventory/movements, GenieACS links, MikroTik routers, WhatsApp logs/settings).
+2. Replace transitional default-tenant inserts with explicit tenant context; keep existing data assigned to FIFA Network.
+3. Rebuild SQLite tables where needed to add composite foreign keys and tenant-scoped unique constraints (the current triggers are an interim database guard).
 4. Scope every route, report, scheduler, background job, and integration client by tenant.
 5. Resolve tenant from authenticated membership, never from an untrusted request body/header alone.
 6. Encrypt per-tenant integration secrets with the existing AES-256-GCM application key and never return ciphertext/plaintext to templates.
