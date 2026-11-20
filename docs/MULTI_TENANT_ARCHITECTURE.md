@@ -30,6 +30,12 @@ Migration `018_tenant_actor_integrity.sql` adds database triggers requiring staf
 
 These checks complement the parent/child tenant guards from migration 017 and protect direct SQL writes as well as web routes.
 
+## Remaining global uniqueness constraints
+
+The current SQLite schema still contains legacy global unique keys that must be rebuilt as tenant-scoped composite constraints before tenant two can be enabled. These include customer codes, plan codes, invoice/payment/reversal references, ticket numbers, voucher package codes, ODP codes, expense numbers/categories, inventory SKUs, GenieACS device IDs, router host/port pairs, WhatsApp dedupe keys, and app-setting keys. User email remains global by design because user identities are shared across memberships.
+
+The WhatsApp scheduler is explicitly restricted to tenant ID 1 because its setting key, job lock, and Baileys connection are still global. This guard prevents future internal callers from accidentally moving the shared setting to another tenant.
+
 ## Important safety boundary
 
 This release does **not** claim production multi-tenancy. Some remaining modules and background jobs still use legacy unscoped queries. Billing, finance, dashboard, audit, ODP/inventory, MikroTik, and GenieACS link routes have tenant scoping, but ticketing, WhatsApp scheduling/logs, customer portal, and several integration paths still require review. Do not create additional customer tenants or expose tenant switching until every business table has a tenant key, every read/write is scoped by the authenticated tenant, and cross-tenant isolation tests pass.
