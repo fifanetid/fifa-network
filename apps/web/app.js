@@ -15,6 +15,7 @@ const reportsRoutes = require("./routes/reports");
 const whatsappRoutes = require("./routes/whatsapp");
 const supportTicketRoutes = require("./routes/support-tickets");
 const mikrotikRoutes = require("./routes/mikrotik");
+const genieacsRoutes = require("./routes/genieacs");
 const { dbDir } = require("../../database/db");
 
 const app = express();
@@ -77,6 +78,7 @@ app.use("/reports", reportsRoutes);
 app.use("/admin/whatsapp", whatsappRoutes);
 app.use("/admin/tickets", supportTicketRoutes);
 app.use("/admin/mikrotik", mikrotikRoutes.router);
+app.use("/admin/genieacs", genieacsRoutes);
 app.use("/plans", plansRoutes);
 app.use("/billing", billingRoutes);
 
