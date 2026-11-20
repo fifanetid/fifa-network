@@ -1,15 +1,18 @@
 const { db } = require("../../database/db");
 
 const insertLog = db.prepare(`
-  INSERT INTO audit_logs (actor_user_id, actor_name, actor_role, action, entity_type, entity_id, summary)
-  VALUES (@actor_user_id, @actor_name, @actor_role, @action, @entity_type, @entity_id, @summary)
+  INSERT INTO audit_logs (tenant_id, actor_user_id, actor_name, actor_role, action, entity_type, entity_id, summary)
+  VALUES (@tenant_id, @actor_user_id, @actor_name, @actor_role, @action, @entity_type, @entity_id, @summary)
 `);
 
-function recordAudit({ user, action, entityType, entityId = null, summary }) {
+function recordAudit({ user, action, entityType, entityId = null, summary, tenantId = 1 }) {
   if (!user || !Number.isSafeInteger(Number(user.id)) || Number(user.id) < 1) {
     throw new Error("Audit log membutuhkan pengguna yang terautentikasi.");
   }
+  const tenant = Number(tenantId);
+  if (!Number.isSafeInteger(tenant) || tenant < 1) throw new Error("Tenant audit tidak valid.");
   const values = {
+    tenant_id: tenant,
     actor_user_id: Number(user.id),
     actor_name: String(user.name || "Pengguna").slice(0, 120),
     actor_role: ["admin", "finance", "teknisi"].includes(user.role) ? user.role : "system",
