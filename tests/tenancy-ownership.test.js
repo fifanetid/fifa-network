@@ -69,6 +69,7 @@ test("database rejects unknown tenants and cross-tenant billing relationships", 
   assert.throws(() => db.prepare(
     "INSERT INTO subscriptions (customer_id,plan_id,start_date,tenant_id) VALUES (?,?,'2026-11-01',?)"
   ).run(customer2, plan1, tenant2), /same tenant/);
+  assert.throws(() => db.prepare("UPDATE customers SET tenant_id=1 WHERE id=?").run(customer2), /tenant ownership is immutable/);
 
   const plan2 = db.prepare(
     "INSERT INTO internet_plans (plan_code,name,speed_mbps,monthly_price_idr,tenant_id) VALUES ('OWN-P2','Paket Tenant Dua',20,150000,?)"
