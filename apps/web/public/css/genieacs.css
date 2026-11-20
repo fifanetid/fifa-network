@@ -10,3 +10,26 @@
 .genieacs-test-form{border-top:1px solid var(--border,#e4e7ec);margin-top:16px;padding-top:14px}
 .genieacs-test-form button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:640px){.genieacs-settings-actions button,.genieacs-test-form button{width:100%}.genieacs-test-form{align-items:flex-start;flex-direction:column}}
+
+
+.genieacs-detail-link{color:var(--primary,#2563eb);font-weight:700;text-decoration:none;white-space:nowrap}
+.genieacs-detail-link:hover{text-decoration:underline}
+.genieacs-back-link{display:inline-flex;margin:8px 0 14px;color:var(--primary,#2563eb);text-decoration:none;font-weight:650}
+.genieacs-device-summary,.genieacs-parameters-panel{margin-top:16px}
+.genieacs-device-title{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.genieacs-device-title h3{margin:5px 0}
+.genieacs-device-title p{margin:0;color:var(--muted,#667085);overflow-wrap:anywhere}
+.genieacs-device-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.genieacs-device-meta>div{border:1px solid var(--border,#e4e7ec);border-radius:10px;padding:12px;min-width:0}
+.genieacs-device-meta small{display:block;color:var(--muted,#667085);margin-bottom:6px}
+.genieacs-device-meta strong{display:block;overflow-wrap:anywhere;font-size:13px}
+.genieacs-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:16px 0 12px;border-bottom:1px solid var(--border,#e4e7ec);padding-bottom:10px}
+.genieacs-tabs button{border:1px solid var(--border,#d0d5dd);border-radius:9px;padding:8px 12px;background:transparent;color:var(--text,#182230);font-weight:650;cursor:pointer}
+.genieacs-tabs button.active{background:var(--primary,#2563eb);border-color:var(--primary,#2563eb);color:#fff}
+.genieacs-tabs button span{opacity:.75;margin-left:4px}
+.genieacs-tab-panel{display:none}
+.genieacs-tab-panel.active{display:block}
+.genieacs-parameter-table code{font-size:11px;overflow-wrap:anywhere}
+.genieacs-parameter-value{max-width:340px;overflow-wrap:anywhere}
+@media(max-width:800px){.genieacs-device-meta{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.genieacs-device-meta{grid-template-columns:1fr}.genieacs-tabs button{flex:1;min-width:calc(50% - 8px)}}
