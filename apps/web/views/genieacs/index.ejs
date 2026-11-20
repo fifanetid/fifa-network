@@ -9,6 +9,28 @@
  <div><span class="eyebrow">KONEKSI NORTHBOUND INTERFACE</span><h3><%= configuration.configured ? "Endpoint terkonfigurasi" : "Konfigurasi perlu diperiksa" %></h3><p><code><%= configuration.endpoint || "Konfigurasi URL belum valid" %></code></p><small>Autentikasi: <%= configuration.authenticationConfigured ? "username/password disetel" : "belum disetel" %> · Timeout: <%= configuration.timeoutMs || "-" %> ms</small></div>
  <span class="genieacs-status <%= configuration.configured ? "ready" : "failed" %>"><%= configuration.configured ? "CONFIGURED" : "NOT CONFIGURED" %></span>
 </section>
+<% if(currentUser&&currentUser.role==="admin"){ %>
+<section class="panel genieacs-settings-panel">
+ <div class="panel-heading"><div><span class="eyebrow">TENANT INTEGRATION</span><h3>Pengaturan koneksi GenieACS</h3><p>Konfigurasi ini disimpan untuk ISP yang sedang aktif.</p></div></div>
+ <form method="post" action="/admin/genieacs/settings" class="genieacs-settings-form">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label for="genieacs-endpoint">NBI endpoint URL</label>
+  <input id="genieacs-endpoint" type="url" name="endpoint_url" maxlength="500" value="<%= configuration.endpoint||'' %>" placeholder="http://127.0.0.1:7557" required>
+  <label for="genieacs-username">Username NBI (jika digunakan)</label>
+  <input id="genieacs-username" type="text" name="username" maxlength="200" value="<%= configuration.username||'' %>" autocomplete="off">
+  <label for="genieacs-password">Password NBI</label>
+  <input id="genieacs-password" type="password" name="password" maxlength="20000" autocomplete="new-password" placeholder="Kosongkan untuk mempertahankan password tersimpan">
+  <small>Password dienkripsi AES-256-GCM sebelum disimpan dan tidak pernah ditampilkan kembali. HTTP hanya diizinkan untuk host privat; gunakan HTTPS untuk endpoint publik.</small>
+  <label class="genieacs-enabled-toggle"><input type="checkbox" name="is_enabled" value="1" <%= configuration.enabled?"checked":"" %>> Aktifkan integrasi GenieACS untuk tenant ini</label>
+  <div class="genieacs-settings-actions"><button class="primary-button" type="submit">Simpan konfigurasi</button></div>
+ </form>
+ <form method="post" action="/admin/genieacs/settings/test" class="genieacs-test-form">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <button class="small-button" type="submit" <%= !configuration.configured||!configuration.enabled?"disabled":"" %>>Uji koneksi NBI</button>
+  <small>Pengujian hanya membaca endpoint perangkat; tidak mengubah konfigurasi ONT.</small>
+ </form>
+</section>
+<% } %>
 <section class="panel genieacs-search-panel">
  <div class="panel-heading"><div><span class="eyebrow">DEVICE INVENTORY</span><h3>Cari perangkat</h3></div><span class="pill muted">Maksimal 100 hasil</span></div>
  <form class="genieacs-search-form" method="get" action="/admin/genieacs">
