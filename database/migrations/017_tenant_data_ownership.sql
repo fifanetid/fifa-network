@@ -20,7 +20,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_tenant_id ON audit_logs(tenant_id,id);
 ALTER TABLE whatsapp_message_logs ADD COLUMN tenant_id INTEGER NOT NULL DEFAULT 1 CHECK (tenant_id > 0);
 CREATE INDEX IF NOT EXISTS idx_whatsapp_message_logs_tenant_id ON whatsapp_message_logs(tenant_id,id);
 ALTER TABLE app_settings ADD COLUMN tenant_id INTEGER NOT NULL DEFAULT 1 CHECK (tenant_id > 0);
-CREATE INDEX IF NOT EXISTS idx_app_settings_tenant_id ON app_settings(tenant_id,id);
+CREATE INDEX IF NOT EXISTS idx_app_settings_tenant_id ON app_settings(tenant_id,setting_key);
 ALTER TABLE voucher_packages ADD COLUMN tenant_id INTEGER NOT NULL DEFAULT 1 CHECK (tenant_id > 0);
 CREATE INDEX IF NOT EXISTS idx_voucher_packages_tenant_id ON voucher_packages(tenant_id,id);
 ALTER TABLE customer_portal_accounts ADD COLUMN tenant_id INTEGER NOT NULL DEFAULT 1 CHECK (tenant_id > 0);
