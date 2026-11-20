@@ -126,7 +126,7 @@ router.post("/customers", managers, (req,res) => {
           !Number.isInteger(billingDay) || billingDay < 1 || billingDay > 28) {
         throw new Error("Pilihan paket atau tanggal billing tidak valid.");
       }
-      const plan = db.prepare("SELECT id,plan_code,name FROM internet_plans WHERE id=? AND is_active=1").get(planId);
+      const plan = db.prepare("SELECT id,plan_code,name FROM internet_plans WHERE id=? AND tenant_id=? AND is_active=1").get(planId,req.tenant.id);
       if (!plan) throw new Error("Paket internet tidak aktif atau tidak ditemukan.");
       subscription = {
         planId,
@@ -153,11 +153,11 @@ router.post("/customers", managers, (req,res) => {
     const created = db.transaction(() => {
       const result = db.prepare(`
         INSERT INTO customers
-          (customer_code,full_name,email,phone,address,identity_number,notes,
+          (tenant_id,customer_code,full_name,email,phone,address,identity_number,notes,
            whatsapp_opt_in,whatsapp_opt_in_at)
-        VALUES (?,?,?,?,?,?,?, ?,CASE WHEN ?=1 THEN CURRENT_TIMESTAMP ELSE NULL END)
+        VALUES (?,?,?,?,?,?,?,?, ?,CASE WHEN ?=1 THEN CURRENT_TIMESTAMP ELSE NULL END)
       `).run(
-        customer.customer_code, customer.full_name, customer.email, customer.phone,
+        req.tenant.id, customer.customer_code, customer.full_name, customer.email, customer.phone,
         customer.address, customer.identity_number, customer.notes,
         whatsappOptIn, whatsappOptIn
       );
@@ -168,17 +168,18 @@ router.post("/customers", managers, (req,res) => {
         action: "customer.create",
         entityType: "customer",
         entityId: customerId,
-        summary: "Menambahkan pelanggan " + customer.customer_code
+        summary: "Menambahkan pelanggan " + customer.customer_code,
+        tenantId:req.tenant.id
       });
 
       let subscriptionId = null;
       if (subscription) {
         const sub = db.prepare(`
           INSERT INTO subscriptions
-            (customer_id,plan_id,start_date,billing_day,external_device_ref,notes)
-          VALUES (?,?,?,?,?,?)
+            (tenant_id,customer_id,plan_id,start_date,billing_day,external_device_ref,notes)
+          VALUES (?,?,?,?,?,?,?)
         `).run(
-          customerId, subscription.planId, subscription.startDate,
+          req.tenant.id, customerId, subscription.planId, subscription.startDate,
           subscription.billingDay, subscription.externalRef, subscription.notes
         );
         subscriptionId = Number(sub.lastInsertRowid);
@@ -187,23 +188,25 @@ router.post("/customers", managers, (req,res) => {
           action: "subscription.create",
           entityType: "subscription",
           entityId: subscriptionId,
-          summary: "Membuat langganan " + subscription.planName + " untuk " + customer.customer_code
+          summary: "Membuat langganan " + subscription.planName + " untuk " + customer.customer_code,
+          tenantId:req.tenant.id
         });
       }
 
       let portalCreated = false;
       if (portalPasswordHash) {
         db.prepare(`
-          INSERT INTO customer_portal_accounts (customer_id,password_hash,is_active)
-          VALUES (?,?,1)
-        `).run(customerId, portalPasswordHash);
+          INSERT INTO customer_portal_accounts (tenant_id,customer_id,password_hash,is_active)
+          VALUES (?,?,?,1)
+        `).run(req.tenant.id,customerId, portalPasswordHash);
         portalCreated = true;
         recordAudit({
           user: req.session.user,
           action: "customer.portal_account.create",
           entityType: "customer_portal_account",
           entityId: customerId,
-          summary: "Membuat akses portal untuk pelanggan " + customer.customer_code
+          summary: "Membuat akses portal untuk pelanggan " + customer.customer_code,
+          tenantId:req.tenant.id
         });
       }
 
@@ -225,13 +228,13 @@ router.post("/customers", managers, (req,res) => {
 });
 router.post("/customers/:id/update", managers, (req,res) => {
   const id=Number(req.params.id); if(!Number.isSafeInteger(id)||id<1) return res.status(400).send("ID tidak valid.");
-  try { const v=billing.validateCustomer(req.body); const r=db.prepare("UPDATE customers SET customer_code=?,full_name=?,email=?,phone=?,address=?,identity_number=?,notes=?,whatsapp_opt_in=?,whatsapp_opt_in_at=CASE WHEN ?=1 THEN COALESCE(whatsapp_opt_in_at,CURRENT_TIMESTAMP) ELSE NULL END,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(v.customer_code,v.full_name,v.email,v.phone,v.address,v.identity_number,v.notes,req.body.whatsapp_opt_in === "1" ? 1 : 0,req.body.whatsapp_opt_in === "1" ? 1 : 0,id); if(!r.changes)return res.status(404).send("Pelanggan tidak ditemukan."); recordAudit({ user: req.session.user, action: "customer.update", entityType: "customer", entityId: id, summary: "Memperbarui data pelanggan " + v.customer_code }); res.redirect("/billing?notice=Data%20pelanggan%20diperbarui."); }
+  try { const v=billing.validateCustomer(req.body); const r=db.prepare("UPDATE customers SET customer_code=?,full_name=?,email=?,phone=?,address=?,identity_number=?,notes=?,whatsapp_opt_in=?,whatsapp_opt_in_at=CASE WHEN ?=1 THEN COALESCE(whatsapp_opt_in_at,CURRENT_TIMESTAMP) ELSE NULL END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=?").run(v.customer_code,v.full_name,v.email,v.phone,v.address,v.identity_number,v.notes,req.body.whatsapp_opt_in === "1" ? 1 : 0,req.body.whatsapp_opt_in === "1" ? 1 : 0,id,req.tenant.id); if(!r.changes)return res.status(404).send("Pelanggan tidak ditemukan."); recordAudit({ user: req.session.user, action: "customer.update", entityType: "customer", entityId: id, summary: "Memperbarui data pelanggan " + v.customer_code,tenantId:req.tenant.id }); res.redirect("/billing?notice=Data%20pelanggan%20diperbarui."); }
   catch(e){ if(e.code==="SQLITE_CONSTRAINT_UNIQUE")return fail(req,res,new Error("Kode pelanggan sudah digunakan.")); return fail(req,res,e); }
 });
 router.post("/customers/:id/status", managers, (req,res) => {
   const id=Number(req.params.id); if(!Number.isSafeInteger(id)||id<1)return res.status(400).send("ID tidak valid.");
-  const r=db.prepare("UPDATE customers SET status=CASE status WHEN 'active' THEN 'inactive' ELSE 'active' END,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
-  if(!r.changes)return res.status(404).send("Pelanggan tidak ditemukan."); recordAudit({ user: req.session.user, action: "customer.status", entityType: "customer", entityId: id, summary: "Mengubah status pelanggan ID " + id }); res.redirect("/billing?notice=Status%20pelanggan%20diperbarui.");
+  const r=db.prepare("UPDATE customers SET status=CASE status WHEN 'active' THEN 'inactive' ELSE 'active' END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=?").run(id,req.tenant.id);
+  if(!r.changes)return res.status(404).send("Pelanggan tidak ditemukan."); recordAudit({ user: req.session.user, action: "customer.status", entityType: "customer", entityId: id, summary: "Mengubah status pelanggan ID " + id,tenantId:req.tenant.id }); res.redirect("/billing?notice=Status%20pelanggan%20diperbarui.");
 });
 
 router.post("/customers/:id/delete", admins, (req,res) => {
@@ -243,16 +246,16 @@ router.post("/customers/:id/delete", admins, (req,res) => {
   try {
     const deleted = db.transaction(() => {
       const customer = db.prepare(
-        "SELECT id,customer_code,full_name FROM customers WHERE id=?"
-      ).get(id);
+        "SELECT id,customer_code,full_name FROM customers WHERE id=? AND tenant_id=?"
+      ).get(id,req.tenant.id);
       if (!customer) throw new Error("Pelanggan tidak ditemukan.");
 
       const counts = {
-        subscriptions: db.prepare("SELECT COUNT(*) AS total FROM subscriptions WHERE customer_id=?").get(id).total,
-        invoices: db.prepare("SELECT COUNT(*) AS total FROM invoices WHERE customer_id=?").get(id).total,
-        confirmations: db.prepare("SELECT COUNT(*) AS total FROM customer_payment_confirmations WHERE customer_id=?").get(id).total,
-        whatsappLogs: db.prepare("SELECT COUNT(*) AS total FROM whatsapp_message_logs WHERE customer_id=?").get(id).total,
-        supportTickets: db.prepare("SELECT COUNT(*) AS total FROM support_tickets WHERE customer_id=?").get(id).total
+        subscriptions: db.prepare("SELECT COUNT(*) AS total FROM subscriptions WHERE customer_id=? AND tenant_id=?").get(id,req.tenant.id).total,
+        invoices: db.prepare("SELECT COUNT(*) AS total FROM invoices WHERE customer_id=? AND tenant_id=?").get(id,req.tenant.id).total,
+        confirmations: db.prepare("SELECT COUNT(*) AS total FROM customer_payment_confirmations WHERE customer_id=? AND tenant_id=?").get(id,req.tenant.id).total,
+        whatsappLogs: db.prepare("SELECT COUNT(*) AS total FROM whatsapp_message_logs WHERE customer_id=? AND tenant_id=?").get(id,req.tenant.id).total,
+        supportTickets: db.prepare("SELECT COUNT(*) AS total FROM support_tickets WHERE customer_id=? AND tenant_id=?").get(id,req.tenant.id).total
       };
       const blockers = [];
       if (counts.subscriptions) blockers.push(counts.subscriptions + " langganan");
@@ -270,15 +273,15 @@ router.post("/customers/:id/delete", admins, (req,res) => {
 
       // Remove only the dependent portal credential. The portal session will
       // be rejected on its next request because its account no longer exists.
-      db.prepare("DELETE FROM customer_portal_accounts WHERE customer_id=?").run(id);
-      db.prepare("DELETE FROM customers WHERE id=?").run(id);
+      db.prepare("DELETE FROM customer_portal_accounts WHERE customer_id=? AND tenant_id=?").run(id,req.tenant.id);
+      db.prepare("DELETE FROM customers WHERE id=? AND tenant_id=?").run(id,req.tenant.id);
 
       recordAudit({
         user: req.session.user,
         action: "customer.delete",
         entityType: "customer",
         entityId: id,
-        summary: "Menghapus permanen pelanggan " + customer.customer_code + " (" + customer.full_name + ") tanpa riwayat transaksi"
+        summary: "Menghapus permanen pelanggan " + customer.customer_code + " (" + customer.full_name + ") tanpa riwayat transaksi",tenantId:req.tenant.id
       });
       return customer;
     })();
@@ -301,25 +304,25 @@ router.post("/portal-accounts/:customerId", admins, (req,res) => {
   const password=String(req.body.password||"");
   if(!Number.isSafeInteger(customerId)||customerId<1)return res.status(400).send("ID pelanggan tidak valid.");
   if(password.length<12||password.length>200)return res.redirect("/billing?notice="+encodeURIComponent("Password portal harus 12–200 karakter."));
-  const customer=db.prepare("SELECT id,customer_code,status FROM customers WHERE id=?").get(customerId);
+  const customer=db.prepare("SELECT id,customer_code,status FROM customers WHERE id=? AND tenant_id=?").get(customerId,req.tenant.id);
   if(!customer||customer.status!=="active")return res.redirect("/billing?notice="+encodeURIComponent("Akun portal hanya dapat dibuat untuk pelanggan aktif."));
   const hash=bcrypt.hashSync(password,12);
   db.prepare(`
-    INSERT INTO customer_portal_accounts (customer_id,password_hash,is_active)
-    VALUES (?,?,1)
+    INSERT INTO customer_portal_accounts (tenant_id,customer_id,password_hash,is_active)
+    VALUES (?,?,?,1)
     ON CONFLICT(customer_id) DO UPDATE SET
       password_hash=excluded.password_hash,is_active=1,updated_at=CURRENT_TIMESTAMP
-  `).run(customerId,hash);
-  recordAudit({user:req.session.user,action:"customer.portal_account.upsert",entityType:"customer_portal_account",entityId:customerId,summary:"Membuat atau mengatur ulang akses portal untuk "+customer.customer_code});
+  `).run(req.tenant.id,customerId,hash);
+  recordAudit({user:req.session.user,action:"customer.portal_account.upsert",entityType:"customer_portal_account",entityId:customerId,summary:"Membuat atau mengatur ulang akses portal untuk "+customer.customer_code,tenantId:req.tenant.id});
   res.redirect("/billing?notice="+encodeURIComponent("Akses portal pelanggan berhasil disimpan. Berikan ID pelanggan dan password sementara secara aman."));
 });
 
 router.post("/portal-accounts/:customerId/status", admins, (req,res) => {
   const customerId=Number(req.params.customerId);
   if(!Number.isSafeInteger(customerId)||customerId<1)return res.status(400).send("ID pelanggan tidak valid.");
-  const r=db.prepare("UPDATE customer_portal_accounts SET is_active=1-is_active,updated_at=CURRENT_TIMESTAMP WHERE customer_id=?").run(customerId);
+  const r=db.prepare("UPDATE customer_portal_accounts SET is_active=1-is_active,updated_at=CURRENT_TIMESTAMP WHERE customer_id=? AND tenant_id=?").run(customerId,req.tenant.id);
   if(!r.changes)return res.status(404).send("Akun portal tidak ditemukan.");
-  recordAudit({user:req.session.user,action:"customer.portal_account.status",entityType:"customer_portal_account",entityId:customerId,summary:"Mengubah status akses portal pelanggan ID "+customerId});
+  recordAudit({user:req.session.user,action:"customer.portal_account.status",entityType:"customer_portal_account",entityId:customerId,summary:"Mengubah status akses portal pelanggan ID "+customerId,tenantId:req.tenant.id});
   res.redirect("/billing?notice="+encodeURIComponent("Status akses portal diperbarui."));
 });
 
