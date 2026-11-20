@@ -55,6 +55,7 @@ router.get("/", (req, res) => {
     FROM support_tickets t
     JOIN customers c ON c.id=t.customer_id AND c.tenant_id=t.tenant_id
     LEFT JOIN users u ON u.id=t.assigned_to
+    LEFT JOIN tenant_memberships assigned_membership ON assigned_membership.user_id=u.id AND assigned_membership.tenant_id=t.tenant_id AND assigned_membership.status='active'
     ${where.length ? "WHERE " + where.join(" AND ") : ""}
     ORDER BY
       CASE t.status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1
@@ -85,8 +86,9 @@ router.get("/:id", (req, res) => {
     SELECT t.*,c.customer_code,c.full_name,c.phone,c.email,c.address,
       u.name AS assigned_name
     FROM support_tickets t
-    JOIN customers c ON c.id=t.customer_id
+    JOIN customers c ON c.id=t.customer_id AND c.tenant_id=t.tenant_id
     LEFT JOIN users u ON u.id=t.assigned_to
+    LEFT JOIN tenant_memberships assigned_membership ON assigned_membership.user_id=u.id AND assigned_membership.tenant_id=t.tenant_id AND assigned_membership.status='active'
     WHERE t.id=? AND t.tenant_id=?
   `).get(id,req.tenant.id);
   if (!ticket) return res.status(404).send("Laporan tidak ditemukan.");
