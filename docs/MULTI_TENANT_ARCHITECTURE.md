@@ -18,9 +18,15 @@ Migration `017_tenant_data_ownership.sql` adds a `tenant_id` to all current ISP 
 
 The ownership keys are an intermediate safety milestone, **not complete isolation**. Existing routes and background jobs still use legacy unscoped queries. Some legacy globally-unique constraints/settings also remain global. New records default to the default tenant until every write path explicitly supplies a trusted tenant context. Do not create or activate a second tenant.
 
+## Tenant-scoped billing and finance routes
+
+The billing module and web routes now accept the authenticated tenant ID for customer, plan, subscription, invoice, payment, reversal, payment-confirmation, portal-account, dashboard, financial-report, and audit-log operations. Main reads and mutations are tenant-filtered; payment/invoice writes use tenant-aware billing methods. Route tests create a second tenant's records and verify they do not appear or respond to guessed IDs.
+
+Staff login is temporarily restricted to the default FIFA Network tenant (ID 1). Accounts whose only membership is another tenant are refused until the remaining application modules are scoped. This is a deliberate safety gate, not a completed tenant selector.
+
 ## Important safety boundary
 
-This release does **not** claim production multi-tenancy. Existing business tables and route queries are still single-tenant/global. Do not create additional customer tenants or expose tenant switching until every business table has a tenant key, every read/write is scoped by the authenticated tenant, and cross-tenant isolation tests pass.
+This release does **not** claim production multi-tenancy. Some remaining modules and background jobs still use legacy unscoped queries. Billing, finance, dashboard, audit, ODP/inventory, MikroTik, and GenieACS link routes have tenant scoping, but ticketing, WhatsApp scheduling/logs, customer portal, and several integration paths still require review. Do not create additional customer tenants or expose tenant switching until every business table has a tenant key, every read/write is scoped by the authenticated tenant, and cross-tenant isolation tests pass.
 
 The next implementation phase must:
 1. Scope every read/write route and query by authenticated tenant before enabling tenant creation or tenant switching (customers, plans, subscriptions, invoices, payments/reversals, portal accounts, tickets/messages, vouchers, ODP, expenses, inventory/movements, GenieACS links, MikroTik routers, WhatsApp logs/settings).

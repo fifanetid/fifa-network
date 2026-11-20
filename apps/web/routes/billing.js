@@ -6,9 +6,10 @@ const { recordAudit } = require("../../../modules/audit");
 const { requireRole } = require("../middleware/auth");
 const managers = requireRole("admin", "finance");
 const admins = requireRole("admin");
-const fail = (res, error) => res.status(400).render("billing/index", pageData({ error: error.message }));
+const fail = (req,res,error) => res.status(400).render("billing/index", pageData(req,{ error: error.message }));
 
-function pageData(extra = {}) {
+function pageData(req, extra = {}) {
+  const tenantId=req.tenant.id;
   return {
     title: "Manajemen Pelanggan",
     notice: null,
@@ -63,13 +64,13 @@ function pageData(extra = {}) {
           AND (SELECT COUNT(*) FROM whatsapp_message_logs wl WHERE wl.customer_id=c.id)=0
           AND (SELECT COUNT(*) FROM support_tickets st WHERE st.customer_id=c.id)=0
         THEN 1 ELSE 0 END AS can_delete
-      FROM customers c ORDER BY c.id DESC
-    `).all(),
+      FROM customers c WHERE c.tenant_id=? ORDER BY c.id DESC
+    `).all(tenantId),
     portalCustomers: db.prepare(`
       SELECT c.id,c.customer_code,c.full_name,c.status,a.is_active AS portal_active,a.last_login_at
-      FROM customers c LEFT JOIN customer_portal_accounts a ON a.customer_id=c.id
-      ORDER BY c.id DESC
-    `).all(),
+      FROM customers c LEFT JOIN customer_portal_accounts a ON a.customer_id=c.id AND a.tenant_id=c.tenant_id
+      WHERE c.tenant_id=? ORDER BY c.id DESC
+    `).all(tenantId),
     paymentConfirmations: db.prepare(`
       SELECT pc.*,c.customer_code,c.full_name,i.invoice_number,
         COALESCE(p.amount_idr,0) AS recorded_payment_idr,
@@ -87,22 +88,23 @@ function pageData(extra = {}) {
           ELSE pc.status
         END AS display_status
       FROM customer_payment_confirmations pc
-      JOIN customers c ON c.id=pc.customer_id
-      JOIN invoices i ON i.id=pc.invoice_id
-      LEFT JOIN payments p ON p.id=pc.payment_id
+      JOIN customers c ON c.id=pc.customer_id AND c.tenant_id=pc.tenant_id
+      JOIN invoices i ON i.id=pc.invoice_id AND i.tenant_id=pc.tenant_id
+      LEFT JOIN payments p ON p.id=pc.payment_id AND p.tenant_id=pc.tenant_id
+      WHERE pc.tenant_id=?
       ORDER BY CASE pc.status WHEN 'pending' THEN 0 ELSE 1 END, pc.id DESC
       LIMIT 100
-    `).all(),
-    plans: db.prepare("SELECT * FROM internet_plans ORDER BY id DESC").all(),
-    subscriptions: db.prepare("SELECT s.*,c.customer_code,c.full_name,p.name AS plan_name,p.monthly_price_idr FROM subscriptions s JOIN customers c ON c.id=s.customer_id JOIN internet_plans p ON p.id=s.plan_id ORDER BY s.id DESC").all(),
-    invoices: db.prepare("SELECT i.*,c.full_name,c.customer_code,COALESCE((SELECT SUM(amount_idr) FROM payments WHERE invoice_id=i.id),0) - COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r JOIN payments p ON p.id=r.payment_id WHERE p.invoice_id=i.id),0) AS paid_idr FROM invoices i JOIN customers c ON c.id=i.customer_id ORDER BY i.id DESC").all(),
-    payments: db.prepare("SELECT p.*,i.invoice_number,COALESCE((SELECT SUM(amount_idr) FROM payment_reversals WHERE payment_id=p.id),0) AS reversed_idr FROM payments p JOIN invoices i ON i.id=p.invoice_id ORDER BY p.id DESC LIMIT 100").all(),
-    reversals: db.prepare("SELECT r.*,p.payment_reference,i.invoice_number FROM payment_reversals r JOIN payments p ON p.id=r.payment_id JOIN invoices i ON i.id=p.invoice_id ORDER BY r.id DESC LIMIT 100").all(),
-    dueReminders: billing.getDueReminders({ today: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date()), daysAhead: 7 }),
+    `).all(tenantId),
+    plans: db.prepare("SELECT * FROM internet_plans WHERE tenant_id=? ORDER BY id DESC").all(tenantId),
+    subscriptions: db.prepare("SELECT s.*,c.customer_code,c.full_name,p.name AS plan_name,p.monthly_price_idr FROM subscriptions s JOIN customers c ON c.id=s.customer_id AND c.tenant_id=s.tenant_id JOIN internet_plans p ON p.id=s.plan_id AND p.tenant_id=s.tenant_id WHERE s.tenant_id=? ORDER BY s.id DESC").all(tenantId),
+    invoices: db.prepare("SELECT i.*,c.full_name,c.customer_code,COALESCE((SELECT SUM(amount_idr) FROM payments WHERE invoice_id=i.id),0) - COALESCE((SELECT SUM(r.amount_idr) FROM payment_reversals r JOIN payments p ON p.id=r.payment_id WHERE p.invoice_id=i.id),0) AS paid_idr FROM invoices i JOIN customers c ON c.id=i.customer_id AND c.tenant_id=i.tenant_id WHERE i.tenant_id=? ORDER BY i.id DESC").all(tenantId),
+    payments: db.prepare("SELECT p.*,i.invoice_number,COALESCE((SELECT SUM(amount_idr) FROM payment_reversals WHERE payment_id=p.id),0) AS reversed_idr FROM payments p JOIN invoices i ON i.id=p.invoice_id AND i.tenant_id=p.tenant_id WHERE p.tenant_id=? ORDER BY p.id DESC LIMIT 100").all(tenantId),
+    reversals: db.prepare("SELECT r.*,p.payment_reference,i.invoice_number FROM payment_reversals r JOIN payments p ON p.id=r.payment_id AND p.tenant_id=r.tenant_id JOIN invoices i ON i.id=p.invoice_id AND i.tenant_id=r.tenant_id WHERE r.tenant_id=? ORDER BY r.id DESC LIMIT 100").all(tenantId),
+    dueReminders: billing.getDueReminders({ today: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date()), daysAhead: 7, tenantId }),
     ...extra
   };
 }
-router.get("/", managers, (req,res) => res.render("billing/index", pageData({
+router.get("/", managers, (req,res) => res.render("billing/index", pageData(req,{
   notice: req.query.notice || null,
   error: req.query.error || null,
   customerFormError: req.query.customerError || null,
@@ -124,7 +126,7 @@ router.post("/customers", managers, (req,res) => {
           !Number.isInteger(billingDay) || billingDay < 1 || billingDay > 28) {
         throw new Error("Pilihan paket atau tanggal billing tidak valid.");
       }
-      const plan = db.prepare("SELECT id,plan_code,name FROM internet_plans WHERE id=? AND is_active=1").get(planId);
+      const plan = db.prepare("SELECT id,plan_code,name FROM internet_plans WHERE id=? AND tenant_id=? AND is_active=1").get(planId,req.tenant.id);
       if (!plan) throw new Error("Paket internet tidak aktif atau tidak ditemukan.");
       subscription = {
         planId,
@@ -151,11 +153,11 @@ router.post("/customers", managers, (req,res) => {
     const created = db.transaction(() => {
       const result = db.prepare(`
         INSERT INTO customers
-          (customer_code,full_name,email,phone,address,identity_number,notes,
+          (tenant_id,customer_code,full_name,email,phone,address,identity_number,notes,
            whatsapp_opt_in,whatsapp_opt_in_at)
-        VALUES (?,?,?,?,?,?,?, ?,CASE WHEN ?=1 THEN CURRENT_TIMESTAMP ELSE NULL END)
+        VALUES (?,?,?,?,?,?,?,?, ?,CASE WHEN ?=1 THEN CURRENT_TIMESTAMP ELSE NULL END)
       `).run(
-        customer.customer_code, customer.full_name, customer.email, customer.phone,
+        req.tenant.id, customer.customer_code, customer.full_name, customer.email, customer.phone,
         customer.address, customer.identity_number, customer.notes,
         whatsappOptIn, whatsappOptIn
       );
@@ -166,17 +168,18 @@ router.post("/customers", managers, (req,res) => {
         action: "customer.create",
         entityType: "customer",
         entityId: customerId,
-        summary: "Menambahkan pelanggan " + customer.customer_code
+        summary: "Menambahkan pelanggan " + customer.customer_code,
+        tenantId:req.tenant.id
       });
 
       let subscriptionId = null;
       if (subscription) {
         const sub = db.prepare(`
           INSERT INTO subscriptions
-            (customer_id,plan_id,start_date,billing_day,external_device_ref,notes)
-          VALUES (?,?,?,?,?,?)
+            (tenant_id,customer_id,plan_id,start_date,billing_day,external_device_ref,notes)
+          VALUES (?,?,?,?,?,?,?)
         `).run(
-          customerId, subscription.planId, subscription.startDate,
+          req.tenant.id, customerId, subscription.planId, subscription.startDate,
           subscription.billingDay, subscription.externalRef, subscription.notes
         );
         subscriptionId = Number(sub.lastInsertRowid);
@@ -185,23 +188,25 @@ router.post("/customers", managers, (req,res) => {
           action: "subscription.create",
           entityType: "subscription",
           entityId: subscriptionId,
-          summary: "Membuat langganan " + subscription.planName + " untuk " + customer.customer_code
+          summary: "Membuat langganan " + subscription.planName + " untuk " + customer.customer_code,
+          tenantId:req.tenant.id
         });
       }
 
       let portalCreated = false;
       if (portalPasswordHash) {
         db.prepare(`
-          INSERT INTO customer_portal_accounts (customer_id,password_hash,is_active)
-          VALUES (?,?,1)
-        `).run(customerId, portalPasswordHash);
+          INSERT INTO customer_portal_accounts (tenant_id,customer_id,password_hash,is_active)
+          VALUES (?,?,?,1)
+        `).run(req.tenant.id,customerId, portalPasswordHash);
         portalCreated = true;
         recordAudit({
           user: req.session.user,
           action: "customer.portal_account.create",
           entityType: "customer_portal_account",
           entityId: customerId,
-          summary: "Membuat akses portal untuk pelanggan " + customer.customer_code
+          summary: "Membuat akses portal untuk pelanggan " + customer.customer_code,
+          tenantId:req.tenant.id
         });
       }
 
@@ -223,13 +228,13 @@ router.post("/customers", managers, (req,res) => {
 });
 router.post("/customers/:id/update", managers, (req,res) => {
   const id=Number(req.params.id); if(!Number.isSafeInteger(id)||id<1) return res.status(400).send("ID tidak valid.");
-  try { const v=billing.validateCustomer(req.body); const r=db.prepare("UPDATE customers SET customer_code=?,full_name=?,email=?,phone=?,address=?,identity_number=?,notes=?,whatsapp_opt_in=?,whatsapp_opt_in_at=CASE WHEN ?=1 THEN COALESCE(whatsapp_opt_in_at,CURRENT_TIMESTAMP) ELSE NULL END,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(v.customer_code,v.full_name,v.email,v.phone,v.address,v.identity_number,v.notes,req.body.whatsapp_opt_in === "1" ? 1 : 0,req.body.whatsapp_opt_in === "1" ? 1 : 0,id); if(!r.changes)return res.status(404).send("Pelanggan tidak ditemukan."); recordAudit({ user: req.session.user, action: "customer.update", entityType: "customer", entityId: id, summary: "Memperbarui data pelanggan " + v.customer_code }); res.redirect("/billing?notice=Data%20pelanggan%20diperbarui."); }
-  catch(e){ if(e.code==="SQLITE_CONSTRAINT_UNIQUE")return fail(res,new Error("Kode pelanggan sudah digunakan.")); return fail(res,e); }
+  try { const v=billing.validateCustomer(req.body); const r=db.prepare("UPDATE customers SET customer_code=?,full_name=?,email=?,phone=?,address=?,identity_number=?,notes=?,whatsapp_opt_in=?,whatsapp_opt_in_at=CASE WHEN ?=1 THEN COALESCE(whatsapp_opt_in_at,CURRENT_TIMESTAMP) ELSE NULL END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=?").run(v.customer_code,v.full_name,v.email,v.phone,v.address,v.identity_number,v.notes,req.body.whatsapp_opt_in === "1" ? 1 : 0,req.body.whatsapp_opt_in === "1" ? 1 : 0,id,req.tenant.id); if(!r.changes)return res.status(404).send("Pelanggan tidak ditemukan."); recordAudit({ user: req.session.user, action: "customer.update", entityType: "customer", entityId: id, summary: "Memperbarui data pelanggan " + v.customer_code,tenantId:req.tenant.id }); res.redirect("/billing?notice=Data%20pelanggan%20diperbarui."); }
+  catch(e){ if(e.code==="SQLITE_CONSTRAINT_UNIQUE")return fail(req,res,new Error("Kode pelanggan sudah digunakan.")); return fail(req,res,e); }
 });
 router.post("/customers/:id/status", managers, (req,res) => {
   const id=Number(req.params.id); if(!Number.isSafeInteger(id)||id<1)return res.status(400).send("ID tidak valid.");
-  const r=db.prepare("UPDATE customers SET status=CASE status WHEN 'active' THEN 'inactive' ELSE 'active' END,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
-  if(!r.changes)return res.status(404).send("Pelanggan tidak ditemukan."); recordAudit({ user: req.session.user, action: "customer.status", entityType: "customer", entityId: id, summary: "Mengubah status pelanggan ID " + id }); res.redirect("/billing?notice=Status%20pelanggan%20diperbarui.");
+  const r=db.prepare("UPDATE customers SET status=CASE status WHEN 'active' THEN 'inactive' ELSE 'active' END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=?").run(id,req.tenant.id);
+  if(!r.changes)return res.status(404).send("Pelanggan tidak ditemukan."); recordAudit({ user: req.session.user, action: "customer.status", entityType: "customer", entityId: id, summary: "Mengubah status pelanggan ID " + id,tenantId:req.tenant.id }); res.redirect("/billing?notice=Status%20pelanggan%20diperbarui.");
 });
 
 router.post("/customers/:id/delete", admins, (req,res) => {
@@ -241,16 +246,16 @@ router.post("/customers/:id/delete", admins, (req,res) => {
   try {
     const deleted = db.transaction(() => {
       const customer = db.prepare(
-        "SELECT id,customer_code,full_name FROM customers WHERE id=?"
-      ).get(id);
+        "SELECT id,customer_code,full_name FROM customers WHERE id=? AND tenant_id=?"
+      ).get(id,req.tenant.id);
       if (!customer) throw new Error("Pelanggan tidak ditemukan.");
 
       const counts = {
-        subscriptions: db.prepare("SELECT COUNT(*) AS total FROM subscriptions WHERE customer_id=?").get(id).total,
-        invoices: db.prepare("SELECT COUNT(*) AS total FROM invoices WHERE customer_id=?").get(id).total,
-        confirmations: db.prepare("SELECT COUNT(*) AS total FROM customer_payment_confirmations WHERE customer_id=?").get(id).total,
-        whatsappLogs: db.prepare("SELECT COUNT(*) AS total FROM whatsapp_message_logs WHERE customer_id=?").get(id).total,
-        supportTickets: db.prepare("SELECT COUNT(*) AS total FROM support_tickets WHERE customer_id=?").get(id).total
+        subscriptions: db.prepare("SELECT COUNT(*) AS total FROM subscriptions WHERE customer_id=? AND tenant_id=?").get(id,req.tenant.id).total,
+        invoices: db.prepare("SELECT COUNT(*) AS total FROM invoices WHERE customer_id=? AND tenant_id=?").get(id,req.tenant.id).total,
+        confirmations: db.prepare("SELECT COUNT(*) AS total FROM customer_payment_confirmations WHERE customer_id=? AND tenant_id=?").get(id,req.tenant.id).total,
+        whatsappLogs: db.prepare("SELECT COUNT(*) AS total FROM whatsapp_message_logs WHERE customer_id=? AND tenant_id=?").get(id,req.tenant.id).total,
+        supportTickets: db.prepare("SELECT COUNT(*) AS total FROM support_tickets WHERE customer_id=? AND tenant_id=?").get(id,req.tenant.id).total
       };
       const blockers = [];
       if (counts.subscriptions) blockers.push(counts.subscriptions + " langganan");
@@ -268,15 +273,15 @@ router.post("/customers/:id/delete", admins, (req,res) => {
 
       // Remove only the dependent portal credential. The portal session will
       // be rejected on its next request because its account no longer exists.
-      db.prepare("DELETE FROM customer_portal_accounts WHERE customer_id=?").run(id);
-      db.prepare("DELETE FROM customers WHERE id=?").run(id);
+      db.prepare("DELETE FROM customer_portal_accounts WHERE customer_id=? AND tenant_id=?").run(id,req.tenant.id);
+      db.prepare("DELETE FROM customers WHERE id=? AND tenant_id=?").run(id,req.tenant.id);
 
       recordAudit({
         user: req.session.user,
         action: "customer.delete",
         entityType: "customer",
         entityId: id,
-        summary: "Menghapus permanen pelanggan " + customer.customer_code + " (" + customer.full_name + ") tanpa riwayat transaksi"
+        summary: "Menghapus permanen pelanggan " + customer.customer_code + " (" + customer.full_name + ") tanpa riwayat transaksi",tenantId:req.tenant.id
       });
       return customer;
     })();
@@ -299,25 +304,25 @@ router.post("/portal-accounts/:customerId", admins, (req,res) => {
   const password=String(req.body.password||"");
   if(!Number.isSafeInteger(customerId)||customerId<1)return res.status(400).send("ID pelanggan tidak valid.");
   if(password.length<12||password.length>200)return res.redirect("/billing?notice="+encodeURIComponent("Password portal harus 12–200 karakter."));
-  const customer=db.prepare("SELECT id,customer_code,status FROM customers WHERE id=?").get(customerId);
+  const customer=db.prepare("SELECT id,customer_code,status FROM customers WHERE id=? AND tenant_id=?").get(customerId,req.tenant.id);
   if(!customer||customer.status!=="active")return res.redirect("/billing?notice="+encodeURIComponent("Akun portal hanya dapat dibuat untuk pelanggan aktif."));
   const hash=bcrypt.hashSync(password,12);
   db.prepare(`
-    INSERT INTO customer_portal_accounts (customer_id,password_hash,is_active)
-    VALUES (?,?,1)
+    INSERT INTO customer_portal_accounts (tenant_id,customer_id,password_hash,is_active)
+    VALUES (?,?,?,1)
     ON CONFLICT(customer_id) DO UPDATE SET
       password_hash=excluded.password_hash,is_active=1,updated_at=CURRENT_TIMESTAMP
-  `).run(customerId,hash);
-  recordAudit({user:req.session.user,action:"customer.portal_account.upsert",entityType:"customer_portal_account",entityId:customerId,summary:"Membuat atau mengatur ulang akses portal untuk "+customer.customer_code});
+  `).run(req.tenant.id,customerId,hash);
+  recordAudit({user:req.session.user,action:"customer.portal_account.upsert",entityType:"customer_portal_account",entityId:customerId,summary:"Membuat atau mengatur ulang akses portal untuk "+customer.customer_code,tenantId:req.tenant.id});
   res.redirect("/billing?notice="+encodeURIComponent("Akses portal pelanggan berhasil disimpan. Berikan ID pelanggan dan password sementara secara aman."));
 });
 
 router.post("/portal-accounts/:customerId/status", admins, (req,res) => {
   const customerId=Number(req.params.customerId);
   if(!Number.isSafeInteger(customerId)||customerId<1)return res.status(400).send("ID pelanggan tidak valid.");
-  const r=db.prepare("UPDATE customer_portal_accounts SET is_active=1-is_active,updated_at=CURRENT_TIMESTAMP WHERE customer_id=?").run(customerId);
+  const r=db.prepare("UPDATE customer_portal_accounts SET is_active=1-is_active,updated_at=CURRENT_TIMESTAMP WHERE customer_id=? AND tenant_id=?").run(customerId,req.tenant.id);
   if(!r.changes)return res.status(404).send("Akun portal tidak ditemukan.");
-  recordAudit({user:req.session.user,action:"customer.portal_account.status",entityType:"customer_portal_account",entityId:customerId,summary:"Mengubah status akses portal pelanggan ID "+customerId});
+  recordAudit({user:req.session.user,action:"customer.portal_account.status",entityType:"customer_portal_account",entityId:customerId,summary:"Mengubah status akses portal pelanggan ID "+customerId,tenantId:req.tenant.id});
   res.redirect("/billing?notice="+encodeURIComponent("Status akses portal diperbarui."));
 });
 
@@ -327,7 +332,7 @@ router.post("/payment-confirmations/:id/approve", managers, (req,res) => {
   try {
     let payment;
     db.transaction(() => {
-      const confirmation=db.prepare("SELECT * FROM customer_payment_confirmations WHERE id=? AND status='pending'").get(id);
+      const confirmation=db.prepare("SELECT * FROM customer_payment_confirmations WHERE id=? AND tenant_id=? AND status='pending'").get(id,req.tenant.id);
       if(!confirmation)throw new Error("Konfirmasi tidak ditemukan atau sudah ditinjau.");
       payment=billing.recordPayment({
         invoiceId:confirmation.invoice_id,
@@ -337,15 +342,15 @@ router.post("/payment-confirmations/:id/approve", managers, (req,res) => {
           paid_at:confirmation.paid_at,
           notes:"Konfirmasi pelanggan: "+confirmation.payment_reference+(confirmation.notes?" · "+confirmation.notes:"")
         },
-        userId:req.session.user.id
+        userId:req.session.user.id,tenantId:req.tenant.id
       });
       db.prepare(`
         UPDATE customer_payment_confirmations
         SET status='approved',payment_id=?,reviewed_by=?,reviewed_at=CURRENT_TIMESTAMP,review_note=NULL
-        WHERE id=? AND status='pending'
-      `).run(payment.id,req.session.user.id,id);
+        WHERE id=? AND tenant_id=? AND status='pending'
+      `).run(payment.id,req.session.user.id,id,req.tenant.id);
     })();
-    recordAudit({user:req.session.user,action:"customer.payment_confirmation.approve",entityType:"customer_payment_confirmation",entityId:id,summary:"Menyetujui konfirmasi pembayaran pelanggan dan mencatat "+payment.payment_reference});
+    recordAudit({user:req.session.user,action:"customer.payment_confirmation.approve",entityType:"customer_payment_confirmation",entityId:id,summary:"Menyetujui konfirmasi pembayaran pelanggan dan mencatat "+payment.payment_reference,tenantId:req.tenant.id});
     res.redirect("/billing?notice="+encodeURIComponent("Konfirmasi disetujui dan pembayaran berhasil dicatat."));
   } catch(error) {
     res.redirect("/billing?notice="+encodeURIComponent("Konfirmasi gagal disetujui: "+error.message));
@@ -360,87 +365,89 @@ router.post("/payment-confirmations/:id/reject", managers, (req,res) => {
   const result=db.prepare(`
     UPDATE customer_payment_confirmations
     SET status='rejected',reviewed_by=?,reviewed_at=CURRENT_TIMESTAMP,review_note=?
-    WHERE id=? AND status='pending'
-  `).run(req.session.user.id,note,id);
+    WHERE id=? AND tenant_id=? AND status='pending'
+  `).run(req.session.user.id,note,id,req.tenant.id);
   if(!result.changes)return res.redirect("/billing?notice="+encodeURIComponent("Konfirmasi tidak ditemukan atau sudah ditinjau."));
-  recordAudit({user:req.session.user,action:"customer.payment_confirmation.reject",entityType:"customer_payment_confirmation",entityId:id,summary:"Menolak konfirmasi pembayaran: "+note});
+  recordAudit({user:req.session.user,action:"customer.payment_confirmation.reject",entityType:"customer_payment_confirmation",entityId:id,summary:"Menolak konfirmasi pembayaran: "+note,tenantId:req.tenant.id});
   res.redirect("/billing?notice="+encodeURIComponent("Konfirmasi pembayaran ditolak."));
 });
 
 router.post("/plans", admins, (req,res) => {
-  try {const v=billing.validatePlan(req.body);const result=db.prepare("INSERT INTO internet_plans (plan_code,name,speed_mbps,monthly_price_idr,description) VALUES (?,?,?,?,?)").run(v.plan_code,v.name,v.speed_mbps,v.monthly_price_idr,v.description);recordAudit({ user: req.session.user, action: "plan.create", entityType: "internet_plan", entityId: result.lastInsertRowid, summary: "Menambahkan paket " + v.plan_code });res.redirect("/billing?notice=Paket%20berhasil%20ditambahkan.");}
-  catch(e){if(e.code==="SQLITE_CONSTRAINT_UNIQUE")return fail(res,new Error("Kode paket sudah digunakan."));return fail(res,e);}
+  try {const v=billing.validatePlan(req.body);const result=db.prepare("INSERT INTO internet_plans (tenant_id,plan_code,name,speed_mbps,monthly_price_idr,description) VALUES (?,?,?,?,?,?)").run(req.tenant.id,v.plan_code,v.name,v.speed_mbps,v.monthly_price_idr,v.description);recordAudit({ user: req.session.user, action: "plan.create", entityType: "internet_plan", entityId: result.lastInsertRowid, summary: "Menambahkan paket " + v.plan_code,tenantId:req.tenant.id });res.redirect("/billing?notice=Paket%20berhasil%20ditambahkan.");}
+  catch(e){if(e.code==="SQLITE_CONSTRAINT_UNIQUE")return fail(req,res,new Error("Kode paket sudah digunakan."));return fail(req,res,e);}
 });
 router.post("/plans/:id/update", admins, (req,res) => {
   const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.status(400).send("ID tidak valid.");
-  try{const v=billing.validatePlan(req.body);const r=db.prepare("UPDATE internet_plans SET plan_code=?,name=?,speed_mbps=?,monthly_price_idr=?,description=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(v.plan_code,v.name,v.speed_mbps,v.monthly_price_idr,v.description,id);if(!r.changes)return res.status(404).send("Paket tidak ditemukan.");recordAudit({ user: req.session.user, action: "plan.update", entityType: "internet_plan", entityId: id, summary: "Memperbarui paket " + v.plan_code });res.redirect("/billing?notice=Paket%20diperbarui.");}catch(e){if(e.code==="SQLITE_CONSTRAINT_UNIQUE")return fail(res,new Error("Kode paket sudah digunakan."));return fail(res,e);}
+  try{const v=billing.validatePlan(req.body);const r=db.prepare("UPDATE internet_plans SET plan_code=?,name=?,speed_mbps=?,monthly_price_idr=?,description=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=?").run(v.plan_code,v.name,v.speed_mbps,v.monthly_price_idr,v.description,id,req.tenant.id);if(!r.changes)return res.status(404).send("Paket tidak ditemukan.");recordAudit({ user: req.session.user, action: "plan.update", entityType: "internet_plan", entityId: id, summary: "Memperbarui paket " + v.plan_code,tenantId:req.tenant.id });res.redirect("/billing?notice=Paket%20diperbarui.");}catch(e){if(e.code==="SQLITE_CONSTRAINT_UNIQUE")return fail(req,res,new Error("Kode paket sudah digunakan."));return fail(req,res,e);}
 });
-router.post("/plans/:id/status", admins, (req,res) => {const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.status(400).send("ID tidak valid.");const r=db.prepare("UPDATE internet_plans SET is_active=1-is_active,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(id);if(!r.changes)return res.status(404).send("Paket tidak ditemukan.");recordAudit({ user: req.session.user, action: "plan.status", entityType: "internet_plan", entityId: id, summary: "Mengubah status paket ID " + id });res.redirect("/billing?notice=Status%20paket%20diperbarui.");});
+router.post("/plans/:id/status", admins, (req,res) => {const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.status(400).send("ID tidak valid.");const r=db.prepare("UPDATE internet_plans SET is_active=1-is_active,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=?").run(id,req.tenant.id);if(!r.changes)return res.status(404).send("Paket tidak ditemukan.");recordAudit({ user: req.session.user, action: "plan.status", entityType: "internet_plan", entityId: id, summary: "Mengubah status paket ID " + id,tenantId:req.tenant.id });res.redirect("/billing?notice=Status%20paket%20diperbarui.");});
 
 router.post("/subscriptions", managers, (req,res) => {
   try {
     const customerId=Number(req.body.customer_id),planId=Number(req.body.plan_id),billingDay=Number(req.body.billing_day||1);
     const start=billing.validateDate(req.body.start_date,"Tanggal mulai");
     if(!Number.isSafeInteger(customerId)||customerId<1||!Number.isSafeInteger(planId)||planId<1||!Number.isInteger(billingDay)||billingDay<1||billingDay>28)throw new Error("Data langganan tidak valid.");
-    if(!db.prepare("SELECT id FROM customers WHERE id=? AND status='active'").get(customerId))throw new Error("Pelanggan tidak aktif/tidak ditemukan.");
-    if(!db.prepare("SELECT id FROM internet_plans WHERE id=? AND is_active=1").get(planId))throw new Error("Paket tidak aktif/tidak ditemukan.");
+    if(!db.prepare("SELECT id FROM customers WHERE id=? AND tenant_id=? AND status='active'").get(customerId,req.tenant.id))throw new Error("Pelanggan tidak aktif/tidak ditemukan.");
+    if(!db.prepare("SELECT id FROM internet_plans WHERE id=? AND tenant_id=? AND is_active=1").get(planId,req.tenant.id))throw new Error("Paket tidak aktif/tidak ditemukan.");
     const externalRef=billing.optionalText(req.body.external_device_ref,"Referensi perangkat",150);
     const notes=billing.optionalText(req.body.notes,"Catatan langganan");
-    const result=db.prepare("INSERT INTO subscriptions (customer_id,plan_id,start_date,billing_day,external_device_ref,notes) VALUES (?,?,?,?,?,?)").run(customerId,planId,start,billingDay,externalRef,notes);
-    recordAudit({ user: req.session.user, action: "subscription.create", entityType: "subscription", entityId: result.lastInsertRowid, summary: "Membuat langganan untuk pelanggan ID " + customerId });
+    const result=db.prepare("INSERT INTO subscriptions (tenant_id,customer_id,plan_id,start_date,billing_day,external_device_ref,notes) VALUES (?,?,?,?,?,?,?)").run(req.tenant.id,customerId,planId,start,billingDay,externalRef,notes);
+    recordAudit({ user: req.session.user, action: "subscription.create", entityType: "subscription", entityId: result.lastInsertRowid, summary: "Membuat langganan untuk pelanggan ID " + customerId,tenantId:req.tenant.id });
     res.redirect("/billing?notice=Langganan%20dibuat.");
-  }catch(e){return fail(res,e);}
+  }catch(e){return fail(req,res,e);}
 });
 router.post("/subscriptions/:id/status", managers, (req,res) => {
   const id=Number(req.params.id),status=String(req.body.status||"");
   if(!Number.isSafeInteger(id)||id<1)return res.status(400).send("ID tidak valid.");
   try {
-    const existing=db.prepare("SELECT status FROM subscriptions WHERE id=?").get(id);
+    const existing=db.prepare("SELECT status FROM subscriptions WHERE id=? AND tenant_id=?").get(id,req.tenant.id);
     if(!existing)return res.status(404).send("Langganan tidak ditemukan.");
     billing.validateSubscriptionStatus(existing.status,status);
-    db.prepare("UPDATE subscriptions SET status=?,end_date=CASE WHEN ?='terminated' THEN CASE WHEN date('now') < start_date THEN start_date ELSE date('now') END ELSE NULL END,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(status,status,id);
-    recordAudit({ user: req.session.user, action: "subscription.status", entityType: "subscription", entityId: id, summary: "Mengubah status langganan ID " + id + " menjadi " + status });
+    db.prepare("UPDATE subscriptions SET status=?,end_date=CASE WHEN ?='terminated' THEN CASE WHEN date('now') < start_date THEN start_date ELSE date('now') END ELSE NULL END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=?").run(status,status,id,req.tenant.id);
+    recordAudit({ user: req.session.user, action: "subscription.status", entityType: "subscription", entityId: id, summary: "Mengubah status langganan ID " + id + " menjadi " + status,tenantId:req.tenant.id });
     res.redirect("/billing?notice=Status%20langganan%20diperbarui.");
-  } catch(e) { return fail(res,e); }
+  } catch(e) { return fail(req,res,e); }
 });
 router.post("/invoices/generate-monthly", managers, (req,res) => {
   try {
     const invoices = billing.generateMonthlyInvoices({
       period: req.body.billing_period,
-      dueDate: req.body.due_date
+      dueDate: req.body.due_date,
+      tenantId:req.tenant.id
     });
     recordAudit({
       user: req.session.user,
       action: "invoice.batch_create",
       entityType: "invoice_batch",
       entityId: invoices[0]?.id || null,
-      summary: "Menerbitkan " + invoices.length + " invoice otomatis untuk periode " + req.body.billing_period
+      summary: "Menerbitkan " + invoices.length + " invoice otomatis untuk periode " + req.body.billing_period,
+      tenantId:req.tenant.id
     });
     res.redirect("/billing?notice=" + encodeURIComponent(
       invoices.length + " invoice berhasil dibuat. Invoice yang sudah ada dilewati."
     ));
-  } catch(e) { return fail(res,e); }
+  } catch(e) { return fail(req,res,e); }
 });
 router.post("/invoices", managers, (req,res) => {
-  try{const invoice=billing.createInvoice({subscriptionId:req.body.subscription_id,period:req.body.billing_period,dueDate:req.body.due_date,discount:req.body.discount_idr||0,notes:req.body.notes||""});recordAudit({ user: req.session.user, action: "invoice.create", entityType: "invoice", entityId: invoice.id, summary: "Membuat invoice " + invoice.invoice_number });res.redirect("/billing?notice=Invoice%20berhasil%20dibuat.");}
-  catch(e){if(String(e.message).includes("UNIQUE"))return fail(res,new Error("Invoice untuk langganan dan periode ini sudah ada."));return fail(res,e);}
+  try{const invoice=billing.createInvoice({subscriptionId:req.body.subscription_id,period:req.body.billing_period,dueDate:req.body.due_date,discount:req.body.discount_idr||0,notes:req.body.notes||"",tenantId:req.tenant.id});recordAudit({ user: req.session.user, action: "invoice.create", entityType: "invoice", entityId: invoice.id, summary: "Membuat invoice " + invoice.invoice_number,tenantId:req.tenant.id });res.redirect("/billing?notice=Invoice%20berhasil%20dibuat.");}
+  catch(e){if(String(e.message).includes("UNIQUE"))return fail(req,res,new Error("Invoice untuk langganan dan periode ini sudah ada."));return fail(req,res,e);}
 });
 router.post("/invoices/:id/payments", managers, (req,res) => {
-  try{const payment=billing.recordPayment({invoiceId:req.params.id,input:req.body,userId:req.session.user.id});recordAudit({ user: req.session.user, action: "payment.create", entityType: "payment", entityId: payment.id, summary: "Mencatat pembayaran " + payment.payment_reference + " sebesar Rp" + payment.amount_idr });res.redirect("/billing?notice=Pembayaran%20berhasil%20dicatat.");}
-  catch(e){return fail(res,e);}
+  try{const payment=billing.recordPayment({invoiceId:req.params.id,input:req.body,userId:req.session.user.id,tenantId:req.tenant.id});recordAudit({ user: req.session.user, action: "payment.create", entityType: "payment", entityId: payment.id, summary: "Mencatat pembayaran " + payment.payment_reference + " sebesar Rp" + payment.amount_idr,tenantId:req.tenant.id });res.redirect("/billing?notice=Pembayaran%20berhasil%20dicatat.");}
+  catch(e){return fail(req,res,e);}
 });
 router.post("/payments/:id/reversals", admins, (req,res) => {
   try {
-    const reversal = billing.recordPaymentReversal({ paymentId: req.params.id, input: req.body, userId: req.session.user.id });
-    recordAudit({ user: req.session.user, action: "payment.reverse", entityType: "payment_reversal", entityId: reversal.id, summary: "Membalik pembayaran " + reversal.reversal_reference + " sebesar Rp" + reversal.amount_idr });
+    const reversal = billing.recordPaymentReversal({ paymentId: req.params.id, input: req.body, userId: req.session.user.id, tenantId:req.tenant.id });
+    recordAudit({ user: req.session.user, action: "payment.reverse", entityType: "payment_reversal", entityId: reversal.id, summary: "Membalik pembayaran " + reversal.reversal_reference + " sebesar Rp" + reversal.amount_idr,tenantId:req.tenant.id });
     res.redirect("/billing?notice=Pembalikan%20pembayaran%20" + encodeURIComponent(reversal.reversal_reference) + "%20berhasil%20dicatat.");
-  } catch(e) { return fail(res,e); }
+  } catch(e) { return fail(req,res,e); }
 });
 router.post("/invoices/:id/void", admins, (req,res) => {
   const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.status(400).send("ID tidak valid.");
-  const invoice=db.prepare("SELECT status FROM invoices WHERE id=?").get(id);if(!invoice)return res.status(404).send("Invoice tidak ditemukan.");
-  const paymentCount=db.prepare("SELECT COUNT(*) AS total FROM payments WHERE invoice_id=?").get(id).total;
+  const invoice=db.prepare("SELECT status FROM invoices WHERE id=? AND tenant_id=?").get(id,req.tenant.id);if(!invoice)return res.status(404).send("Invoice tidak ditemukan.");
+  const paymentCount=db.prepare("SELECT COUNT(*) AS total FROM payments WHERE invoice_id=? AND tenant_id=?").get(id,req.tenant.id).total;
   if(paymentCount>0)return res.status(409).send("Invoice yang memiliki riwayat pembayaran tidak dapat dibatalkan, termasuk setelah reversal.");
-  db.prepare("UPDATE invoices SET status='void' WHERE id=?").run(id);recordAudit({ user: req.session.user, action: "invoice.void", entityType: "invoice", entityId: id, summary: "Membatalkan invoice ID " + id });res.redirect("/billing?notice=Invoice%20dibatalkan.");
+  db.prepare("UPDATE invoices SET status='void' WHERE id=? AND tenant_id=?").run(id,req.tenant.id);recordAudit({ user: req.session.user, action: "invoice.void", entityType: "invoice", entityId: id, summary: "Membatalkan invoice ID " + id,tenantId:req.tenant.id });res.redirect("/billing?notice=Invoice%20dibatalkan.");
 });
 module.exports=router;

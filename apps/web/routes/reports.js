@@ -11,7 +11,7 @@ router.get("/", (req, res) => {
   try {
     const from = req.query.from || firstDay;
     const to = req.query.to || today;
-    const report = reports.getFinancialReport({ from, to });
+    const report = reports.getFinancialReport({ from, to, tenantId:req.tenant.id });
     res.render("reports", {
       title: "Laporan Keuangan",
       report,

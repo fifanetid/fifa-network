@@ -42,7 +42,7 @@ router.post("/login", loginLimiter, (req, res, next) => {
   const memberships = getUserTenants(user.id);
   // Tenant selection is intentionally unavailable until all application modules
   // are scoped. Refuse ambiguous memberships instead of choosing a tenant silently.
-  if (memberships.length !== 1) return res.redirect("/login?error=1");
+  if (memberships.length !== 1 || memberships[0].id !== 1) return res.redirect("/login?error=1");
   const tenant = memberships[0];
 
   req.session.regenerate((err) => {
