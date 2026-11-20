@@ -7,8 +7,8 @@ const { requireRole } = require("../middleware/auth");
 const canView = requireRole("admin", "teknisi");
 const admins = requireRole("admin");
 
-function loadLinks() {
- return db.prepare("SELECT l.*,c.customer_code,c.full_name,s.id AS linked_subscription_id,p.name AS plan_name FROM genieacs_device_links l JOIN customers c ON c.id=l.customer_id LEFT JOIN subscriptions s ON s.id=l.subscription_id LEFT JOIN internet_plans p ON p.id=s.plan_id ORDER BY l.linked_at DESC,l.id DESC LIMIT 200").all();
+function loadLinks(tenantId) {
+ return db.prepare("SELECT l.*,c.customer_code,c.full_name,s.id AS linked_subscription_id,p.name AS plan_name FROM genieacs_device_links l JOIN customers c ON c.id=l.customer_id AND c.tenant_id=l.tenant_id LEFT JOIN subscriptions s ON s.id=l.subscription_id AND s.tenant_id=l.tenant_id LEFT JOIN internet_plans p ON p.id=s.plan_id AND p.tenant_id=l.tenant_id WHERE l.tenant_id=? ORDER BY l.linked_at DESC,l.id DESC LIMIT 200").all(tenantId);
 }
 async function renderPage(req,res,extra={}) {
  const configuration=genieAcsConfigurationStatus();
@@ -16,9 +16,9 @@ async function renderPage(req,res,extra={}) {
  let devices=[],connectionError=null;
  if(search&&configuration.configured){try{devices=await getGenieAcsClient().listDevices({search,limit:100});}catch(e){connectionError=e.message;}}
  return res.render("genieacs/index",{
-  title:"GenieACS / ONT",configuration,search,devices,links:loadLinks(),
-  customers:db.prepare("SELECT id,customer_code,full_name FROM customers WHERE status='active' ORDER BY full_name COLLATE NOCASE").all(),
-  subscriptions:db.prepare("SELECT s.id,s.customer_id,p.name AS plan_name,s.status FROM subscriptions s JOIN internet_plans p ON p.id=s.plan_id WHERE s.status IN ('active','suspended') ORDER BY s.id DESC").all(),
+  title:"GenieACS / ONT",configuration,search,devices,links:loadLinks(req.tenant.id),
+  customers:db.prepare("SELECT id,customer_code,full_name FROM customers WHERE tenant_id=? AND status='active' ORDER BY full_name COLLATE NOCASE").all(req.tenant.id),
+  subscriptions:db.prepare("SELECT s.id,s.customer_id,p.name AS plan_name,s.status FROM subscriptions s JOIN internet_plans p ON p.id=s.plan_id AND p.tenant_id=s.tenant_id WHERE s.tenant_id=? AND s.status IN ('active','suspended') ORDER BY s.id DESC").all(req.tenant.id),
   notice:null,...extra,error:extra.error || connectionError
  });
 }
@@ -28,14 +28,14 @@ router.post("/links",admins,async(req,res)=>{
  if(!Number.isSafeInteger(customerId)||customerId<1||(subscriptionId!==null&&(!Number.isSafeInteger(subscriptionId)||subscriptionId<1))) return renderPage(req,res,{error:"Pelanggan atau langganan tidak valid.",search:deviceId});
  try{
   if(!deviceId||deviceId.length>200) throw new Error("ID perangkat GenieACS tidak valid.");
-  const customer=db.prepare("SELECT id,customer_code FROM customers WHERE id=? AND status='active'").get(customerId);
+  const customer=db.prepare("SELECT id,customer_code FROM customers WHERE id=? AND tenant_id=? AND status='active'").get(customerId,req.tenant.id);
   if(!customer) throw new Error("Pelanggan aktif tidak ditemukan.");
-  if(subscriptionId!==null&&!db.prepare("SELECT id FROM subscriptions WHERE id=? AND customer_id=? AND status IN ('active','suspended')").get(subscriptionId,customerId)) throw new Error("Langganan tidak cocok dengan pelanggan yang dipilih.");
+  if(subscriptionId!==null&&!db.prepare("SELECT id FROM subscriptions WHERE id=? AND customer_id=? AND tenant_id=? AND status IN ('active','suspended')").get(subscriptionId,customerId,req.tenant.id)) throw new Error("Langganan tidak cocok dengan pelanggan yang dipilih.");
   const device=await getGenieAcsClient().getDevice(deviceId);
   if(!device) throw new Error("Perangkat tidak ditemukan di GenieACS. Cari berdasarkan ID/serial lalu pilih perangkat yang benar.");
   db.transaction(()=>{
-   const result=db.prepare("INSERT INTO genieacs_device_links(customer_id,subscription_id,genieacs_device_id,serial_number,manufacturer,product_class,linked_by) VALUES(?,?,?,?,?,?,?)").run(customerId,subscriptionId,device.id,device.serialNumber||null,device.manufacturer||null,device.productClass||null,req.session.user.id);
-   recordAudit({user:req.session.user,action:"genieacs.device.link",entityType:"genieacs_device_link",entityId:result.lastInsertRowid,summary:"Menautkan perangkat GenieACS "+device.id+" ke pelanggan "+customer.customer_code});
+   const result=db.prepare("INSERT INTO genieacs_device_links(tenant_id,customer_id,subscription_id,genieacs_device_id,serial_number,manufacturer,product_class,linked_by) VALUES(?,?,?,?,?,?,?,?)").run(req.tenant.id,customerId,subscriptionId,device.id,device.serialNumber||null,device.manufacturer||null,device.productClass||null,req.session.user.id);
+   recordAudit({user:req.session.user,action:"genieacs.device.link",entityType:"genieacs_device_link",entityId:result.lastInsertRowid,summary:"Menautkan perangkat GenieACS "+device.id+" ke pelanggan "+customer.customer_code,tenantId:req.tenant.id});
   })();
   return res.redirect("/admin/genieacs?notice="+encodeURIComponent("Perangkat berhasil ditautkan ke pelanggan."));
  }catch(e){
@@ -46,11 +46,11 @@ router.post("/links",admins,async(req,res)=>{
 router.post("/links/:id/delete",admins,(req,res)=>{
  const id=Number(req.params.id);
  if(!Number.isSafeInteger(id)||id<1)return res.status(400).send("ID tautan tidak valid.");
- const link=db.prepare("SELECT id,genieacs_device_id,customer_id FROM genieacs_device_links WHERE id=?").get(id);
+ const link=db.prepare("SELECT id,genieacs_device_id,customer_id FROM genieacs_device_links WHERE id=? AND tenant_id=?").get(id,req.tenant.id);
  if(!link)return res.status(404).send("Tautan perangkat tidak ditemukan.");
  db.transaction(()=>{
-  db.prepare("DELETE FROM genieacs_device_links WHERE id=?").run(id);
-  recordAudit({user:req.session.user,action:"genieacs.device.unlink",entityType:"genieacs_device_link",entityId:id,summary:"Melepas perangkat GenieACS "+link.genieacs_device_id+" dari pelanggan ID "+link.customer_id});
+  db.prepare("DELETE FROM genieacs_device_links WHERE id=? AND tenant_id=?").run(id,req.tenant.id);
+  recordAudit({user:req.session.user,action:"genieacs.device.unlink",entityType:"genieacs_device_link",entityId:id,summary:"Melepas perangkat GenieACS "+link.genieacs_device_id+" dari pelanggan ID "+link.customer_id,tenantId:req.tenant.id});
  })();
  return res.redirect("/admin/genieacs?notice="+encodeURIComponent("Tautan perangkat berhasil dilepas."));
 });
