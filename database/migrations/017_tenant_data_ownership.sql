@@ -356,3 +356,20 @@ BEFORE UPDATE OF customer_id,subscription_id,tenant_id ON genieacs_device_links
 WHEN NEW.tenant_id <> (SELECT tenant_id FROM customers WHERE id=NEW.customer_id)
  OR (NEW.subscription_id IS NOT NULL AND NEW.tenant_id <> (SELECT tenant_id FROM subscriptions WHERE id=NEW.subscription_id))
 BEGIN SELECT RAISE(ABORT,'GenieACS link relations must belong to the same tenant'); END;
+
+-- Keep legacy user creation compatible: until tenant-aware user management is
+-- introduced, newly-created staff accounts join the default ISP only.
+CREATE TRIGGER IF NOT EXISTS trg_users_default_tenant_membership_insert
+AFTER INSERT ON users
+WHEN EXISTS (SELECT 1 FROM tenants WHERE id=1)
+BEGIN
+  INSERT OR IGNORE INTO tenant_memberships (tenant_id,user_id,role,status)
+  VALUES (1,NEW.id,NEW.role,'active');
+END;
+CREATE TRIGGER IF NOT EXISTS trg_users_default_tenant_membership_role_update
+AFTER UPDATE OF role ON users
+WHEN EXISTS (SELECT 1 FROM tenant_memberships WHERE tenant_id=1 AND user_id=NEW.id)
+BEGIN
+  UPDATE tenant_memberships SET role=NEW.role,updated_at=CURRENT_TIMESTAMP
+  WHERE tenant_id=1 AND user_id=NEW.id;
+END;
