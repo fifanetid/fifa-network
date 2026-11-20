@@ -19,7 +19,8 @@ function isPrivateIpv4(value) {
   return process.env.NODE_ENV !== "production" && a === 127;
 }
 
-function pageData(extra = {}) {
+function pageData(req, extra = {}) {
+  const tenantId = req.tenant.id;
   let encryptionReady = true;
   try { loadEncryptionKey(); } catch { encryptionReady = false; }
   return {
@@ -31,8 +32,9 @@ function pageData(extra = {}) {
         cpu_load,cpu_count,memory_free_bytes,memory_total_bytes,
         active_ppp_count,active_ppp_json,last_checked_at,last_error,created_at,updated_at
       FROM mikrotik_routers
+      WHERE tenant_id=?
       ORDER BY router_name COLLATE NOCASE,id
-    `).all().map(item => ({
+    `).all(tenantId).map(item => ({
       ...item,
       activePpp: (() => {
         try {
@@ -87,7 +89,7 @@ function parseRouterInput(body, existing = null) {
 }
 
 router.get("/", (req, res) => {
-  res.render("mikrotik/index", pageData({
+  res.render("mikrotik/index", pageData(req, {
     notice: req.query.notice || null,
     error: req.query.error || null
   }));
@@ -98,15 +100,16 @@ router.post("/routers", (req, res) => {
     const input = parseRouterInput(req.body);
     const result = db.prepare(`
       INSERT INTO mikrotik_routers
-        (router_name,host,api_port,api_tls,api_tls_ca_encrypted,api_username,api_password_encrypted,created_by,updated_by)
-      VALUES (@router_name,@host,@api_port,@api_tls,@api_tls_ca_encrypted,@api_username,@api_password_encrypted,@userId,@userId)
-    `).run({ ...input, userId: req.session.user.id });
+        (tenant_id,router_name,host,api_port,api_tls,api_tls_ca_encrypted,api_username,api_password_encrypted,created_by,updated_by)
+      VALUES (@tenantId,@router_name,@host,@api_port,@api_tls,@api_tls_ca_encrypted,@api_username,@api_password_encrypted,@userId,@userId)
+    `).run({ ...input, tenantId:req.tenant.id, userId: req.session.user.id });
     recordAudit({
       user: req.session.user,
       action: "mikrotik.router.create",
       entityType: "mikrotik_router",
       entityId: result.lastInsertRowid,
-      summary: "Menambahkan koneksi router MikroTik " + input.router_name + " (" + input.host + ")"
+      summary: "Menambahkan koneksi router MikroTik " + input.router_name + " (" + input.host + ")",
+      tenantId:req.tenant.id
     });
     return res.redirect("/admin/mikrotik?notice=" + encodeURIComponent("Router berhasil disimpan. Uji koneksi untuk memeriksa akses API."));
   } catch (error) {
@@ -120,7 +123,7 @@ router.post("/routers", (req, res) => {
 router.post("/routers/:id/update", (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isSafeInteger(id) || id < 1) return res.status(404).send("Router tidak ditemukan.");
-  const existing = db.prepare("SELECT * FROM mikrotik_routers WHERE id=?").get(id);
+  const existing = db.prepare("SELECT * FROM mikrotik_routers WHERE id=? AND tenant_id=?").get(id,req.tenant.id);
   if (!existing) return res.status(404).send("Router tidak ditemukan.");
 
   try {
@@ -135,14 +138,15 @@ router.post("/routers/:id/update", (req, res) => {
           memory_total_bytes=NULL,active_ppp_count=0,active_ppp_json='[]',
           last_checked_at=NULL,last_error=NULL,
           updated_by=@userId,updated_at=CURRENT_TIMESTAMP
-      WHERE id=@id
-    `).run({ ...input, userId: req.session.user.id, id });
+      WHERE id=@id AND tenant_id=@tenantId
+    `).run({ ...input, tenantId:req.tenant.id, userId: req.session.user.id, id });
     recordAudit({
       user: req.session.user,
       action: "mikrotik.router.update",
       entityType: "mikrotik_router",
       entityId: id,
-      summary: "Memperbarui pengaturan koneksi router MikroTik " + input.router_name
+      summary: "Memperbarui pengaturan koneksi router MikroTik " + input.router_name,
+      tenantId:req.tenant.id
     });
     return res.redirect("/admin/mikrotik?notice=" + encodeURIComponent("Pengaturan router diperbarui. Uji koneksi kembali."));
   } catch (error) {
@@ -156,7 +160,7 @@ router.post("/routers/:id/update", (req, res) => {
 router.post("/routers/:id/test", async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isSafeInteger(id) || id < 1) return res.status(404).send("Router tidak ditemukan.");
-  const target = db.prepare("SELECT * FROM mikrotik_routers WHERE id=?").get(id);
+  const target = db.prepare("SELECT * FROM mikrotik_routers WHERE id=? AND tenant_id=?").get(id,req.tenant.id);
   if (!target) return res.status(404).send("Router tidak ditemukan.");
 
   try {
@@ -167,11 +171,11 @@ router.post("/routers/:id/test", async (req, res) => {
         cpu_load=?,cpu_count=?,memory_free_bytes=?,memory_total_bytes=?,
         active_ppp_count=?,active_ppp_json=?,last_checked_at=CURRENT_TIMESTAMP,
         last_error=NULL,updated_at=CURRENT_TIMESTAMP
-      WHERE id=?
+      WHERE id=? AND tenant_id=?
     `).run(
       result.identity, result.version, result.uptime, result.cpuLoad, result.cpuCount,
       result.memoryFreeBytes, result.memoryTotalBytes, result.activePppCount,
-      JSON.stringify(result.activePpp), id
+      JSON.stringify(result.activePpp), id, req.tenant.id
     );
     recordAudit({
       user: req.session.user,
@@ -179,7 +183,8 @@ router.post("/routers/:id/test", async (req, res) => {
       entityType: "mikrotik_router",
       entityId: id,
       summary: "Uji koneksi baca-saja berhasil untuk " + target.router_name +
-        ": " + result.activePppCount + " PPP aktif"
+        ": " + result.activePppCount + " PPP aktif",
+      tenantId:req.tenant.id
     });
     return res.redirect("/admin/mikrotik?notice=" + encodeURIComponent(
       "Koneksi ke " + target.router_name + " berhasil. Ditemukan " + result.activePppCount + " sesi PPP aktif."
@@ -189,14 +194,15 @@ router.post("/routers/:id/test", async (req, res) => {
     db.prepare(`
       UPDATE mikrotik_routers SET connection_status='failed',
         last_checked_at=CURRENT_TIMESTAMP,last_error=?,updated_at=CURRENT_TIMESTAMP
-      WHERE id=?
-    `).run(message, id);
+      WHERE id=? AND tenant_id=?
+    `).run(message, id, req.tenant.id);
     recordAudit({
       user: req.session.user,
       action: "mikrotik.router.test_failed",
       entityType: "mikrotik_router",
       entityId: id,
-      summary: "Uji koneksi router " + target.router_name + " gagal: " + message.slice(0, 300)
+      summary: "Uji koneksi router " + target.router_name + " gagal: " + message.slice(0, 300),
+      tenantId:req.tenant.id
     });
     return res.redirect("/admin/mikrotik?error=" + encodeURIComponent(
       "Koneksi ke " + target.router_name + " gagal: " + message
@@ -207,16 +213,17 @@ router.post("/routers/:id/test", async (req, res) => {
 router.post("/routers/:id/delete", (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isSafeInteger(id) || id < 1) return res.status(404).send("Router tidak ditemukan.");
-  const target = db.prepare("SELECT id,router_name,host FROM mikrotik_routers WHERE id=?").get(id);
+  const target = db.prepare("SELECT id,router_name,host FROM mikrotik_routers WHERE id=? AND tenant_id=?").get(id,req.tenant.id);
   if (!target) return res.status(404).send("Router tidak ditemukan.");
   db.transaction(() => {
-    db.prepare("DELETE FROM mikrotik_routers WHERE id=?").run(id);
+    db.prepare("DELETE FROM mikrotik_routers WHERE id=? AND tenant_id=?").run(id,req.tenant.id);
     recordAudit({
       user: req.session.user,
       action: "mikrotik.router.delete",
       entityType: "mikrotik_router",
       entityId: id,
-      summary: "Menghapus data koneksi router " + target.router_name + " (" + target.host + ") dari FF BILLING; tidak mengubah router"
+      summary: "Menghapus data koneksi router " + target.router_name + " (" + target.host + ") dari FF BILLING; tidak mengubah router",
+      tenantId:req.tenant.id
     });
   })();
   res.redirect("/admin/mikrotik?notice=" + encodeURIComponent("Data koneksi router berhasil dihapus. Konfigurasi MikroTik tidak diubah."));
