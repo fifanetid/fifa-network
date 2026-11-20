@@ -30,6 +30,18 @@ test("tenant ownership columns exist on all ISP business tables", () => {
   assert.equal(db.prepare("SELECT id FROM tenants WHERE slug='fifa-network'").get().id, 1);
 });
 
+
+test("legacy user creation and deletion maintain default tenant membership", () => {
+  const userId = db.prepare(
+    "INSERT INTO users (name,email,password_hash,role) VALUES ('Tenant Test User','tenant-user@example.test','not-a-real-hash','admin')"
+  ).run().lastInsertRowid;
+  assert.equal(db.prepare(
+    "SELECT COUNT(*) AS total FROM tenant_memberships WHERE user_id=? AND tenant_id=1 AND status='active'"
+  ).get(userId).total, 1);
+  db.prepare("DELETE FROM users WHERE id=?").run(userId);
+  assert.equal(db.prepare("SELECT COUNT(*) AS total FROM tenant_memberships WHERE user_id=?").get(userId).total, 0);
+});
+
 test("new business records default to the legacy FIFA Network tenant", () => {
   const customer = db.prepare(
     "INSERT INTO customers (customer_code,full_name,phone,address) VALUES ('OWN-DEFAULT','Tenant Default','081234567890','Alamat default tenant')"
