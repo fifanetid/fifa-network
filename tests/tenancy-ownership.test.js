@@ -129,3 +129,41 @@ test("customer ODP, support ticket and inventory relations cannot cross tenants"
     "INSERT INTO inventory_movements (item_id,movement_type,quantity,tenant_id) VALUES (?,'in',5,1)"
   ).run(item2), /same tenant/);
 });
+
+
+test("tenant-owned records require an active staff actor from the same tenant", () => {
+  const tenant2 = db.prepare(
+    "INSERT INTO tenants (name,slug,status,plan_code) VALUES ('ISP Actor Dua','isp-actor-dua','trial','starter')"
+  ).run().lastInsertRowid;
+  const actor1 = db.prepare(
+    "INSERT INTO users (name,email,password_hash,role) VALUES ('Actor One','actor-one@example.test','hash','admin')"
+  ).run().lastInsertRowid;
+  const actor2 = db.prepare(
+    "INSERT INTO users (name,email,password_hash,role) VALUES ('Actor Two','actor-two@example.test','hash','admin')"
+  ).run().lastInsertRowid;
+  db.prepare("DELETE FROM tenant_memberships WHERE user_id=? AND tenant_id=1").run(actor2);
+  db.prepare("INSERT INTO tenant_memberships (tenant_id,user_id,role,status) VALUES (?,?,'admin','active')").run(tenant2,actor2);
+
+  const category2 = db.prepare(
+    "INSERT INTO expense_categories (tenant_id,name) VALUES (?,'Biaya Tenant Dua')"
+  ).run(tenant2).lastInsertRowid;
+  assert.throws(() => db.prepare(
+    "INSERT INTO expenses (tenant_id,expense_number,category_id,description,amount_idr,expense_date,payment_method,created_by) VALUES (?,'ACTOR-EXP-BAD',?,'Biaya lintas tenant',10000,'2026-11-20','cash',?)"
+  ).run(tenant2,category2,actor1), /active member of the same tenant/);
+  assert.throws(() => db.prepare(
+    "INSERT INTO audit_logs (tenant_id,actor_user_id,actor_name,actor_role,action,entity_type,summary) VALUES (?,?,'Actor One','admin','test','test','Audit lintas tenant')"
+  ).run(tenant2,actor1), /active member of the same tenant/);
+
+  const expense2 = db.prepare(
+    "INSERT INTO expenses (tenant_id,expense_number,category_id,description,amount_idr,expense_date,payment_method,created_by) VALUES (?,'ACTOR-EXP-T2',?,'Biaya tenant dua',10000,'2026-11-20','cash',?)"
+  ).run(tenant2,category2,actor2).lastInsertRowid;
+  assert.ok(db.prepare("SELECT id FROM expenses WHERE id=? AND tenant_id=?").get(expense2,tenant2));
+  assert.throws(() => db.prepare("UPDATE expenses SET created_by=? WHERE id=?").run(actor1,expense2), /active member of the same tenant/);
+
+  const customer2 = db.prepare(
+    "INSERT INTO customers (tenant_id,customer_code,full_name,phone,address) VALUES (?,'ACTOR-CUS-T2','Pelanggan Actor Dua','081234567899','Alamat dua')"
+  ).run(tenant2).lastInsertRowid;
+  assert.throws(() => db.prepare(
+    "INSERT INTO support_tickets (tenant_id,ticket_number,customer_id,category,subject,assigned_to) VALUES (?,'ACTOR-TICKET-BAD',?,'internet','Penugasan lintas tenant',?)"
+  ).run(tenant2,customer2,actor1), /active member of the same tenant/);
+});

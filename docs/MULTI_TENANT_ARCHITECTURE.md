@@ -24,6 +24,12 @@ The billing module and web routes now accept the authenticated tenant ID for cus
 
 Staff login is temporarily restricted to the default FIFA Network tenant (ID 1). Accounts whose only membership is another tenant are refused until the remaining application modules are scoped. This is a deliberate safety gate, not a completed tenant selector.
 
+## Tenant actor integrity (migration 018)
+
+Migration `018_tenant_actor_integrity.sql` adds database triggers requiring staff actors referenced by tenant-owned records (audit events, payments/reversals, payment confirmations, settings, expenses, stock movements, GenieACS links, MikroTik routers, ticket assignment/messages) to be active members of the same tenant. Nullable actor IDs remain available for system-generated records.
+
+These checks complement the parent/child tenant guards from migration 017 and protect direct SQL writes as well as web routes.
+
 ## Important safety boundary
 
 This release does **not** claim production multi-tenancy. Some remaining modules and background jobs still use legacy unscoped queries. Billing, finance, dashboard, audit, ODP/inventory, MikroTik, and GenieACS link routes have tenant scoping, but ticketing, WhatsApp scheduling/logs, customer portal, and several integration paths still require review. Do not create additional customer tenants or expose tenant switching until every business table has a tenant key, every read/write is scoped by the authenticated tenant, and cross-tenant isolation tests pass.
