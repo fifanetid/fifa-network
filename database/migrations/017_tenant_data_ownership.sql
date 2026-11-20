@@ -373,3 +373,9 @@ BEGIN
   UPDATE tenant_memberships SET role=NEW.role,updated_at=CURRENT_TIMESTAMP
   WHERE tenant_id=1 AND user_id=NEW.id;
 END;
+
+CREATE TRIGGER IF NOT EXISTS trg_users_remove_tenant_memberships_before_delete
+BEFORE DELETE ON users
+BEGIN
+  DELETE FROM tenant_memberships WHERE user_id=OLD.id;
+END;
