@@ -20,7 +20,7 @@ const tenant2=db.prepare("INSERT INTO tenants (name,slug,status,plan_code) VALUE
 const customer2=db.prepare("INSERT INTO customers (tenant_id,customer_code,full_name,phone,address,whatsapp_opt_in) VALUES (?, 'CUS-SUPPORT-T2','Pelanggan Rahasia Dua','081234567899','Alamat Dua',1)").run(tenant2).lastInsertRowid;
 db.prepare("INSERT INTO customer_portal_accounts (tenant_id,customer_id,password_hash,is_active) VALUES (?,?,?,1)")
  .run(tenant2,customer2,bcrypt.hashSync("portal-tenant-two-password",4));
-const ticket2=db.prepare("INSERT INTO support_tickets (tenant_id,ticket_number,customer_id,category,subject) VALUES (?, 'TKT-TENANT-2','".replace("'TKT-TENANT-2'","?") + ", 'internet','Tiket rahasia tenant dua')").run(tenant2,"TKT-TENANT-2",customer2).lastInsertRowid;
+const ticket2=db.prepare("INSERT INTO support_tickets (tenant_id,ticket_number,customer_id,category,subject) VALUES (?,?,?,?,?)").run(tenant2,"TKT-TENANT-2",customer2,"internet","Tiket rahasia tenant dua").lastInsertRowid;
 db.prepare("INSERT INTO support_ticket_messages (tenant_id,ticket_id,sender_type,sender_customer_id,message) VALUES (?,?,'customer',?,'Pesan rahasia dari tenant dua')").run(tenant2,ticket2,customer2);
 const plan2=db.prepare("INSERT INTO internet_plans (tenant_id,plan_code,name,speed_mbps,monthly_price_idr) VALUES (?, 'PLAN-WA-T2','Paket WhatsApp Dua',10,100000)").run(tenant2).lastInsertRowid;
 const subscription2=db.prepare("INSERT INTO subscriptions (tenant_id,customer_id,plan_id,start_date) VALUES (?,?,?,'2026-11-01')").run(tenant2,customer2,plan2).lastInsertRowid;
