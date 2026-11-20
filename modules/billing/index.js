@@ -89,7 +89,7 @@ function recordPayment({ invoiceId, input, userId, tenantId = 1 }) {
       VALUES (?,?,?,?,?,?,?,?)
     `).run(tenant,id,reference,payment.amount_idr,payment.payment_method,payment.paid_at,userId || null,payment.notes);
     const newPaid = paid + payment.amount_idr;
-    db.prepare("UPDATE invoices SET status=? WHERE id=?").run(domain.calculateInvoiceStatus(invoice.total_idr,newPaid),id);
+    db.prepare("UPDATE invoices SET status=? WHERE id=? AND tenant_id=?").run(domain.calculateInvoiceStatus(invoice.total_idr,newPaid),id,tenant);
     return db.prepare("SELECT * FROM payments WHERE id=? AND tenant_id=?").get(result.lastInsertRowid,tenant);
   })();
 }
