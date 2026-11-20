@@ -4,10 +4,10 @@ const billing = require("../../../modules/billing");
 const { requireAuth } = require("../middleware/auth");
 
 router.get("/", requireAuth, (req, res) => {
-  const customerCount = db.prepare("SELECT COUNT(*) AS total FROM customers").get().total;
-  const activeSubscriptions = db.prepare("SELECT COUNT(*) AS total FROM subscriptions WHERE status='active'").get().total;
-  const outstanding = billing.getOutstandingBalance();
-  const deviceRefs = db.prepare("SELECT COUNT(*) AS total FROM subscriptions WHERE external_device_ref IS NOT NULL AND external_device_ref <> ''").get().total;
+  const customerCount = db.prepare("SELECT COUNT(*) AS total FROM customers WHERE tenant_id=?").get(req.tenant.id).total;
+  const activeSubscriptions = db.prepare("SELECT COUNT(*) AS total FROM subscriptions WHERE tenant_id=? AND status='active'").get(req.tenant.id).total;
+  const outstanding = billing.getOutstandingBalance(req.tenant.id);
+  const deviceRefs = db.prepare("SELECT COUNT(*) AS total FROM subscriptions WHERE tenant_id=? AND external_device_ref IS NOT NULL AND external_device_ref <> ''").get(req.tenant.id).total;
   res.render("dashboard", {
     title: "Dashboard",
     stats: [
