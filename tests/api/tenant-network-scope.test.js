@@ -71,3 +71,9 @@ test("tenant one cannot create an inventory movement for tenant two stock",async
  assert.equal(db.prepare("SELECT COUNT(*) AS total FROM inventory_movements WHERE item_id=?").get(item2).total,0);
 });
 
+
+test("tenant one cannot open GenieACS parameter details for another tenant device",async()=>{
+ const session=await login();
+ const response=await get("/admin/genieacs/device/device-tenant-2",session);
+ assert.equal(response.status,404);
+});

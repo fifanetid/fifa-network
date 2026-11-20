@@ -71,7 +71,7 @@ router.post("/settings/test",admins,async(req,res)=>{
 
 router.get("/device/:deviceId",canView,async(req,res)=>{
  const deviceId=String(req.params.deviceId||"").trim();
- if(!deviceId||deviceId.length>200||/[\\r\\n]/.test(deviceId))return res.status(400).send("ID perangkat tidak valid.");
+ if(!deviceId||deviceId.length>200||/[\r\n]/.test(deviceId))return res.status(400).send("ID perangkat tidak valid.");
  const link=db.prepare(`SELECT l.genieacs_device_id,l.serial_number,l.manufacturer,l.product_class,c.customer_code,c.full_name
   FROM genieacs_device_links l JOIN customers c ON c.id=l.customer_id AND c.tenant_id=l.tenant_id
   WHERE l.tenant_id=? AND l.genieacs_device_id=?`).get(req.tenant.id,deviceId);
