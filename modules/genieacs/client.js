@@ -1,10 +1,29 @@
 "use strict";
+const net = require("node:net");
 const DEFAULT_TIMEOUT_MS = 8000;
 const MAX_RESPONSE_BYTES = 2097152;
+
+function isPrivateHttpHost(hostname) {
+ const host=String(hostname||"").toLowerCase().replace(/^\[|\]$/g,"");
+ if (host==="localhost" || host.endsWith(".local") || host.endsWith(".lan") || host.endsWith(".internal")) return true;
+ const version=net.isIP(host);
+ if (version===4) {
+  const p=host.split(".").map(Number);
+  return p[0]===10 || p[0]===127 || (p[0]===192&&p[1]===168) ||
+   (p[0]===172&&p[1]>=16&&p[1]<=31);
+ }
+ if (version===6) return host==="::1" || host.startsWith("fc") || host.startsWith("fd");
+ return false;
+}
 function getConfig(env = process.env) {
  const raw = String(env.GENIEACS_NBI_URL || "http://127.0.0.1:7557").trim();
  let url; try { url = new URL(raw); } catch { throw new Error("GENIEACS_NBI_URL tidak valid."); }
- if (!["http:","https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new Error("URL GenieACS NBI harus HTTP(S) tanpa kredensial/query/fragment.");
+ if (!["http:","https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
+  throw new Error("URL GenieACS NBI harus HTTP(S) tanpa kredensial/query/fragment.");
+ }
+ if (url.protocol==="http:" && !isPrivateHttpHost(url.hostname)) {
+  throw new Error("Endpoint NBI melalui HTTP hanya diizinkan untuk host privat; gunakan HTTPS untuk host publik.");
+ }
  const timeoutMs = Number(env.GENIEACS_NBI_TIMEOUT_MS || DEFAULT_TIMEOUT_MS);
  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 30000) throw new Error("Timeout NBI harus 1000–30000 ms.");
  return {baseUrl:url.toString().replace(/\/$/,""),username:String(env.GENIEACS_USERNAME||""),password:String(env.GENIEACS_PASSWORD||""),timeoutMs};
@@ -16,7 +35,8 @@ function safeDevice(d) {
 }
 class GenieAcsError extends Error { constructor(message,statusCode=null){super(message);this.name="GenieAcsError";this.statusCode=statusCode;} }
 function createGenieAcsClient(options={}) {
- const config=getConfig(options.env||process.env), fetcher=options.fetch||globalThis.fetch;
+ const source=options.config ? {GENIEACS_NBI_URL:options.config.baseUrl||options.config.endpointUrl,GENIEACS_USERNAME:options.config.username||"",GENIEACS_PASSWORD:options.config.password||"",GENIEACS_NBI_TIMEOUT_MS:String(options.config.timeoutMs||DEFAULT_TIMEOUT_MS)} : (options.env||process.env);
+ const config=getConfig(source), fetcher=options.fetch||globalThis.fetch;
  if(typeof fetcher!=="function") throw new Error("Node.js harus mendukung fetch().");
  async function request(path,params={}) {
   const url=new URL(config.baseUrl+path);
