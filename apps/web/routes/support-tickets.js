@@ -84,7 +84,7 @@ router.get("/:id", (req, res) => {
   if (!id) return res.status(404).send("Laporan tidak ditemukan.");
   const ticket = db.prepare(`
     SELECT t.*,c.customer_code,c.full_name,c.phone,c.email,c.address,
-      u.name AS assigned_name
+      CASE WHEN assigned_membership.user_id IS NOT NULL THEN u.name ELSE NULL END AS assigned_name
     FROM support_tickets t
     JOIN customers c ON c.id=t.customer_id AND c.tenant_id=t.tenant_id
     LEFT JOIN users u ON u.id=t.assigned_to

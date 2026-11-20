@@ -309,7 +309,8 @@ router.get("/tickets/:id", (req, res) => {
         ELSE 'Sistem'
       END AS sender_name
     FROM support_ticket_messages m
-    LEFT JOIN users u ON u.id=m.sender_user_id
+    LEFT JOIN tenant_memberships sender_membership ON sender_membership.user_id=m.sender_user_id AND sender_membership.tenant_id=m.tenant_id AND sender_membership.status='active'
+    LEFT JOIN users u ON u.id=m.sender_user_id AND sender_membership.user_id IS NOT NULL
     WHERE m.ticket_id=? AND m.tenant_id=?
     ORDER BY m.id ASC
   `).all(ticketId,req.customer.tenantId);
