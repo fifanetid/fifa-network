@@ -12,8 +12,10 @@ const SCHEDULE = "0 9 * * *";
 const TIMEZONE = "Asia/Jakarta";
 let scheduledTask = null;
 
-function getAutomaticReminderSettings() {
-  const setting = db.prepare("SELECT setting_value, updated_at FROM app_settings WHERE setting_key=?").get(SETTING_KEY);
+function getAutomaticReminderSettings(tenantId = 1) {
+  const tenant = Number(tenantId);
+  if (!Number.isSafeInteger(tenant) || tenant < 1) throw new Error("Tenant pengaturan tidak valid.");
+  const setting = db.prepare("SELECT setting_value, updated_at FROM app_settings WHERE setting_key=? AND tenant_id=?").get(SETTING_KEY,tenant);
   return {
     enabled: setting?.setting_value === "1",
     schedule: SCHEDULE,
@@ -23,21 +25,24 @@ function getAutomaticReminderSettings() {
   };
 }
 
-function setAutomaticRemindersEnabled(enabled, userId = null) {
+function setAutomaticRemindersEnabled(enabled, userId = null, tenantId = 1) {
+  const tenant = Number(tenantId);
+  if (!Number.isSafeInteger(tenant) || tenant < 1) throw new Error("Tenant pengaturan tidak valid.");
   if (typeof enabled !== "boolean") {
     throw new TypeError("Status pengingat otomatis harus boolean.");
   }
 
   db.prepare(`
-    INSERT INTO app_settings (setting_key, setting_value, updated_by, updated_at)
-    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    INSERT INTO app_settings (tenant_id,setting_key, setting_value, updated_by, updated_at)
+    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(setting_key) DO UPDATE SET
+      tenant_id=excluded.tenant_id,
       setting_value=excluded.setting_value,
       updated_by=excluded.updated_by,
       updated_at=CURRENT_TIMESTAMP
-  `).run(SETTING_KEY, enabled ? "1" : "0", userId || null);
+  `).run(tenant,SETTING_KEY, enabled ? "1" : "0", userId || null);
 
-  return getAutomaticReminderSettings();
+  return getAutomaticReminderSettings(tenant);
 }
 
 function acquireReminderLock(ownerToken, leaseMinutes = 15) {
@@ -65,8 +70,10 @@ function releaseReminderLock(ownerToken) {
     .run(LOCK_KEY, ownerToken).changes === 1;
 }
 
-async function runReminderJob({ automatic = false, limit = 20, delayMs = 5000 } = {}) {
-  if (automatic && !getAutomaticReminderSettings().enabled) {
+async function runReminderJob({ automatic = false, limit = 20, delayMs = 5000, tenantId = 1 } = {}) {
+  const tenant = Number(tenantId);
+  if (!Number.isSafeInteger(tenant) || tenant < 1) throw new Error("Tenant pengingat tidak valid.");
+  if (automatic && !getAutomaticReminderSettings(tenant).enabled) {
     return { checked: 0, sent: 0, failed: 0, skipped: 0, disabled: true };
   }
 
@@ -90,7 +97,7 @@ async function runReminderJob({ automatic = false, limit = 20, delayMs = 5000 } 
     }
 
     return {
-      ...(await processReminders({ limit, delayMs })),
+      ...(await processReminders({ limit, delayMs,tenantId:tenant })),
       automatic
     };
   } finally {
@@ -103,7 +110,7 @@ function startAutomaticReminderScheduler() {
 
   scheduledTask = cron.schedule(SCHEDULE, async () => {
     try {
-      const result = await runReminderJob({ automatic: true, limit: 20, delayMs: 5000 });
+      const result = await runReminderJob({ automatic: true, limit: 20, delayMs: 5000,tenantId:1 });
       if (result.disabled) return;
       if (result.skippedConnection) {
         console.warn("WhatsApp automatic reminders skipped: gateway is not connected.");
