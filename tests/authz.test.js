@@ -25,6 +25,7 @@ const ids = {
 
 function invoke(userId, expected) {
   const req = { session: {
+    tenantId: 1,
     user: userId ? { id: userId, role: "stale-role" } : null,
     destroy(callback) { callback(); }
   } };
@@ -85,7 +86,7 @@ test("hanya admin yang dapat mencatat reversal pembayaran", () => {
     clearCookie() {}
   };
   let adminNext=false;
-  requireRole("admin")({session:{user:{id:ids.admin,role:"admin"}}},res,()=>{adminNext=true;});
+  requireRole("admin")({session:{tenantId:1,user:{id:ids.admin,role:"admin"}}},res,()=>{adminNext=true;});
   assert.equal(adminNext,true);
 
   const financeRes = {
@@ -95,8 +96,28 @@ test("hanya admin yang dapat mencatat reversal pembayaran", () => {
     redirect(path) { this.redirected=path; return this; },
     clearCookie() {}
   };
-  requireRole("admin")({session:{user:{id:ids.finance,role:"finance"}}},financeRes,()=>{});
+  requireRole("admin")({session:{tenantId:1,user:{id:ids.finance,role:"finance"}}},financeRes,()=>{});
   assert.equal(financeRes.statusCode,403);
+});
+
+
+test("tenant membership role, bukan role global lama, menentukan akses", () => {
+  db.prepare("UPDATE tenant_memberships SET role='admin' WHERE tenant_id=1 AND user_id=?").run(ids.technician);
+  const result = invoke(ids.technician, "next");
+  assert.equal(result.nextCalled, true);
+  assert.equal(result.req.tenant.id, 1);
+  assert.equal(result.req.tenantRole, "admin");
+});
+
+test("session tenant tanpa membership aktif ditolak", () => {
+  const tenant2 = db.prepare(
+    "INSERT INTO tenants (name,slug,status,plan_code) VALUES ('Tenant Tidak Terhubung','tenant-tidak-terhubung','trial','starter')"
+  ).run().lastInsertRowid;
+  const req = { session: { tenantId: tenant2, user: { id: ids.admin, role: "admin" }, destroy(callback) { callback(); } } };
+  const res = { statusCode: 200, status(code) { this.statusCode=code; return this; }, send(body) { this.body=body; return this; }, redirect(path) { this.redirected=path; return this; }, clearCookie() { this.cleared=true; } };
+  requireRole("admin")(req,res,()=>{ throw new Error("tenant tanpa membership tidak boleh lolos"); });
+  assert.equal(res.redirected,"/login");
+  assert.equal(res.cleared,true);
 });
 
 test.after(() => {

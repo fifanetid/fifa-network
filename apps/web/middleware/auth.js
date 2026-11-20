@@ -1,4 +1,5 @@
 const { db } = require("../../../database/db");
+const { getMembership } = require("../../../modules/tenancy");
 
 function loadActiveUser(req) {
   const sessionUser = req.session && req.session.user;
@@ -10,15 +11,25 @@ function loadActiveUser(req) {
   ).get(id);
   if (!user || user.is_active !== 1) return null;
 
-  // Roles and identity are read from the database so a deleted, disabled,
-  // or demoted account cannot continue using a stale session.
+  // Tenant identity and role are resolved from the authenticated membership,
+  // never from a request parameter or a stale session role.
+  const membership = getMembership(id, req.session.tenantId);
+  if (!membership) return null;
+  req.tenant = {
+    id: membership.tenant_id,
+    name: membership.name,
+    slug: membership.slug,
+    planCode: membership.plan_code,
+    timezone: membership.timezone
+  };
+  req.tenantRole = membership.role;
   req.session.user = {
     id: user.id,
     name: user.name,
     email: user.email,
-    role: user.role
+    role: membership.role
   };
-  return user;
+  return { ...user, role: membership.role };
 }
 
 function rejectStaleSession(req, res) {
@@ -40,7 +51,7 @@ function requireRole(...roles) {
     if (!req.session.user) return res.redirect("/login");
     const user = loadActiveUser(req);
     if (!user) return rejectStaleSession(req, res);
-    if (!roles.includes(user.role)) {
+    if (!roles.includes(req.tenantRole)) {
       return res.status(403).send("Kamu tidak memiliki izin untuk membuka halaman ini.");
     }
     next();
