@@ -55,3 +55,14 @@ test.after(() => {
   db.close();
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
+
+test("WhatsApp scheduler refuses non-default tenants while settings and gateway remain global", async () => {
+  assert.throws(
+    () => scheduler.setAutomaticRemindersEnabled(true, 1, 2),
+    /tenant default/
+  );
+  await assert.rejects(
+    scheduler.runReminderJob({ automatic: false, tenantId: 2 }),
+    /tenant default/
+  );
+});
