@@ -7,24 +7,25 @@ const { requireRole } = require("../middleware/auth");
 router.use(requireRole("admin"));
 router.get("/", (req, res) => {
   const users = db.prepare(`
-    SELECT u.*,
-      (SELECT COUNT(*) FROM audit_logs a WHERE a.actor_user_id=u.id) AS audit_count,
-      (SELECT COUNT(*) FROM payments p WHERE p.received_by=u.id) AS payment_count,
-      (SELECT COUNT(*) FROM payment_reversals r WHERE r.created_by=u.id) AS reversal_count,
-      (SELECT COUNT(*) FROM customer_payment_confirmations pc WHERE pc.reviewed_by=u.id) AS reviewed_confirmation_count,
-      (SELECT COUNT(*) FROM app_settings s WHERE s.updated_by=u.id) AS settings_count,
-      (SELECT COUNT(*) FROM support_ticket_messages stm WHERE stm.sender_user_id=u.id) AS support_message_count,
+    SELECT u.id,u.name,u.email,u.is_active,u.last_login_at,u.created_at,u.updated_at,m.role AS role,
+      (SELECT COUNT(*) FROM audit_logs a WHERE a.actor_user_id=u.id AND a.tenant_id=m.tenant_id) AS audit_count,
+      (SELECT COUNT(*) FROM payments p WHERE p.received_by=u.id AND p.tenant_id=m.tenant_id) AS payment_count,
+      (SELECT COUNT(*) FROM payment_reversals r WHERE r.created_by=u.id AND r.tenant_id=m.tenant_id) AS reversal_count,
+      (SELECT COUNT(*) FROM customer_payment_confirmations pc WHERE pc.reviewed_by=u.id AND pc.tenant_id=m.tenant_id) AS reviewed_confirmation_count,
+      (SELECT COUNT(*) FROM app_settings s WHERE s.updated_by=u.id AND s.tenant_id=m.tenant_id) AS settings_count,
+      (SELECT COUNT(*) FROM support_ticket_messages stm WHERE stm.sender_user_id=u.id AND stm.tenant_id=m.tenant_id) AS support_message_count,
       CASE WHEN
-        (SELECT COUNT(*) FROM audit_logs a WHERE a.actor_user_id=u.id)=0
-        AND (SELECT COUNT(*) FROM payments p WHERE p.received_by=u.id)=0
-        AND (SELECT COUNT(*) FROM payment_reversals r WHERE r.created_by=u.id)=0
-        AND (SELECT COUNT(*) FROM customer_payment_confirmations pc WHERE pc.reviewed_by=u.id)=0
-        AND (SELECT COUNT(*) FROM app_settings s WHERE s.updated_by=u.id)=0
-        AND (SELECT COUNT(*) FROM support_ticket_messages stm WHERE stm.sender_user_id=u.id)=0
+        (SELECT COUNT(*) FROM audit_logs a WHERE a.actor_user_id=u.id AND a.tenant_id=m.tenant_id)=0
+        AND (SELECT COUNT(*) FROM payments p WHERE p.received_by=u.id AND p.tenant_id=m.tenant_id)=0
+        AND (SELECT COUNT(*) FROM payment_reversals r WHERE r.created_by=u.id AND r.tenant_id=m.tenant_id)=0
+        AND (SELECT COUNT(*) FROM customer_payment_confirmations pc WHERE pc.reviewed_by=u.id AND pc.tenant_id=m.tenant_id)=0
+        AND (SELECT COUNT(*) FROM app_settings s WHERE s.updated_by=u.id AND s.tenant_id=m.tenant_id)=0
+        AND (SELECT COUNT(*) FROM support_ticket_messages stm WHERE stm.sender_user_id=u.id AND stm.tenant_id=m.tenant_id)=0
       THEN 1 ELSE 0 END AS can_delete
-    FROM users u ORDER BY u.id DESC
-  `).all();
-  const activeAdminCount = db.prepare("SELECT COUNT(*) AS total FROM users WHERE role='admin' AND is_active=1").get().total;
+    FROM users u JOIN tenant_memberships m ON m.user_id=u.id AND m.tenant_id=? AND m.status='active'
+    ORDER BY u.id DESC
+  `).all(req.tenant.id);
+  const activeAdminCount = db.prepare("SELECT COUNT(*) AS total FROM users u JOIN tenant_memberships m ON m.user_id=u.id WHERE m.tenant_id=? AND m.role='admin' AND m.status='active' AND u.is_active=1").get(req.tenant.id).total;
   res.render("users", { title: "Manajemen Pengguna", users, activeAdminCount, notice: req.query.notice || null, error: req.query.error || null });
 });
 router.post("/", (req, res) => {
@@ -37,7 +38,7 @@ router.post("/", (req, res) => {
   }
   try {
     const result = db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)").run(name, email, bcrypt.hashSync(password, 12), role);
-    recordAudit({ user: req.session.user, action: "user.create", entityType: "user", entityId: result.lastInsertRowid, summary: "Membuat akun " + email + " dengan role " + role });
+    recordAudit({ user: req.session.user, action: "user.create", entityType: "user", entityId: result.lastInsertRowid, summary: "Membuat akun " + email + " dengan role " + role,tenantId:req.tenant.id });
     res.redirect("/admin/users?notice=Akun%20berhasil%20dibuat.");
   } catch (err) {
     if (err.code === "SQLITE_CONSTRAINT_UNIQUE") return res.redirect("/admin/users?error=Email%20sudah%20digunakan.");
@@ -48,19 +49,23 @@ router.post("/:id/status", (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).send("ID tidak valid.");
   if (id === req.session.user.id) return res.redirect("/admin/users?error=Akun%20yang%20sedang%20digunakan%20tidak%20dapat%20dinonaktifkan.");
-  const user = db.prepare("SELECT id, is_active FROM users WHERE id = ?").get(id);
+  const user = db.prepare("SELECT u.id,u.is_active,m.role FROM users u JOIN tenant_memberships m ON m.user_id=u.id AND m.tenant_id=? AND m.status='active' WHERE u.id=?").get(req.tenant.id,id);
   if (!user) return res.status(404).send("Pengguna tidak ditemukan.");
-  db.prepare("UPDATE users SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(user.is_active ? 0 : 1, id);
-  recordAudit({ user: req.session.user, action: "user.status", entityType: "user", entityId: id, summary: (user.is_active ? "Menonaktifkan" : "Mengaktifkan") + " akun pengguna ID " + id });
+  if(user.is_active && user.role==="admin") {
+    const activeAdmins=db.prepare("SELECT COUNT(*) AS total FROM users u JOIN tenant_memberships m ON m.user_id=u.id WHERE m.tenant_id=? AND m.role='admin' AND m.status='active' AND u.is_active=1").get(req.tenant.id).total;
+    if(activeAdmins<=1) return res.redirect("/admin/users?error=Admin%20aktif%20terakhir%20tidak%20dapat%20dinonaktifkan.");
+  }
+  db.prepare("UPDATE users SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND EXISTS (SELECT 1 FROM tenant_memberships m WHERE m.user_id=users.id AND m.tenant_id=? AND m.status='active')").run(user.is_active ? 0 : 1, id,req.tenant.id);
+  recordAudit({ user: req.session.user, action: "user.status", entityType: "user", entityId: id, summary: (user.is_active ? "Menonaktifkan" : "Mengaktifkan") + " akun pengguna ID " + id,tenantId:req.tenant.id });
   res.redirect("/admin/users?notice=Status%20akun%20diperbarui.");
 });
 router.post("/:id/password", (req, res) => {
   const id = Number(req.params.id);
   const password = String(req.body.password || "");
   if (!Number.isSafeInteger(id) || id <= 0 || password.length < 12 || password.length > 200) return res.redirect("/admin/users?error=Password%20baru%20minimal%2012%20karakter.");
-  if (!db.prepare("SELECT id FROM users WHERE id = ?").get(id)) return res.status(404).send("Pengguna tidak ditemukan.");
-  db.prepare("UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(bcrypt.hashSync(password, 12), id);
-  recordAudit({ user: req.session.user, action: "user.password_reset", entityType: "user", entityId: id, summary: "Mengubah password akun pengguna ID " + id });
+  if (!db.prepare("SELECT u.id FROM users u JOIN tenant_memberships m ON m.user_id=u.id AND m.tenant_id=? AND m.status='active' WHERE u.id = ?").get(req.tenant.id,id)) return res.status(404).send("Pengguna tidak ditemukan.");
+  db.prepare("UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND EXISTS (SELECT 1 FROM tenant_memberships m WHERE m.user_id=users.id AND m.tenant_id=? AND m.status='active')").run(bcrypt.hashSync(password, 12), id,req.tenant.id);
+  recordAudit({ user: req.session.user, action: "user.password_reset", entityType: "user", entityId: id, summary: "Mengubah password akun pengguna ID " + id,tenantId:req.tenant.id });
   res.redirect("/admin/users?notice=Password%20akun%20berhasil%20diubah.");
 });
 router.post("/:id/delete", (req, res) => {
@@ -74,16 +79,16 @@ router.post("/:id/delete", (req, res) => {
 
   try {
     const deleted = db.transaction(() => {
-      const target = db.prepare("SELECT id,name,email,role,is_active FROM users WHERE id=?").get(id);
+      const target = db.prepare("SELECT u.id,u.name,u.email,m.role,u.is_active FROM users u JOIN tenant_memberships m ON m.user_id=u.id AND m.tenant_id=? AND m.status='active' WHERE u.id=?").get(req.tenant.id,id);
       if (!target) throw new Error("Pengguna tidak ditemukan.");
 
       const references = {
-        audit: db.prepare("SELECT COUNT(*) AS total FROM audit_logs WHERE actor_user_id=?").get(id).total,
-        payments: db.prepare("SELECT COUNT(*) AS total FROM payments WHERE received_by=?").get(id).total,
-        reversals: db.prepare("SELECT COUNT(*) AS total FROM payment_reversals WHERE created_by=?").get(id).total,
-        confirmations: db.prepare("SELECT COUNT(*) AS total FROM customer_payment_confirmations WHERE reviewed_by=?").get(id).total,
-        settings: db.prepare("SELECT COUNT(*) AS total FROM app_settings WHERE updated_by=?").get(id).total,
-        supportMessages: db.prepare("SELECT COUNT(*) AS total FROM support_ticket_messages WHERE sender_user_id=?").get(id).total
+        audit: db.prepare("SELECT COUNT(*) AS total FROM audit_logs WHERE actor_user_id=? AND tenant_id=?").get(id,req.tenant.id).total,
+        payments: db.prepare("SELECT COUNT(*) AS total FROM payments WHERE received_by=? AND tenant_id=?").get(id,req.tenant.id).total,
+        reversals: db.prepare("SELECT COUNT(*) AS total FROM payment_reversals WHERE created_by=? AND tenant_id=?").get(id,req.tenant.id).total,
+        confirmations: db.prepare("SELECT COUNT(*) AS total FROM customer_payment_confirmations WHERE reviewed_by=? AND tenant_id=?").get(id,req.tenant.id).total,
+        settings: db.prepare("SELECT COUNT(*) AS total FROM app_settings WHERE updated_by=? AND tenant_id=?").get(id,req.tenant.id).total,
+        supportMessages: db.prepare("SELECT COUNT(*) AS total FROM support_ticket_messages WHERE sender_user_id=? AND tenant_id=?").get(id,req.tenant.id).total
       };
       const history = [];
       if (references.audit) history.push(references.audit + " log audit");
@@ -101,20 +106,20 @@ router.post("/:id/delete", (req, res) => {
 
       if (target.role === "admin" && target.is_active) {
         const activeAdmins = db.prepare(
-          "SELECT COUNT(*) AS total FROM users WHERE role='admin' AND is_active=1"
-        ).get().total;
+          "SELECT COUNT(*) AS total FROM users u JOIN tenant_memberships m ON m.user_id=u.id WHERE m.tenant_id=? AND m.role='admin' AND m.status='active' AND u.is_active=1"
+        ).get(req.tenant.id).total;
         if (activeAdmins <= 1) {
           throw new Error("Admin aktif terakhir tidak dapat dihapus. Buat admin pengganti terlebih dahulu.");
         }
       }
 
-      db.prepare("DELETE FROM users WHERE id=?").run(id);
+      db.prepare("DELETE FROM users WHERE id=? AND EXISTS (SELECT 1 FROM tenant_memberships m WHERE m.user_id=users.id AND m.tenant_id=? AND m.status='active')").run(id,req.tenant.id);
       recordAudit({
         user: req.session.user,
         action: "user.delete",
         entityType: "user",
         entityId: id,
-        summary: "Menghapus akun " + target.email + " (role " + target.role + ")"
+        summary: "Menghapus akun " + target.email + " (role " + target.role + ")",tenantId:req.tenant.id
       });
       return target;
     })();
