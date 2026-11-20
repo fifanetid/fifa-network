@@ -170,9 +170,9 @@ router.get("/invoices/:id/print", (req, res) => {
         JOIN payments rp ON rp.id=r.payment_id WHERE rp.invoice_id=i.id
       ),0) AS paid_idr
     FROM invoices i
-    JOIN customers c ON c.id=i.customer_id
-    JOIN subscriptions s ON s.id=i.subscription_id
-    JOIN internet_plans p ON p.id=s.plan_id
+    JOIN customers c ON c.id=i.customer_id AND c.tenant_id=i.tenant_id
+    JOIN subscriptions s ON s.id=i.subscription_id AND s.tenant_id=i.tenant_id
+    JOIN internet_plans p ON p.id=s.plan_id AND p.tenant_id=i.tenant_id
     WHERE i.id=? AND i.customer_id=? AND i.tenant_id=? AND i.status<>'void'
   `).get(invoiceId, req.customer.id,req.customer.tenantId);
 
@@ -240,9 +240,9 @@ router.post("/invoices/:id/confirm-payment", (req, res) => {
 router.get("/tickets", (req, res) => {
   const tickets = db.prepare(`
     SELECT t.*,
-      (SELECT COUNT(*) FROM support_ticket_messages m WHERE m.ticket_id=t.id) AS message_count,
+      (SELECT COUNT(*) FROM support_ticket_messages m WHERE m.ticket_id=t.id AND m.tenant_id=t.tenant_id) AS message_count,
       (SELECT m.message FROM support_ticket_messages m
-       WHERE m.ticket_id=t.id ORDER BY m.id DESC LIMIT 1) AS latest_message
+       WHERE m.ticket_id=t.id AND m.tenant_id=t.tenant_id ORDER BY m.id DESC LIMIT 1) AS latest_message
     FROM support_tickets t
     WHERE t.customer_id=? AND t.tenant_id=?
     ORDER BY t.last_activity_at DESC,t.id DESC
