@@ -58,11 +58,11 @@ test.after(() => {
 
 test("WhatsApp scheduler refuses non-default tenants while settings and gateway remain global", async () => {
   assert.throws(
-    () => scheduler.setAutomaticRemindersEnabled(true, 1, 2),
+    () => setAutomaticRemindersEnabled(true, 1, 2),
     /tenant default/
   );
   await assert.rejects(
-    scheduler.runReminderJob({ automatic: false, tenantId: 2 }),
+    runReminderJob({ automatic: false, tenantId: 2 }),
     /tenant default/
   );
 });
