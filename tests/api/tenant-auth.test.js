@@ -21,6 +21,9 @@ const tenant2User=db.prepare("INSERT INTO users (name,email,password_hash,role) 
  .run("Tenant Dua Admin","tenant-dua-admin@example.test",bcrypt.hashSync(password,4)).lastInsertRowid;
 db.prepare("DELETE FROM tenant_memberships WHERE user_id=? AND tenant_id=1").run(tenant2User);
 db.prepare("INSERT INTO tenant_memberships (tenant_id,user_id,role,status) VALUES (?,?,'admin','active')").run(tenant2,tenant2User);
+const multiTenantUser=db.prepare("INSERT INTO users (name,email,password_hash,role) VALUES (?,?,?,'admin')")
+ .run("Multi Tenant Admin","multi-tenant-admin@example.test",bcrypt.hashSync(password,4)).lastInsertRowid;
+db.prepare("INSERT INTO tenant_memberships (tenant_id,user_id,role,status) VALUES (?,?,'admin','active')").run(tenant2,multiTenantUser);
 
 const server=http.createServer(app);
 let baseUrl;
@@ -45,4 +48,13 @@ test("akun yang hanya terdaftar pada tenant kedua ditolak sampai isolasi semua m
  assert.equal(result.response.headers.get("location"),"/login?error=1");
  assert.ok(db.prepare("SELECT id FROM tenant_memberships WHERE tenant_id=? AND user_id=?").get(tenant2,tenant2User));
  assert.ok(db.prepare("SELECT id FROM tenant_memberships WHERE tenant_id=1 AND user_id=?").get(adminId));
+});
+
+test("akun dengan beberapa membership ditolak tanpa tenant selector yang aman",async()=>{
+ const result=await login("multi-tenant-admin@example.test");
+ assert.equal(result.response.status,302);
+ assert.equal(result.response.headers.get("location"),"/login?error=1");
+ assert.equal(db.prepare("SELECT COUNT(*) AS total FROM tenant_memberships WHERE user_id=? AND status='active'").get(
+  db.prepare("SELECT id FROM users WHERE email='multi-tenant-admin@example.test'").get().id
+ ).total,2);
 });
