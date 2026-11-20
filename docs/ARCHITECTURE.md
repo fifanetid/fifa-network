@@ -62,3 +62,8 @@ GenieACS tetap mengelola perangkat TR-069 dan MongoDB internalnya sendiri. Datab
 3. Adapter GenieACS NBI dan relasi perangkat pelanggan.
 4. Adapter MikroTik dan sinkronisasi status layanan.
 5. Backup/restore, deployment service, HTTPS, monitoring, dan hardening production.
+
+
+## Operasional ISP (migrasi 015)
+
+Migrasi 015 menambahkan tabel ODP, kategori/pengeluaran, inventaris dan ledger mutasi stok. Koordinat pelanggan dan relasi ODP disimpan sebagai foreign key opsional. Mutasi inventaris append-only; trigger SQLite menerapkan perubahan kuantitas dan menolak pengeluaran stok melebihi stok tersedia. Pengeluaran menyimpan nominal integer rupiah dan pengguna pencatat. Akses halaman `/admin/operations`: admin mengelola ODP, kategori, inventaris dan mutasi; admin/finance dapat mencatat pengeluaran. Modul ini tidak menyalin kode dari proyek referensi.
