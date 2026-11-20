@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/assets/css/admin-ui.css">
   <link rel="stylesheet" href="/assets/css/support-tickets.css">
   <link rel="stylesheet" href="/assets/css/mikrotik.css">
+  <link rel="stylesheet" href="/assets/css/genieacs.css">
 </head>
 <body>
 <div class="app-shell">
@@ -36,7 +37,9 @@
       <% if (currentUser && currentUser.role === "admin") { %>
         <a class="<%= title === 'MikroTik' ? 'active' : '' %>" href="/admin/mikrotik"><span>⌁</span><span>MikroTik</span></a>
       <% } %>
-      <a href="#"><span>◎</span><span>GenieACS / ONT (segera)</span></a>
+      <% if (currentUser && ["admin","teknisi"].includes(currentUser.role)) { %>
+        <a href="/admin/genieacs"><span>◎</span><span>GenieACS / ONT</span></a>
+      <% } %>
       <a href="#"><span>⚙</span><span>Pengaturan</span></a>
     </nav>
     <div class="sidebar-foot">ISP Billing Platform<br><span>Version 0.5.0 · Development</span></div>
