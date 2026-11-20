@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/assets/css/support-tickets.css">
   <link rel="stylesheet" href="/assets/css/mikrotik.css">
   <link rel="stylesheet" href="/assets/css/genieacs.css">
+  <link rel="stylesheet" href="/assets/css/operations.css">
 </head>
 <body>
 <div class="app-shell">
@@ -39,6 +40,9 @@
       <% } %>
       <% if (currentUser && ["admin","teknisi"].includes(currentUser.role)) { %>
         <a href="/admin/genieacs"><span>◎</span><span>GenieACS / ONT</span></a>
+      <% } %>
+      <% if (currentUser && ["admin","finance"].includes(currentUser.role)) { %>
+        <a href="/admin/operations"><span>▦</span><span>Operasional ISP</span></a>
       <% } %>
       <a href="#"><span>⚙</span><span>Pengaturan</span></a>
     </nav>
