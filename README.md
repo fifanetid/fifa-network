@@ -2,7 +2,7 @@
 
 **ISP Billing Management Platform** — aplikasi manajemen ISP untuk operasional pelanggan, paket internet, langganan, invoice, pembayaran, dan integrasi jaringan.
 
-> Status: early development. Versi 0.5.0 menyediakan login/manajemen pengguna dan fondasi billing awal. Belum dinyatakan siap production.
+> Status: early development. Billing dasar, integrasi jaringan read-only, dan operasional ISP tersedia. Fondasi registry multi-tenant sudah ditambahkan, tetapi isolasi data SaaS belum selesai dan aplikasi belum dinyatakan siap production.
 
 ## Fitur tersedia
 
@@ -86,6 +86,12 @@ Akses melalui `/admin/operations`. Fitur ini dikembangkan dengan mengambil inspi
 - Provisioning PPP otomatis (membuat, mengubah, menonaktifkan/menghapus akun PPP, atau memutus sesi); monitoring RouterOS baca-saja sudah tersedia
 - Operasi provisioning TR-069 (reboot, ubah SSID/password/WAN) belum diaktifkan; integrasi NBI read-only dan pemetaan perangkat sudah tersedia
 - Backup/restore terkelola dan pemantauan production
+
+## Multi-tenant SaaS (fondasi)
+
+- Registry tenant, membership dengan role per tenant, domain kustom, registrasi integrasi per tenant, dan audit event tenant tersedia melalui migrasi 016. Migrasi 017 menambahkan tenant ownership keys dan guard relasi lintas tenant pada data operasional.
+- Instalasi lama otomatis ditempatkan pada tenant default **FIFA Network**.
+- **Penting:** tenant switching dan pendaftaran tenant baru belum diaktifkan. Semua route/data bisnis masih harus discope per tenant sebelum layanan SaaS publik aman digunakan. Lihat [docs/MULTI_TENANT_ARCHITECTURE.md](docs/MULTI_TENANT_ARCHITECTURE.md).
 
 ## Teknologi dan pemisahan database
 
